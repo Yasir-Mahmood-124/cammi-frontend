@@ -8,9 +8,14 @@ import {
   Paper,
   Stack,
 } from "@mui/material";
-import { Google } from "../../../../assests/icons";
+import { IconButton, InputAdornment } from "@mui/material";
+import { Visibility, VisibilityOff } from "@mui/icons-material";
+import { UpperWave, LowerWave } from "@/assests/icons";
+import { Google } from "@/assests/icons";
 import Image from "next/image";
-import Logo from "../../../../assests/images/Logo.png";
+import Logo from "@/assests/images/Logo.png";
+import { toast } from "@/utils/toast";
+import { getErrorMessage } from "@/utils/handleApiError";
 
 // RTK Query + Redux
 import {
@@ -18,7 +23,8 @@ import {
   useVerifyEmailMutation,
 } from "@/redux/services/auth/authApi";
 import { useAppDispatch } from "@/redux/hooks";
-import { setCredentials } from "@/redux/services/auth/authSlice";
+// import { setCredentials } from "@/redux/services/auth/authSlice";
+import { validatePassword } from "@/utils/validators";
 
 const RegisterPage = () => {
   const [formData, setFormData] = useState({
@@ -27,6 +33,10 @@ const RegisterPage = () => {
     email: "",
     password: "",
   });
+
+  //For Password Visibility Toggle
+  const [showPassword, setShowPassword] = useState(false);
+  const handleClickShowPassword = () => setShowPassword((prev) => !prev);
 
   const [currentCard, setCurrentCard] = useState(0);
   const [showVerification, setShowVerification] = useState(false);
@@ -57,14 +67,23 @@ const RegisterPage = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    // Client-side validation before API call
+    const passwordError = validatePassword(formData.password);
+    if (passwordError) {
+      toast(passwordError, { variant: "warning" });
+      return;
+    }
+
     try {
       const result = await register(formData).unwrap();
-      console.log("✅ Registration successful:", result);
+      toast("✅ Registration successful!", { variant: "success" });
 
       // Show email verification card
       setShowVerification(true);
     } catch (err) {
       console.error("❌ Registration failed:", err);
+      // Extract backend error message if available
+      toast(getErrorMessage(err), { variant: "error" });
     }
   };
 
@@ -87,7 +106,7 @@ const RegisterPage = () => {
   const handleVerify = async () => {
     const code = verificationCode.join("");
     if (code.length !== 6) {
-      alert("Please enter all 6 digits.");
+      toast("⚠️ Please enter all 6 digits.", { variant: "warning" });
       return;
     }
 
@@ -99,10 +118,11 @@ const RegisterPage = () => {
 
       console.log("✅ Email verified:", result);
 
-      alert("🎉 Email verified successfully!");
+      toast("🎉 Email verified successfully!", { variant: "success" });
     } catch (err) {
       console.error("❌ Verification failed:", err);
-      alert("Verification failed. Please check your code.");
+
+      toast(getErrorMessage(err), { variant: "error" });
     }
   };
 
@@ -148,13 +168,11 @@ const RegisterPage = () => {
           height: "30vh",
           top: "-5vh",
           left: "-10vw",
-          background: `
-            linear-gradient(135deg, #C8E1F5 0%, #B3D4F1 30%, #A8CEF0 60%, #9FC8EE 100%)
-          `,
-          borderRadius: "0 0 50% 50%",
           zIndex: 0,
         }}
-      />
+      >
+        <UpperWave width="100%" height="100%" />
+      </Box>
 
       {/* Bottom Wave */}
       <Box
@@ -164,13 +182,11 @@ const RegisterPage = () => {
           height: "30vh",
           bottom: "-5vh",
           left: "-10vw",
-          background: `
-            linear-gradient(135deg, #C8E1F5 0%, #B3D4F1 30%, #A8CEF0 60%, #9FC8EE 100%)
-          `,
-          borderRadius: "50% 50% 0 0",
           zIndex: 0,
         }}
-      />
+      >
+        <LowerWave width="100%" height="100%" />
+      </Box>
 
       {/* Logo */}
       <Box
@@ -266,8 +282,12 @@ const RegisterPage = () => {
                   boxShadow: "0px 6px 20px rgba(0, 0, 0, 0.12)",
                   transition: "all 0.8s cubic-bezier(0.4, 0, 0.2, 1)",
                   transform: `
-                    translateX(${index === currentCard ? 0 : (index - currentCard) * 12}px)
-                    translateY(${index === currentCard ? 0 : (index - currentCard) * 12}px)
+                    translateX(${
+                      index === currentCard ? 0 : (index - currentCard) * 12
+                    }px)
+                    translateY(${
+                      index === currentCard ? 0 : (index - currentCard) * 12
+                    }px)
                     scale(${index === currentCard ? 1 : 0.96})
                   `,
                   zIndex:
@@ -505,11 +525,23 @@ const RegisterPage = () => {
                   <TextField
                     fullWidth
                     name="password"
-                    type="password"
+                    type={showPassword ? "text" : "password"} // 👈 toggle here
                     value={formData.password}
                     onChange={handleInputChange}
                     placeholder="Enter your password"
                     size="small"
+                    InputProps={{
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          <IconButton
+                            onClick={handleClickShowPassword}
+                            edge="end"
+                          >
+                            {showPassword ? <VisibilityOff /> : <Visibility />}
+                          </IconButton>
+                        </InputAdornment>
+                      ),
+                    }}
                   />
                 </Box>
 

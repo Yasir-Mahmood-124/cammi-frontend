@@ -21,7 +21,6 @@ const theme = createTheme({
     fontFamily: "Glacial Indifference, Inter, Roboto, Arial, sans-serif", // You can change this to your preferred font
     htmlFontSize: 16, // Base font size
     h1: {
-      // Heading: 36px, weight 500
       fontSize: "36px",
       fontWeight: 500,
       lineHeight: "44px",

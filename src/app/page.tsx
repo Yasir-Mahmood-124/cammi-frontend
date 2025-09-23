@@ -1,11 +1,12 @@
-
+"use client";
 import RegisterPage from "./(pages)/auth/register/page";
+import LoginPage from "./(pages)/auth/login/page";
 
 export default function Home() {
   return (
     <div>
-      <RegisterPage />
-      {/* <h1>Helo</h1>   */}
+      {/* <RegisterPage /> */}
+      <LoginPage />
     </div>
   );
 }
