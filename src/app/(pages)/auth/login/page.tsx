@@ -18,6 +18,7 @@ import { toast } from "@/utils/toast";
 import Cookies from "js-cookie";
 
 
+
 const LoginPage = () => {
   // 🔹 State for form
   const [email, setEmail] = useState("");
