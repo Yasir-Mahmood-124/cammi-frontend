@@ -9,37 +9,38 @@ const GoogleCallbackPage = () => {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-
+    console.log("Callback params:", params.toString());
     const token = params.get("token");
     const session_id = params.get("session_id");
     const id = params.get("id");
+
+    const onboarding_status = params.get("onboarding_status") === "true";
 
     const user = {
       name: params.get("name"),
       email: params.get("email"),
       picture: params.get("picture"),
       sub: params.get("sub"),
-      session_id: params.get("session_id"),
-      onboarding_status: params.get("onboarding_status") === "true",
+      session_id,
+      onboarding_status,
       locale: params.get("locale") === "None" ? null : params.get("locale"),
       access_token: params.get("access_token"),
       expiry: params.get("expiry"),
-      id: params.get("id"),
+      id,
     };
 
     if (token && user.email) {
       Cookies.set("token", session_id ?? "", { expires: 7 });
-      console.log("session id", token);
-      localStorage.setItem("user", JSON.stringify(user));
-      localStorage.setItem("id", JSON.stringify(id));
+      console.log("Google token", token);
 
-      setTimeout(() => {
-        if (!user.onboarding_status) {
-          router.push("/onboarding");
-        } else {
-          router.push("/dashboard");
-        }
-      }, 1500);
+      localStorage.setItem("user", JSON.stringify(user));
+      localStorage.setItem("id", id ?? "");
+      localStorage.setItem(
+        "onboarding_status",
+        JSON.stringify(onboarding_status)
+      );
+
+      router.replace(onboarding_status ? "/onboarding" : "/dashboard");
     } else {
       console.error("Token or user data missing", { token, user });
     }

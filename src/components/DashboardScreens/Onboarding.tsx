@@ -7,11 +7,12 @@ import { onboardingData } from "../../const/data";
 import Cookies from "js-cookie";
 import toast, { Toaster } from "react-hot-toast";
 import { useSubmitAnswerMutation } from "@/redux/services/onboarding/onboardingApi";
+import { useRouter } from "next/navigation";
 const Onboarding = () => {
   const [step, setStep] = useState(0);
   const [selected, setSelected] = useState<number | null>(null);
   const [submitAnswer] = useSubmitAnswerMutation();
-
+  const router = useRouter();
   const currentData = onboardingData[step];
 
   const handleNext = async () => {
@@ -38,6 +39,7 @@ const Onboarding = () => {
         setSelected(null);
       } else {
         toast.success(" All questions completed!");
+        router.push("Home");
       }
     } catch (error) {
       console.error(error);
