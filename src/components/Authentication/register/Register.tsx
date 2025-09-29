@@ -16,17 +16,18 @@ import Image from "next/image";
 import Logo from "@/assests/images/Logo.png";
 import { toast } from "@/utils/toast";
 import { getErrorMessage } from "@/utils/handleApiError";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 
-// RTK Query + Redux
 import {
   useRegisterMutation,
   useVerifyEmailMutation,
 } from "@/redux/services/auth/authApi";
 import { useAppDispatch } from "@/redux/hooks";
-// import { setCredentials } from "@/redux/services/auth/authSlice";
 import { validatePassword } from "@/utils/validators";
+import { useLazyGoogleLoginQuery } from "@/redux/services/auth/googleApi";
 
-const RegisterPage = () => {
+const Register = () => {
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -34,7 +35,6 @@ const RegisterPage = () => {
     password: "",
   });
 
-  //For Password Visibility Toggle
   const [showPassword, setShowPassword] = useState(false);
   const handleClickShowPassword = () => setShowPassword((prev) => !prev);
 
@@ -44,12 +44,13 @@ const RegisterPage = () => {
     Array(6).fill("")
   );
 
-  // RTK Query hooks
   const [register, { isLoading }] = useRegisterMutation();
   const [verifyEmail, { isLoading: isVerifying }] = useVerifyEmailMutation();
   const dispatch = useAppDispatch();
+  const inputsRef = React.useRef<(HTMLInputElement | null)[]>([]);
+  const router = useRouter();
+  const [googleLogin] = useLazyGoogleLoginQuery();
 
-  // Animation for cards (left side)
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentCard((prev) => (prev + 1) % 3);
@@ -64,10 +65,22 @@ const RegisterPage = () => {
       [name]: value,
     }));
   };
+  const handleClick = async () => {
+    try {
+      const res = await googleLogin().unwrap();
+
+      if (res.login_url) {
+        window.location.href = res.login_url;
+      } else {
+        console.error("No login_url in response", res);
+      }
+    } catch (err) {
+      console.error("Error calling Google login endpoint", err);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Client-side validation before API call
     const passwordError = validatePassword(formData.password);
     if (passwordError) {
       toast(passwordError, { variant: "warning" });
@@ -76,13 +89,11 @@ const RegisterPage = () => {
 
     try {
       const result = await register(formData).unwrap();
-      toast("✅ Registration successful!", { variant: "success" });
+      toast(" Registration successful!", { variant: "success" });
 
-      // Show email verification card
       setShowVerification(true);
     } catch (err) {
       console.error("❌ Registration failed:", err);
-      // Extract backend error message if available
       toast(getErrorMessage(err), { variant: "error" });
     }
   };
@@ -93,7 +104,6 @@ const RegisterPage = () => {
       newCode[index] = value;
       setVerificationCode(newCode);
 
-      // Auto focus next input
       if (value && index < 5) {
         const nextInput = document.getElementById(
           `code-${index + 1}`
@@ -106,7 +116,7 @@ const RegisterPage = () => {
   const handleVerify = async () => {
     const code = verificationCode.join("");
     if (code.length !== 6) {
-      toast("⚠️ Please enter all 6 digits.", { variant: "warning" });
+      toast(" Please enter all 6 digits.", { variant: "warning" });
       return;
     }
 
@@ -116,14 +126,48 @@ const RegisterPage = () => {
         code,
       }).unwrap();
 
-      console.log("✅ Email verified:", result);
+      console.log(" Email verified:", result);
+      router.push("/sign-in");
 
-      toast("🎉 Email verified successfully!", { variant: "success" });
+      toast(" Email verified successfully!", { variant: "success" });
     } catch (err) {
-      console.error("❌ Verification failed:", err);
+      console.error(" Verification failed:", err);
 
       toast(getErrorMessage(err), { variant: "error" });
     }
+  };
+
+  const handleKeyDown = (
+    e: React.KeyboardEvent<HTMLInputElement>,
+    index: number
+  ) => {
+    if (e.key === "Backspace" && !verificationCode[index] && index > 0) {
+      inputsRef.current[index - 1]?.focus();
+    }
+  };
+
+  const handlePaste = (
+    e: React.ClipboardEvent<HTMLInputElement>,
+    index: number
+  ) => {
+    e.preventDefault();
+    const pasteData = e.clipboardData.getData("Text").replace(/\D/g, "");
+    if (!pasteData) return;
+
+    const pasteArr = pasteData.slice(0, verificationCode.length).split("");
+    const newCodes = [...verificationCode];
+
+    for (let i = 0; i < verificationCode.length; i++) {
+      newCodes[i] = pasteArr[i] || "";
+    }
+
+    setVerificationCode(newCodes);
+
+    const lastIndex = Math.min(
+      pasteArr.length - 1,
+      verificationCode.length - 1
+    );
+    inputsRef.current[lastIndex]?.focus();
   };
 
   const cardContents = [
@@ -160,7 +204,6 @@ const RegisterPage = () => {
         justifyContent: "center",
       }}
     >
-      {/* Top Wave */}
       <Box
         sx={{
           position: "absolute",
@@ -174,7 +217,6 @@ const RegisterPage = () => {
         <UpperWave width="100%" height="100%" />
       </Box>
 
-      {/* Bottom Wave */}
       <Box
         sx={{
           position: "absolute",
@@ -188,7 +230,6 @@ const RegisterPage = () => {
         <LowerWave width="100%" height="100%" />
       </Box>
 
-      {/* Logo */}
       <Box
         sx={{
           position: "absolute",
@@ -206,7 +247,6 @@ const RegisterPage = () => {
         />
       </Box>
 
-      {/* Main Content */}
       <Box
         sx={{
           display: "flex",
@@ -218,7 +258,6 @@ const RegisterPage = () => {
           zIndex: 5,
         }}
       >
-        {/* Left Side - Cards */}
         <Box
           sx={{
             flex: 1,
@@ -228,7 +267,6 @@ const RegisterPage = () => {
             maxWidth: "50vw",
           }}
         >
-          {/* Heading Text */}
           <Box sx={{ mb: 10, ml: 3 }}>
             <Typography
               variant="h1"
@@ -260,7 +298,6 @@ const RegisterPage = () => {
             </Typography>
           </Box>
 
-          {/* Animated Cards */}
           <Box
             sx={{
               position: "relative",
@@ -323,7 +360,6 @@ const RegisterPage = () => {
                   {card.content}
                 </Typography>
 
-                {/* Mock chart */}
                 <Box sx={{ display: "flex", gap: 0.5, alignItems: "end" }}>
                   {[1, 2, 3, 4, 5].map((item) => (
                     <Box
@@ -342,28 +378,30 @@ const RegisterPage = () => {
           </Box>
         </Box>
 
-        {/* Right Side - Conditional Card */}
         {showVerification ? (
-          // Email Verification Card
           <Paper
+            elevation={0}
             sx={{
-              width: 450,
-              height: 325,
-              borderRadius: "24px",
-              padding: "32px",
-              background: "#fff",
-              boxShadow: "0px 8px 15px 2px rgba(0,0,0,0.15)",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
+              width: 360,
+              borderRadius: 4,
+              px: 4,
+              py: 5,
+              ml: "185px",
+              mt: "-10px",
+              backgroundColor: "#fff",
+              backgroundImage: `
+      radial-gradient(60% 30% at 12% 38%, #E5F1FF 0%, rgba(229,241,255,0) 100%),
+      radial-gradient(120% 100% at 92% 88%, #F8F0F8 0%, rgba(248,240,248,0) 100%),
+      radial-gradient(100% 60% at 97% 2%, #EAF3FF 0%, rgba(234,243,255,0) 100%)
+    `,
+              boxShadow: "0px 8px 15px 2px #00000026",
             }}
           >
             <Typography
               variant="h5"
               sx={{
                 fontWeight: 500,
-                mb: 1,
+                mb: 3,
                 color: "#344054",
                 fontSize: "36px",
               }}
@@ -382,24 +420,35 @@ const RegisterPage = () => {
               Enter Code
             </Typography>
 
-            {/* Code Inputs */}
-            <Box sx={{ display: "flex", gap: 1.5, mb: 3 }}>
+            <Stack direction="row" spacing={1} justifyContent="center" mb={3}>
               {verificationCode.map((digit, idx) => (
-                <TextField
+                <input
                   key={idx}
-                  id={`code-${idx}`}
+                  ref={(el) => {
+                    inputsRef.current[idx] = el;
+                  }}
+                  type="text"
                   value={digit}
                   onChange={(e) => handleCodeChange(idx, e.target.value)}
-                  inputProps={{
-                    maxLength: 1,
-                    style: { textAlign: "center", fontSize: "18px" },
+                  onKeyDown={(e) => handleKeyDown(e, idx)}
+                  onPaste={(e) => handlePaste(e, idx)}
+                  maxLength={1}
+                  style={{
+                    width: "48px",
+                    height: "58px",
+                    fontSize: "20px",
+                    textAlign: "center",
+                    border: "1.5px solid #D0D5DD",
+                    borderRadius: "12px",
+                    outline: "none",
+                    background: "#F9FAFB",
+                    fontWeight: 600,
+                    color: "#344054",
+                    transition: "0.2s all ease-in-out",
                   }}
-                  sx={{ width: "35px", height: "45px" }}
                 />
               ))}
-            </Box>
-
-            {/* Verify Button */}
+            </Stack>
             <Button
               variant="contained"
               onClick={handleVerify}
@@ -411,17 +460,20 @@ const RegisterPage = () => {
             </Button>
           </Paper>
         ) : (
-          // Signup Form
           <Paper
             sx={{
               width: "31vw",
               maxWidth: "400px",
               minHeight: "60vh",
               borderRadius: "24px",
-              background: "#fff",
-              boxShadow: "0px 8px 15px 2px rgba(0, 0, 0, 0.15)",
+              backgroundColor: "#fff",
+              backgroundImage: `
+            radial-gradient(60% 30% at 12% 38%, #E5F1FF 0%, rgba(229,241,255,0) 100%),
+            radial-gradient(120% 100% at 92% 88%, #F8F0F8 0%, rgba(248,240,248,0) 100%),
+            radial-gradient(100% 60% at 97% 2%, #EAF3FF 0%, rgba(234,243,255,0) 100%)
+          `,
+              boxShadow: "0px 8px 15px rgba(0,0,0,0.15)",
               padding: "32px",
-              zIndex: 10,
               display: "flex",
               flexDirection: "column",
             }}
@@ -451,17 +503,19 @@ const RegisterPage = () => {
               }}
             >
               Already have an account?{" "}
-              <Box
-                component="span"
-                sx={{
-                  color: "#FF3C80",
-                  cursor: "pointer",
-                  textDecoration: "underline",
-                  "&:hover": { color: "#FF3C80" },
-                }}
-              >
-                Login
-              </Box>
+              <Link href="/sign-in" passHref>
+                <Box
+                  component="span"
+                  sx={{
+                    color: "#FF3C80",
+                    cursor: "pointer",
+                    textDecoration: "underline",
+                    "&:hover": { color: "#FF3C80" },
+                  }}
+                >
+                  Login
+                </Box>
+              </Link>
             </Typography>
 
             <form onSubmit={handleSubmit} style={{ flex: 1 }}>
@@ -525,7 +579,7 @@ const RegisterPage = () => {
                   <TextField
                     fullWidth
                     name="password"
-                    type={showPassword ? "text" : "password"} // 👈 toggle here
+                    type={showPassword ? "text" : "password"}
                     value={formData.password}
                     onChange={handleInputChange}
                     placeholder="Enter your password"
@@ -561,6 +615,7 @@ const RegisterPage = () => {
                 </Button>
 
                 <Button
+                  onClick={handleClick}
                   variant="outlined"
                   fullWidth
                   startIcon={<Google />}
@@ -572,9 +627,7 @@ const RegisterPage = () => {
                     background: "rgba(255, 255, 255, 0.9)",
                     textTransform: "none",
                   }}
-                >
-                  Continue with Google
-                </Button>
+                ></Button>
               </Stack>
             </form>
           </Paper>
@@ -584,4 +637,4 @@ const RegisterPage = () => {
   );
 };
 
-export default RegisterPage;
+export default Register;

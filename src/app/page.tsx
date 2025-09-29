@@ -1,6 +1,5 @@
 "use client";
-import RegisterPage from "./(pages)/auth/register/page";
-import LoginPage from "./(pages)/auth/login/page";
+import LoginPage from "./(pages)/sign-in/page";
 
 export default function Home() {
   return (
