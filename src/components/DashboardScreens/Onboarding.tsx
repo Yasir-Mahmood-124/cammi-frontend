@@ -39,7 +39,7 @@ const Onboarding = () => {
         setSelected(null);
       } else {
         toast.success(" All questions completed!");
-        router.push("Home");
+        router.push("/dashboard");
       }
     } catch (error) {
       console.error(error);
