@@ -10,7 +10,7 @@ import {
   ListItem,
 } from "@mui/material";
 import { Home } from "@mui/icons-material";
-
+import { useRouter } from "next/navigation";
 const steps = [
   { title: "Clarify", color: "#D48CF5" },
   { title: "Align", color: "#A78BFA" },
@@ -27,8 +27,8 @@ const documents = [
   "GTM Document",
   "GTM Document",
 ];
-
 const Dashboard = () => {
+  const router = useRouter();
   return (
     <Box
       sx={{
@@ -94,7 +94,7 @@ const Dashboard = () => {
             fontSize: "48px",
             fontWeight: 700,
             fontStyle: "normal",
-            lineHeight: "28px", // Be aware, this is very tight for 48px font-size
+            lineHeight: "28px",
             letterSpacing: "0.938px",
           }}
         >
@@ -225,6 +225,9 @@ const Dashboard = () => {
         flexWrap="wrap"
         justifyContent="center"
         sx={{ mt: 8 }}
+        onClick={() => {
+          router.push("/Home");
+        }}
       >
         {steps.map((step, i) => (
           <Box
