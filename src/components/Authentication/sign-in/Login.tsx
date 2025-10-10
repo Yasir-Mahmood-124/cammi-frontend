@@ -83,26 +83,42 @@ const Login = () => {
   return (
     <Box
       sx={{
-        minHeight: "100vh",
-        backgroundColor: "#E5F1FF",
-        display: "flex",
-        flexDirection: "column",
         position: "relative",
+        minHeight: "100vh",
+        display: "flex",
         overflow: "hidden",
+        backgroundColor: "#EFF1F5",
+        zIndex: 0, // base layer
+
+        // 👇 Background layer (behind everything)
+        "&::before": {
+          content: '""',
+          position: "absolute",
+          inset: 0,
+          backgroundImage: "url('/Background/Background.png')",
+          backgroundRepeat: "no-repeat",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          opacity: 0.2,
+          zIndex: -2, // make it go behind all content
+        },
+
+        // 👇 Overlay layer (also behind everything)
+        "&::after": {
+          content: '""',
+          position: "absolute",
+          inset: 0,
+          backgroundImage: "url('/Background/bg-2.png')",
+          backgroundRepeat: "no-repeat",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          opacity: 0.15,
+          mixBlendMode: "overlay",
+          pointerEvents: "none",
+          zIndex: -1, // also behind content
+        },
       }}
     >
-      <Box
-        sx={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          width: "100%",
-          zIndex: 0,
-        }}
-      >
-        <UpperWave color="#F8F0F8" style={{ height: "200px" }} />
-      </Box>
-
       <Container
         maxWidth={false}
         disableGutters
@@ -110,124 +126,114 @@ const Login = () => {
           flex: 1,
           display: "flex",
           flexDirection: "column",
-          alignItems: "flex-start",
+          alignItems: "center",
+          justifyContent: "center",
           zIndex: 1,
         }}
       >
         <Box
           sx={{
             display: "flex",
-            justifyContent: "flex-start",
-            alignItems: "center",
-            width: "100%",
-            mt: 2,
-          }}
-        >
-          <Image
-            src={Logo}
-            alt="CAMMI Logo"
-            width={110}
-            height={70}
-            style={{ objectFit: "contain" }}
-          />
-        </Box>
-
-        <Box
-          display={"flex"}
-          flexDirection={"column"}
-          alignItems={"center"}
-          justifyItems={"center"}
-          gap={4}
-          mt={"120px"}
-          ml={20}
-        >
-          <Box
-            display={"flex"}
-            flexDirection={"column"}
-            alignItems={"center"}
-            justifyItems={"center"}
-          >
-            <Typography variant="h1" sx={{ color: "#000", lineHeight: 1.2 }}>
-              CAMMI:&nbsp;
-              <Box component="span" sx={{ color: "secondary.main" }}>
-                Your AI-Powered
-              </Box>
-            </Typography>
-            <Typography
-              variant="h1"
-              sx={{ color: "#000", mt: 0.5, ml: "42px" }}
-            >
-              Marketing BFF
-            </Typography>
-          </Box>
-        </Box>
-
-        <Box
-          sx={{
-            display: "flex",
             alignItems: "flex-start",
-            gap: 25,
+            // gap: 10,
             flexWrap: "wrap",
-            ml: "200px",
+            // ml: "200px",
           }}
         >
-          <Paper
-            elevation={3}
-            sx={{
-              width: 250,
-              height: 250,
-              borderRadius: 3,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              bgcolor: "#fff",
-            }}
-          >
-            <Typography variant="body1" color="text.secondary">
-              Dummy Feature Card
-            </Typography>
-          </Paper>
-
           <Paper
             elevation={0}
             sx={{
-              width: 360,
+              width: 400,
               borderRadius: 4,
               px: 4,
-              py: 8,
-              ml: "185px",
-              mt: "-200px",
+              py: 4,
+              // ml: "185px",
+              // mt: "-200px",
               backgroundColor: "#fff",
-              backgroundImage: `
-                radial-gradient(60% 30% at 12% 38%, #E5F1FF 0%, rgba(229,241,255,0) 100%),
-                radial-gradient(120% 100% at 92% 88%, #F8F0F8 0%, rgba(248,240,248,0) 100%),
-                radial-gradient(100% 60% at 97% 2%, #EAF3FF 0%, rgba(234,243,255,0) 100%)
-              `,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: 1,
               boxShadow: "0px 8px 15px 2px #00000026",
             }}
           >
+            {" "}
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                width: "100%",
+                height: 80,
+                // mt: 2,
+              }}
+            >
+              <Image
+                src={Logo}
+                alt="CAMMI Logo"
+                width={110}
+                height={70}
+                style={{ objectFit: "contain" }}
+              />
+            </Box>
+            <Box
+              position="relative"
+              display="flex"
+              alignItems="center"
+              justifyContent="center"
+              width="100%"
+              sx={{ my: 0 }}
+            >
+              {/* Line with dots */}
+              <Box
+                sx={{
+                  position: "absolute",
+                  width: "60%",
+                  height: "2px",
+                  bgcolor: "#e0e0e0",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  px: 1.5, // space inside for dots
+                }}
+              >
+                <Box
+                  sx={{
+                    width: 4,
+                    height: 4,
+                    bgcolor: "#e0e0e0",
+                    borderRadius: "50%",
+                    ml: -3,
+                  }}
+                />
+                <Box
+                  sx={{
+                    width: 4,
+                    height: 4,
+                    bgcolor: "#e0e0e0",
+                    borderRadius: "50%",
+                    mr: -3,
+                  }}
+                />
+              </Box>
+            </Box>
             <form onSubmit={handleSubmit}>
               <Typography
-                variant="h1"
                 textAlign="center"
-                sx={{ mb: 2, mt: -3 }}
+                sx={{
+                  fontFamily: "Poppins",
+                  fontWeight: 600,
+                  fontStyle: "normal", // "SemiBold" isn't a CSS value, 600 covers it
+                  fontSize: "30px",
+                  lineHeight: "100%",
+                  letterSpacing: "0%",
+                  opacity: 1,
+                  mt: 0,
+                  mb: 2,
+                  width: "300px",
+                }}
               >
                 Log in
-              </Typography>
-
-              <Typography
-                variant="h5"
-                textAlign="center"
-                sx={{ mb: 3, color: "#838485" }}
-              >
-                New to CAMMI?{" "}
-                <Link
-                  href="/register"
-                  underline="hover"
-                  sx={{ color: "secondary.main", fontWeight: 500 }}
-                >
-                  Sign up for free
-                </Link>
               </Typography>
 
               <Stack spacing={1}>
@@ -247,10 +253,20 @@ const Login = () => {
                   sx={{
                     "& .MuiInputBase-root": {
                       height: 45,
+                      borderRadius: "10px",
                     },
                     "& input": {
                       padding: "15px 8px",
                       fontSize: "14px",
+                    },
+                    "& .MuiOutlinedInput-notchedOutline": {
+                      borderColor: "#ccc",
+                    },
+                    "&:hover .MuiOutlinedInput-notchedOutline": {
+                      borderColor: "#999",
+                    },
+                    "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+                      borderColor: "#000",
                     },
                   }}
                 />
@@ -271,22 +287,40 @@ const Login = () => {
                   sx={{
                     "& .MuiInputBase-root": {
                       height: 45,
+                      borderRadius: "10px",
                     },
                     "& input": {
                       padding: "15px 8px",
                       fontSize: "14px",
                     },
+                    "& .MuiOutlinedInput-notchedOutline": {
+                      borderColor: "#ccc",
+                    },
+                    "&:hover .MuiOutlinedInput-notchedOutline": {
+                      borderColor: "#999",
+                    },
+                    "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+                      borderColor: "#000",
+                    },
                   }}
                   InputProps={{
                     endAdornment: (
                       <InputAdornment position="end">
-                        <IconButton onClick={handleTogglePassword} edge="end">
+                        <IconButton
+                          onClick={handleTogglePassword}
+                          edge="end"
+                          sx={{
+                            color: "#666", // adjust to your theme
+                            "&:hover": { color: "#000" },
+                          }}
+                        >
                           {showPassword ? <VisibilityOff /> : <Visibility />}
                         </IconButton>
                       </InputAdornment>
                     ),
                   }}
                 />
+
                 <Link
                   href="/account-recovery"
                   underline="hover"
@@ -315,24 +349,28 @@ const Login = () => {
                   fullWidth
                   startIcon={<Google />}
                   sx={{ borderRadius: "30px" }}
-                ></Button>
+                >
+                  Sign in with Google
+                </Button>
               </Stack>
             </form>
+            <Typography
+              variant="h5"
+              textAlign="center"
+              sx={{ color: "#838485", mt: "10px" }}
+            >
+              New to CAMMI?{" "}
+              <Link
+                href="/register"
+                underline="hover"
+                sx={{ color: "secondary.main", fontWeight: 500 }}
+              >
+                Sign up for free
+              </Link>
+            </Typography>
           </Paper>
         </Box>
       </Container>
-
-      <Box
-        sx={{
-          position: "absolute",
-          bottom: 0,
-          left: 0,
-          width: "100%",
-          zIndex: 0,
-        }}
-      >
-        <LowerWave color="#E5F1FF" style={{ height: "180px" }} />
-      </Box>
     </Box>
   );
 };
