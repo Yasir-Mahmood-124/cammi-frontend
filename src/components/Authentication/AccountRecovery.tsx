@@ -46,10 +46,7 @@ const AccountRecovery = () => {
     }
   };
 
-  const handleKeyDown = (
-    e: React.KeyboardEvent<HTMLInputElement>,
-    index: number
-  ) => {
+  const handleKeyDown = (e: React.KeyboardEvent, index: number) => {
     if (e.key === "Backspace" && !codes[index] && index > 0) {
       inputsRef.current[index - 1]?.focus();
     }
