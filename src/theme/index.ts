@@ -18,7 +18,7 @@ const theme = createTheme({
     },
   },
   typography: {
-    fontFamily: "Glacial Indifference, Inter, Roboto, Arial, sans-serif", // You can change this to your preferred font
+    fontFamily: "Poppins", // You can change this to your preferred font
     htmlFontSize: 16, // Base font size
     h1: {
       fontSize: "36px",
