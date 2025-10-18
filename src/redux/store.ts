@@ -7,6 +7,7 @@ import { googleApi } from "./services/auth/googleApi";
 import { projectsApi } from "./services/projects/projectApi";
 import { reviewApi } from "./services/documentReview/reviewApi";
 import { refineApi } from "./services/common/refineApi";
+import { uploadApiSlice } from "./services/common/uploadApiSlice";
 
 // Create the store
 export const store = configureStore({
@@ -18,6 +19,7 @@ export const store = configureStore({
     [projectsApi.reducerPath]: projectsApi.reducer,
     [reviewApi.reducerPath]: reviewApi.reducer,
     [refineApi.reducerPath]: refineApi.reducer,
+    [uploadApiSlice.reducerPath]: uploadApiSlice.reducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware()
@@ -27,6 +29,7 @@ export const store = configureStore({
       .concat(projectsApi.middleware)
       .concat(reviewApi.middleware)
       .concat(refineApi.middleware)
+      .concat(uploadApiSlice.middleware),
 });
 
 // Infer types for RootState and AppDispatch
