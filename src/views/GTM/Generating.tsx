@@ -15,6 +15,7 @@ const Generating: React.FC<GeneratingProps> = ({ wsUrl, onComplete }) => {
   const pendingQueue = useRef<string[]>([]);
   const typingInterval = useRef<NodeJS.Timeout | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
+  const hasCalledComplete = useRef(false); // Prevent duplicate calls
 
   // Typing effect function
   const startTyping = (text: string) => {
@@ -40,6 +41,28 @@ const Generating: React.FC<GeneratingProps> = ({ wsUrl, onComplete }) => {
     }, 15);
   };
 
+  // Function to trigger completion
+  const triggerCompletion = () => {
+    if (!hasCalledComplete.current) {
+      hasCalledComplete.current = true;
+      console.log("✅ Document generation completed! Triggering onComplete callback...");
+      setIsComplete(true);
+      setProgress(100);
+      
+      // Close WebSocket
+      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+        wsRef.current.close();
+      }
+      
+      // Call the completion callback with a small delay for better UX
+      if (onComplete) {
+        setTimeout(() => {
+          onComplete();
+        }, 800);
+      }
+    }
+  };
+
   useEffect(() => {
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
@@ -50,7 +73,13 @@ const Generating: React.FC<GeneratingProps> = ({ wsUrl, onComplete }) => {
 
         // Handle progress updates
         if (message.action === "sendMessage" && typeof message.body === "number") {
-          setProgress(message.body);
+          const newProgress = message.body;
+          setProgress(newProgress);
+          
+          // Check if progress reached 100%
+          if (newProgress >= 100) {
+            triggerCompletion();
+          }
           return;
         }
 
@@ -69,15 +98,14 @@ const Generating: React.FC<GeneratingProps> = ({ wsUrl, onComplete }) => {
           }
         }
 
-        // Handle completion
+        // Handle completion message
         if (message.action === "sendMessage" && message.body === "Document generated successfully!") {
-          console.log("✅ Document generation completed!");
-          ws.close();
-          setIsComplete(true);
-          setProgress(100);
-          if (onComplete) {
-            onComplete();
-          }
+          triggerCompletion();
+        }
+
+        // Handle completion status
+        if (message.status === "completed" || message.status === "complete") {
+          triggerCompletion();
         }
       } catch (err) {
         console.error("❌ Failed parsing WS message", err);
@@ -91,6 +119,11 @@ const Generating: React.FC<GeneratingProps> = ({ wsUrl, onComplete }) => {
 
     ws.onclose = (event) => {
       console.log("🔗 WebSocket closed:", event.code, event.reason);
+      
+      // If connection closed and progress is 100%, ensure completion is triggered
+      if (progress >= 100 || isComplete) {
+        triggerCompletion();
+      }
     };
 
     return () => {
@@ -101,7 +134,7 @@ const Generating: React.FC<GeneratingProps> = ({ wsUrl, onComplete }) => {
         ws.close();
       }
     };
-  }, [wsUrl, onComplete]);
+  }, [wsUrl]);
 
   return (
     <div

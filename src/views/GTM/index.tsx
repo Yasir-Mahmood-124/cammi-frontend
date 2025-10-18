@@ -8,8 +8,10 @@ import UserInput from './UserInput';
 import InputTaker from './InputTaker';
 import FinalPreview from './FinalPreview';
 import Generating from './Generating';
+import DocumentPreview from './DocumentPreview';
 import { useRefineMutation } from '@/redux/services/common/refineApi';
 import { useUploadTextFileMutation } from '@/redux/services/common/uploadApiSlice';
+import { useGetDocxFileMutation } from '@/redux/services/document/downloadApi';
 import Cookies from 'js-cookie';
 
 interface Question {
@@ -30,9 +32,10 @@ const GTMPage: React.FC = () => {
   const [selectedOption, setSelectedOption] = useState<'text' | 'infographic'>('text');
   const open = Boolean(anchorEl);
 
-  // Redux mutation hook
+  // Redux mutation hooks
   const [refine, { isLoading }] = useRefineMutation();
   const [uploadTextFile, { isLoading: isUploading }] = useUploadTextFileMutation();
+  const [getDocxFile, { isLoading: isDownloading }] = useGetDocxFileMutation();
 
   // Session ID for conversation continuity
   const [sessionId, setSessionId] = useState<string | undefined>(undefined);
@@ -40,6 +43,11 @@ const GTMPage: React.FC = () => {
   // Document generation states
   const [isGenerating, setIsGenerating] = useState(false);
   const [wsUrl, setWsUrl] = useState<string>('');
+  
+  // Document preview states
+  const [showDocumentPreview, setShowDocumentPreview] = useState(false);
+  const [docxBase64, setDocxBase64] = useState<string>('');
+  const [fileName, setFileName] = useState<string>('');
 
   // All questions
   const initialQuestions: Question[] = [
@@ -115,9 +123,35 @@ const GTMPage: React.FC = () => {
     }
   };
 
-  const handleGenerationComplete = () => {
-    console.log("Document generation completed!");
-    // You can add logic here to show a success message or navigate
+  const handleGenerationComplete = async () => {
+    console.log("Document generation completed! Fetching document...");
+    
+    try {
+      const savedToken = Cookies.get("token");
+      const project_id = JSON.parse(
+        localStorage.getItem("currentProject") || "{}"
+      ).project_id;
+
+      // Call the download API
+      const response = await getDocxFile({
+        session_id: savedToken || '',
+        document_type: 'gtm',
+        project_id: project_id,
+      }).unwrap();
+
+      // Set the document data
+      setDocxBase64(response.docxBase64);
+      setFileName(response.fileName || 'document.docx');
+      
+      // Hide generating and show document preview
+      setIsGenerating(false);
+      setShowDocumentPreview(true);
+      
+      console.log("✅ Document fetched successfully");
+    } catch (error) {
+      console.error("❌ Failed to fetch document:", error);
+      setIsGenerating(false);
+    }
   };
 
   // Handle generating answer from API
@@ -192,6 +226,11 @@ const GTMPage: React.FC = () => {
 
   const currentQuestion = questions[currentQuestionIndex];
 
+  // Show document preview if ready
+  if (showDocumentPreview && docxBase64) {
+    return <DocumentPreview docxBase64={docxBase64} fileName={fileName} />;
+  }
+
   return (
     <Box
       sx={{
@@ -231,7 +270,6 @@ const GTMPage: React.FC = () => {
                 onGenerate={handleGenerateAnswer}
                 onRegenerate={handleRegenerate}
                 onConfirm={handleConfirm}
-                // onAnswerEdit={handleAnswerEdit}
               />
             )}
           </Box>
