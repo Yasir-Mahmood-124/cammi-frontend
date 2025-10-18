@@ -65,9 +65,9 @@ const DashboardPage = () => {
       }}
     >
       {/* Sidebar */}
-      <Box sx={{ width: 150, flexShrink: 0 }}>
+      {/* <Box sx={{ width: 150, flexShrink: 0 }}>
         <Sidebar />
-      </Box>
+      </Box> */}
 
       {/* Main Content */}
       <Box
@@ -75,8 +75,8 @@ const DashboardPage = () => {
           flexGrow: 1,
           backgroundColor: "#EFF1F5",
           overflowY: "auto",
-          py: 4,
-          pl: 8,
+          py: 2,
+          // pl: 8,
         }}
       >
         <Container
@@ -243,190 +243,6 @@ const DashboardPage = () => {
                 )}
               </Box>
             </Box>
-
-            {/* Recent Projects */}
-            <Box
-              display="flex"
-              flexWrap="wrap"
-              flexDirection={"column"}
-              gap={2}
-              justifyContent="flex-start"
-            >
-              <Typography
-                variant="h6"
-                sx={{
-                  color: "#000",
-                  fontFamily: "Poppins",
-                  fontSize: "24px",
-                  fontWeight: 600,
-                  mb: 2,
-                }}
-              >
-                Recent Projects
-              </Typography>
-
-              <Box
-                display="flex"
-                // flexDirection="column"
-                alignItems="center"
-                gap={1.5}
-              >
-                {projects.length > 0 ? (
-                  projects.map((project) => (
-                    <Button
-                      key={project.id}
-                      variant="contained"
-                      sx={{
-                        width: "250px",
-                        height: "50px",
-                        flexShrink: 0,
-                        borderRadius: "5px",
-                        border: "1px solid #D9D9D9",
-                        backgroundColor: "#FFF",
-                        color: "#000",
-                        textTransform: "none",
-                        boxShadow: "none",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 1, // spacing between icon and text
-                        px: 2,
-                        "&:hover": {
-                          backgroundColor: "#f5f5f5",
-                        },
-                      }}
-                    >
-                      {/* Folder Icon */}
-                      <img
-                        src="/Folders/folder.png"
-                        alt="Folder"
-                        style={{
-                          width: "37px",
-                          height: "37px",
-                          objectFit: "contain",
-                        }}
-                      />
-
-                      {/* Project Title */}
-                      <span>{project.title}</span>
-
-                      {/* Three-dot SVG aligned to the right */}
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="4"
-                        height="16"
-                        viewBox="0 0 4 16"
-                        fill="none"
-                        style={{ marginLeft: "auto", flexShrink: 0 }}
-                      >
-                        <path
-                          d="M4 2C4 3.10457 3.10457 4 2 4C0.89543 4 0 3.10457 0 2C0 0.89543 0.89543 0 2 0C3.10457 0 4 0.89543 4 2Z"
-                          fill="#D9D9D9"
-                        />
-                        <path
-                          d="M4 8C4 9.10457 3.10457 10 2 10C0.89543 10 0 9.10457 0 8C0 6.89543 0.89543 6 2 6C3.10457 6 4 6.89543 4 8Z"
-                          fill="#D9D9D9"
-                        />
-                        <path
-                          d="M4 14C4 15.1046 3.10457 16 2 16C0.89543 16 0 15.1046 0 14C0 12.8954 0.89543 12 2 12C3.10457 12 4 12.8954 4 14Z"
-                          fill="#D9D9D9"
-                        />
-                      </svg>
-                    </Button>
-                  ))
-                ) : (
-                  <Typography>No projects available.</Typography>
-                )}
-              </Box>
-            </Box>
-
-            {/* Expert Review Table */}
-            {/* <Box sx={{ width: "100%" }}>
-              <Typography
-                variant="h6"
-                sx={{
-                  color: "#000",
-                  fontFamily: "Poppins",
-                  fontSize: "24px",
-                  fontWeight: 600,
-                  mb: 5,
-                }}
-              >
-                CAMMI Expert Review
-              </Typography>
-
-              <TableContainer
-                component={Paper}
-                sx={{
-                  borderRadius: "12px",
-                  maxWidth: 900,
-                  // mx: "auto",
-                }}
-              >
-                <Table>
-                  <TableHead
-                    sx={
-                      {
-                        // backgroundColor: "#EFF1F5",
-                      }
-                    }
-                  >
-                    <TableRow>
-                      {[
-                        "No",
-                        "Name",
-                        "Organization",
-                        "Date",
-                        "Project",
-                        "Status",
-                      ].map((header) => (
-                        <TableCell key={header} sx={{ fontWeight: 600 }}>
-                          {header}
-                        </TableCell>
-                      ))}
-                    </TableRow>
-                  </TableHead>
-
-                  <TableBody>
-                    <TableRow>
-                      <TableCell>01</TableCell>
-                      <TableCell>GTM Document</TableCell>
-                      <TableCell>Kartech</TableCell>
-                      <TableCell>04 Sep 2025</TableCell>
-                      <TableCell>Krados</TableCell>
-                      <TableCell>
-                        <Button
-                          variant="contained"
-                          sx={{
-                            width: "90px",
-                            height: "27px",
-                            flexShrink: 0,
-                            borderRadius: "4.5px",
-                            backgroundColor: "rgba(0, 182, 155, 0.2)", // semi-transparent background
-                            color: "#00B69B", // text color
-                            fontFamily: "'Nunito Sans', sans-serif",
-                            fontSize: "12px",
-                            fontStyle: "normal",
-                            fontWeight: 700,
-                            lineHeight: "normal",
-                            textTransform: "none",
-                            minWidth: "0",
-                            padding: 0,
-                            boxShadow: "none",
-                            "&:hover": {
-                              backgroundColor: "rgba(0, 182, 155, 0.2)", // same as normal
-                              color: "#00B69B", // same text color
-                              boxShadow: "none", // no shadow
-                            },
-                          }}
-                        >
-                          Completed
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            </Box> */}
             <Box sx={{ width: "100%" }}>
               <Typography
                 variant="h6"
@@ -478,7 +294,7 @@ const DashboardPage = () => {
                       </TableRow>
                     ) : data && data.length > 0 ? (
                       data.map((review: Review, index: number) => (
-                        <TableRow key={review.id}>
+                        <TableRow key={review.id ?? index}>
                           <TableCell>{index + 1}</TableCell>
                           <TableCell>{review.DocumentName}</TableCell>
                           <TableCell>{review.Organization}</TableCell>

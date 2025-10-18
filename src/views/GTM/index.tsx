@@ -1,0 +1,310 @@
+"use client";
+
+import React, { useState, useEffect } from 'react';
+import { Box, Button, Menu, MenuItem, Typography } from '@mui/material';
+import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
+import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
+import UserInput from './UserInput';
+import InputTaker from './InputTaker';
+import FinalPreview from './FinalPreview';
+import { useRefineMutation } from '@/redux/services/common/refineApi';
+
+interface Question {
+  id: number;
+  question: string;
+  answer: string;
+  isAnswered: boolean;
+}
+
+interface InputItem {
+  id: number;
+  question: string;
+  answer: string;
+}
+
+const GTMPage: React.FC = () => {
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [selectedOption, setSelectedOption] = useState<'text' | 'infographic'>('text');
+  const open = Boolean(anchorEl);
+
+  // Redux mutation hook
+  const [refine, { isLoading }] = useRefineMutation();
+
+  // Session ID for conversation continuity
+  const [sessionId, setSessionId] = useState<string | undefined>(undefined);
+
+  // All questions
+  const initialQuestions: Question[] = [
+    { id: 1, question: "What do you want to accomplish in one year?", answer: "", isAnswered: false },
+    { id: 2, question: "Where do you want to be in three years?", answer: "", isAnswered: false },
+    { id: 3, question: "Where is your short term focus?", answer: "", isAnswered: false },
+    { id: 4, question: "Tell us about your business?", answer: "", isAnswered: false },
+    { id: 5, question: "Tell us about who you sell to? Where are they located?", answer: "", isAnswered: false },
+    { id: 6, question: "What is unique about your business?", answer: "", isAnswered: false },
+    { id: 7, question: "What marketing tools do you have available to you?", answer: "", isAnswered: false },
+    { id: 8, question: "Who do you think are your biggest competitors?", answer: "", isAnswered: false },
+    { id: 9, question: "What are your strengths, weaknesses, opps and threats?", answer: "", isAnswered: false },
+    { id: 10, question: "Tell us about your product/solution/service?", answer: "", isAnswered: false },
+  ];
+
+  const [questions, setQuestions] = useState<Question[]>(initialQuestions);
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [currentAnswer, setCurrentAnswer] = useState("");
+  const [showFinalPreview, setShowFinalPreview] = useState(false);
+
+  const allQuestionsAnswered = questions.every(q => q.isAnswered);
+
+  const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleClose = () => {
+    setAnchorEl(null);
+  };
+
+  const handleOptionSelect = (option: 'text' | 'infographic') => {
+    setSelectedOption(option);
+    handleClose();
+  };
+
+  // Handle generating answer from API
+  const handleGenerateAnswer = async (userPrompt: string) => {
+    try {
+      const response = await refine({
+        prompt: userPrompt,
+        session_id: sessionId,
+      }).unwrap();
+
+      // Store session ID for conversation continuity
+      if (response.session_id) {
+        setSessionId(response.session_id);
+      }
+
+      // Set the generated answer
+      setCurrentAnswer(response.groq_response);
+    } catch (error) {
+      console.error('Failed to generate answer:', error);
+    }
+  };
+
+  // Handle regenerate
+  const handleRegenerate = async () => {
+    const currentQuestion = questions[currentQuestionIndex];
+    await handleGenerateAnswer(currentQuestion.question);
+  };
+
+  // Handle confirm - move to next question
+  const handleConfirm = () => {
+    // Update the current question with the answer
+    const updatedQuestions = [...questions];
+    updatedQuestions[currentQuestionIndex] = {
+      ...updatedQuestions[currentQuestionIndex],
+      answer: currentAnswer,
+      isAnswered: true,
+    };
+    setQuestions(updatedQuestions);
+
+    // Move to next question
+    if (currentQuestionIndex < questions.length - 1) {
+      setCurrentQuestionIndex(currentQuestionIndex + 1);
+      setCurrentAnswer("");
+    } else {
+      // All questions answered - show final preview
+      console.log('All questions completed!');
+      setShowFinalPreview(true);
+    }
+  };
+
+  // Handle manual answer edit
+  const handleAnswerEdit = (newAnswer: string) => {
+    setCurrentAnswer(newAnswer);
+  };
+
+  // Handle clicking on a question in InputTaker
+  const handleQuestionClick = (id: number) => {
+    const questionIndex = questions.findIndex(q => q.id === id);
+    if (questionIndex !== -1) {
+      setCurrentQuestionIndex(questionIndex);
+      setCurrentAnswer(questions[questionIndex].answer);
+      setShowFinalPreview(false); // Go back to editing mode
+    }
+  };
+
+  // Handle answer update in FinalPreview
+  const handleFinalPreviewUpdate = (id: number, newAnswer: string) => {
+    const updatedQuestions = [...questions];
+    const questionIndex = updatedQuestions.findIndex(q => q.id === id);
+    if (questionIndex !== -1) {
+      updatedQuestions[questionIndex].answer = newAnswer;
+      setQuestions(updatedQuestions);
+    }
+  };
+
+  // Convert questions to InputItem format for InputTaker
+  const inputItems: InputItem[] = questions.map(q => ({
+    id: q.id,
+    question: q.question,
+    answer: q.isAnswered ? q.answer : "Not answered yet",
+  }));
+
+  const currentQuestion = questions[currentQuestionIndex];
+
+  return (
+    <Box
+      sx={{
+        height: '100vh',
+        maxHeight: '100vh',
+        backgroundColor: '#EFF1F5',
+        padding: '20px',
+        display: 'flex',
+        gap: '20px',
+        position: 'relative',
+        overflow: 'hidden',
+      }}
+    >
+      <Box sx={{ flex: 1, display: 'flex', justifyContent: 'center', overflow: 'hidden' }}>
+        {showFinalPreview ? (
+          <FinalPreview 
+            questionsAnswers={questions.map(q => ({
+              id: q.id,
+              question: q.question,
+              answer: q.answer
+            }))}
+            onAnswerUpdate={handleFinalPreviewUpdate}
+          />
+        ) : (
+          <UserInput
+            number={currentQuestion.id}
+            question={currentQuestion.question}
+            answer={currentAnswer}
+            isLoading={isLoading}
+            onGenerate={handleGenerateAnswer}
+            onRegenerate={handleRegenerate}
+            onConfirm={handleConfirm}
+            // onAnswerEdit={handleAnswerEdit}
+          />
+        )}
+      </Box>
+
+      <Box sx={{ width: '350px', display: 'flex', flexDirection: 'column', height: '100%' }}>
+        <InputTaker 
+          items={inputItems}
+          currentQuestionId={currentQuestion.id}
+          answeredIds={questions.filter(q => q.isAnswered).map(q => q.id)}
+          isClickable={false}
+        />
+      </Box>
+
+      <Box
+        sx={{
+          position: 'fixed',
+          bottom: '19px',
+          right: '118px',
+        }}
+      >
+        <Button
+          variant="contained"
+          endIcon={<ArrowForwardIcon sx={{ fontSize: '14px' }} />}
+          onClick={handleClick}
+          disabled={!allQuestionsAnswered}
+          sx={{
+            background: 'linear-gradient(135deg, #3EA3FF, #FF3C80)',
+            color: '#fff',
+            textTransform: 'none',
+            fontFamily: 'Poppins',
+            fontSize: '13px',
+            fontWeight: 600,
+            padding: '10px 20px',
+            borderRadius: '10px',
+            boxShadow: '0 3px 8px rgba(62, 163, 255, 0.3)',
+            '&:hover': {
+              background: 'linear-gradient(135deg, #2E8FE6, #E6356D)',
+              boxShadow: '0 4px 11px rgba(62, 163, 255, 0.4)',
+            },
+            '&:disabled': {
+              background: '#ccc',
+              color: '#666',
+            },
+          }}
+        >
+          Generate Document
+        </Button>
+
+        <Menu
+          anchorEl={anchorEl}
+          open={open}
+          onClose={handleClose}
+          anchorOrigin={{
+            vertical: 'top',
+            horizontal: 'center',
+          }}
+          transformOrigin={{
+            vertical: 'bottom',
+            horizontal: 'center',
+          }}
+          PaperProps={{
+            sx: {
+              borderRadius: '10px',
+              border: '1px solid #D2D2D2',
+              backgroundColor: '#FFF',
+              minWidth: '180px',
+              marginTop: '-8px',
+            },
+          }}
+        >
+          <MenuItem
+            onClick={() => handleOptionSelect('text')}
+            sx={{
+              fontFamily: 'Poppins',
+              fontSize: '11px',
+              padding: '10px 14px',
+              backgroundColor: selectedOption === 'text' ? '#D9D9D980' : 'transparent',
+              '&:hover': {
+                backgroundColor: '#D9D9D980',
+              },
+            }}
+          >
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+              <Typography sx={{ fontFamily: 'Poppins', fontSize: '11px' }}>
+                Text Base
+              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: '4px', marginLeft: '16px' }}>
+                <Typography sx={{ fontFamily: 'Poppins', fontSize: '11px', color: '#3EA3FF' }}>
+                  25
+                </Typography>
+                <AccountBalanceWalletIcon sx={{ fontSize: '13px', color: '#3EA3FF' }} />
+              </Box>
+            </Box>
+          </MenuItem>
+          
+          <MenuItem
+            onClick={() => handleOptionSelect('infographic')}
+            sx={{
+              fontFamily: 'Poppins',
+              fontSize: '11px',
+              padding: '10px 14px',
+              backgroundColor: selectedOption === 'infographic' ? '#D9D9D980' : 'transparent',
+              '&:hover': {
+                backgroundColor: '#D9D9D980',
+              },
+            }}
+          >
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+              <Typography sx={{ fontFamily: 'Poppins', fontSize: '11px' }}>
+                Infographic Base
+              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: '4px', marginLeft: '16px' }}>
+                <Typography sx={{ fontFamily: 'Poppins', fontSize: '11px', color: '#3EA3FF' }}>
+                  50
+                </Typography>
+                <AccountBalanceWalletIcon sx={{ fontSize: '13px', color: '#3EA3FF' }} />
+              </Box>
+            </Box>
+          </MenuItem>
+        </Menu>
+      </Box>
+    </Box>
+  );
+};
+
+export default GTMPage;

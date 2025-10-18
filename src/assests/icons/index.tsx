@@ -13,6 +13,8 @@ export {default as LeadCalculator} from "./LeadCalculator.svg";
 export {default as Projects} from "./Projects.svg";
 export {default as Scheduler} from "./Schedular.svg";
 export {default as SR} from "./SR.svg";
+export {default as Cammi} from "./Cammi.svg";
+export {default as ArrowAbove} from "./ArrowAbove.svg";
 // 👆 Add more icons like this if needed
 // export { default as Facebook } from "./Facebook.svg";
 // export { default as Twitter } from "./Twitter.svg";

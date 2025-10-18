@@ -1,9 +1,9 @@
-import React from 'react'
+import GTMPage from "@/views/GTM";
 
-const page = () => {
+export default function GTM() {
   return (
-    <div>page</div>
-  )
+    <div>
+      <GTMPage />
+    </div>
+  );
 }
-
-export default page

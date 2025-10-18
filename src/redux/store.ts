@@ -6,6 +6,8 @@ import { onboardingApi } from "./services/onboarding/onboardingApi";
 import { googleApi } from "./services/auth/googleApi";
 import { projectsApi } from "./services/projects/projectApi";
 import { reviewApi } from "./services/documentReview/reviewApi";
+import { refineApi } from "./services/common/refineApi";
+
 // Create the store
 export const store = configureStore({
   reducer: {
@@ -15,6 +17,7 @@ export const store = configureStore({
     [googleApi.reducerPath]: googleApi.reducer,
     [projectsApi.reducerPath]: projectsApi.reducer,
     [reviewApi.reducerPath]: reviewApi.reducer,
+    [refineApi.reducerPath]: refineApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware()
@@ -22,7 +25,8 @@ export const store = configureStore({
       .concat(onboardingApi.middleware)
       .concat(googleApi.middleware)
       .concat(projectsApi.middleware)
-      .concat(reviewApi.middleware),
+      .concat(reviewApi.middleware)
+      .concat(refineApi.middleware)
 });
 
 // Infer types for RootState and AppDispatch

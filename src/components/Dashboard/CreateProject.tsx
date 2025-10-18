@@ -25,9 +25,10 @@ import PrimaryButton from "../ui/PrimaryButton";
 
 interface CreateProjectProps {
   onCreate: (data: { project: string; organization: string }) => void;
+  onClose?: () => void;
 }
 
-export default function CreateProject({ onCreate }: CreateProjectProps) {
+export default function CreateProject({ onCreate, onClose }: CreateProjectProps) {
   const session_id = Cookies.get("token") || "";
 
   const [mode, setMode] = useState<
@@ -81,6 +82,14 @@ export default function CreateProject({ onCreate }: CreateProjectProps) {
       fontSize: "16px",
       fontWeight: 500,
     },
+  };
+
+  // Helper function to trigger UI updates
+  const triggerProjectUpdate = () => {
+    // Dispatch custom event for same-tab updates
+    window.dispatchEvent(new Event('projectUpdated'));
+    // Also trigger storage event manually
+    window.dispatchEvent(new Event('storage'));
   };
 
   const handleSubmit = async () => {
@@ -141,9 +150,14 @@ export default function CreateProject({ onCreate }: CreateProjectProps) {
           "currentProject",
           JSON.stringify({
             organization_id: selectedOrgId,
+            organization_name: orgName,
             project_id: selectedProjectId,
+            project_name: projectName,
           })
         );
+
+        // Trigger UI updates
+        triggerProjectUpdate();
 
         toast.success("Project selected successfully!");
 
@@ -151,6 +165,11 @@ export default function CreateProject({ onCreate }: CreateProjectProps) {
           organization: orgName,
           project: projectName,
         });
+
+        // Close modal after successful selection
+        if (onClose) {
+          onClose();
+        }
       }
     } catch (err: any) {
       toast.error(err?.data?.message || "Operation failed");
@@ -166,9 +185,14 @@ export default function CreateProject({ onCreate }: CreateProjectProps) {
       "currentProject",
       JSON.stringify({
         organization_id: response.organization_id,
+        organization_name: orgName,
         project_id: response.project_id,
+        project_name: projectName,
       })
     );
+
+    // Trigger UI updates
+    triggerProjectUpdate();
 
     toast.success("Project created successfully!");
 
@@ -181,6 +205,11 @@ export default function CreateProject({ onCreate }: CreateProjectProps) {
     setProject("");
     setSelectedOrgId("");
     setSelectedProjectId("");
+
+    // Close modal after successful creation
+    if (onClose) {
+      onClose();
+    }
   };
 
   return (
