@@ -6,12 +6,15 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import SendIcon from '@mui/icons-material/Send';
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
 import { Cammi } from '@/assests/icons';
+import { useRefineMutation } from '@/redux/services/common/refineApi';
+import { useAddQuestionMutation } from '@/redux/services/common/addQuestion';
 
 interface UserInputProps {
   number: number;
   question: string;
   answer: string;
   isLoading?: boolean;
+  documentType: string;
   onGenerate?: (prompt: string) => void;
   onRegenerate?: () => void;
   onConfirm?: () => void;
@@ -22,6 +25,7 @@ const UserInput: React.FC<UserInputProps> = ({
   question, 
   answer,
   isLoading = false,
+  documentType,
   onGenerate,
   onRegenerate, 
   onConfirm
@@ -29,6 +33,11 @@ const UserInput: React.FC<UserInputProps> = ({
   const [inputValue, setInputValue] = useState('');
   const [displayedAnswer, setDisplayedAnswer] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [sessionId, setSessionId] = useState<string | undefined>(undefined);
+
+  // RTK Query mutations
+  const [refine, { isLoading: isRefining }] = useRefineMutation();
+  const [addQuestion, { isLoading: isAddingQuestion }] = useAddQuestionMutation();
 
   // Typing animation effect
   useEffect(() => {
@@ -49,15 +58,92 @@ const UserInput: React.FC<UserInputProps> = ({
         setIsTyping(false);
         clearInterval(typingInterval);
       }
-    }, 20); // Adjust speed here (milliseconds per character)
+    }, 20);
 
     return () => clearInterval(typingInterval);
   }, [answer]);
 
-  const handleSendClick = () => {
-    if (inputValue.trim() && onGenerate) {
-      onGenerate(inputValue.trim());
-      setInputValue('');
+  const handleSendClick = async () => {
+    if (inputValue.trim()) {
+      try {
+        // Call refine API
+        const refinePayload = {
+          prompt: inputValue.trim(),
+          ...(sessionId && { session_id: sessionId })
+        };
+
+        const refineResult = await refine(refinePayload).unwrap();
+        
+        // Update session_id if returned
+        if (refineResult.session_id) {
+          setSessionId(refineResult.session_id);
+        }
+
+        // Update the answer with groq_response
+        if (onGenerate) {
+          onGenerate(refineResult.groq_response);
+        }
+
+        setInputValue('');
+      } catch (error) {
+        console.error('Error generating answer:', error);
+        // You might want to show an error message to the user here
+      }
+    }
+  };
+
+  const handleRegenerateClick = async () => {
+    if (displayedAnswer) {
+      try {
+        // Use the current displayed answer as the prompt for regeneration
+        const refinePayload = {
+          prompt: `Regenerate and improve this answer: ${displayedAnswer}`,
+          ...(sessionId && { session_id: sessionId })
+        };
+
+        const refineResult = await refine(refinePayload).unwrap();
+        
+        // Update session_id if returned
+        if (refineResult.session_id) {
+          setSessionId(refineResult.session_id);
+        }
+
+        // Update the answer with new groq_response
+        if (onGenerate) {
+          onGenerate(refineResult.groq_response);
+        }
+      } catch (error) {
+        console.error('Error regenerating answer:', error);
+      }
+    }
+
+    if (onRegenerate) {
+      onRegenerate();
+    }
+  };
+
+  const handleConfirmClick = async () => {
+    if (displayedAnswer && !isTyping) {
+      try {
+        // Call addQuestion API
+        const addQuestionPayload = {
+          question_text: question,
+          answer_text: displayedAnswer,
+          document_type: documentType
+        };
+
+        await addQuestion(addQuestionPayload).unwrap();
+        
+        console.log('Question and answer saved successfully');
+
+        // Call the original onConfirm callback
+        if (onConfirm) {
+          onConfirm();
+        }
+      } catch (error) {
+        console.error('Error saving question and answer:', error);
+        // You might want to show an error message to the user here
+      }
     }
   };
 
@@ -67,6 +153,8 @@ const UserInput: React.FC<UserInputProps> = ({
       handleSendClick();
     }
   };
+
+  const combinedLoading = isLoading || isRefining || isAddingQuestion;
 
   return (
     <Box sx={{ width: '100%', maxWidth: '700px', height: "100%", maxHeight: "505px" }}>
@@ -132,7 +220,7 @@ const UserInput: React.FC<UserInputProps> = ({
             </Typography>
           </Box>
 
-          {isLoading ? (
+          {combinedLoading ? (
             <Box sx={{ 
               display: 'flex', 
               justifyContent: 'center', 
@@ -172,8 +260,8 @@ const UserInput: React.FC<UserInputProps> = ({
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <Button
               startIcon={<RefreshIcon sx={{ fontSize: '12px' }} />}
-              onClick={onRegenerate}
-              disabled={!answer || isLoading || isTyping}
+              onClick={handleRegenerateClick}
+              disabled={!answer || combinedLoading || isTyping}
               sx={{
                 color: '#3FA3FF',
                 textTransform: 'none',
@@ -193,8 +281,8 @@ const UserInput: React.FC<UserInputProps> = ({
             </Button>
             <Button
               endIcon={<Cammi />}
-              onClick={onConfirm}
-              disabled={!answer || isLoading || isTyping}
+              onClick={handleConfirmClick}
+              disabled={!answer || combinedLoading || isTyping}
               sx={{
                 color: '#FD3D81',
                 textTransform: 'none',
@@ -228,7 +316,7 @@ const UserInput: React.FC<UserInputProps> = ({
           endAdornment: (
             <IconButton 
               onClick={handleSendClick}
-              disabled={!inputValue.trim() || isLoading}
+              disabled={!inputValue.trim() || combinedLoading}
               sx={{ 
                 color: '#3EA3FF', 
                 padding: '4px',

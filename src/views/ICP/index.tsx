@@ -50,7 +50,7 @@ const ICPPage: React.FC = () => {
       document_type: "icp"
     },
     {
-      skip: !shouldFetchQuestions || !projectId // Only fetch when No button is clicked and projectId exists
+      skip: !shouldFetchQuestions || !projectId
     }
   );
 
@@ -64,7 +64,7 @@ const ICPPage: React.FC = () => {
       }));
       setQuestions(formattedQuestions);
       setView('questions');
-      setShouldFetchQuestions(false); // Reset the fetch trigger
+      setShouldFetchQuestions(false);
     }
   }, [data]);
 
@@ -73,28 +73,22 @@ const ICPPage: React.FC = () => {
   };
 
   const handleNoClick = () => {
-    setShouldFetchQuestions(true); // Trigger the API call
+    setShouldFetchQuestions(true);
   };
 
   const handleUpload = (file: File) => {
     console.log('File uploaded:', file.name);
-    // Handle file upload logic here
   };
 
-  const handleGenerate = (prompt: string) => {
-    // Handle AI generation logic here
-    console.log('Generate with prompt:', prompt);
-    // Simulate AI response
-    setTimeout(() => {
-      const updatedQuestions = [...questions];
-      updatedQuestions[currentQuestionIndex].answer = `Generated answer for: ${prompt}`;
-      setQuestions(updatedQuestions);
-    }, 1000);
+  const handleGenerate = (generatedAnswer: string) => {
+    // Update the answer for the current question
+    const updatedQuestions = [...questions];
+    updatedQuestions[currentQuestionIndex].answer = generatedAnswer;
+    setQuestions(updatedQuestions);
   };
 
   const handleRegenerate = () => {
     console.log('Regenerate answer');
-    // Handle regeneration logic
   };
 
   const handleConfirm = () => {
@@ -154,7 +148,7 @@ const ICPPage: React.FC = () => {
       {view === 'upload' && (
         <UploadDocument 
           onUpload={handleUpload}
-          projectId="your_project_id"
+          projectId={projectId}
           documentType="icp"
         />
       )}
@@ -170,12 +164,13 @@ const ICPPage: React.FC = () => {
           maxHeight: '500px',
         }}>
           
-          {/* Left Side - Question List */}
+          {/* Left Side - Current Question Input */}
           <Box sx={{ flex: 1, height: '200vh' }}>
             <UserInput
               number={questions[currentQuestionIndex].id}
               question={questions[currentQuestionIndex].question}
               answer={questions[currentQuestionIndex].answer}
+              documentType="icp"
               isLoading={false}
               onGenerate={handleGenerate}
               onRegenerate={handleRegenerate}
@@ -183,7 +178,7 @@ const ICPPage: React.FC = () => {
             />
           </Box>
 
-          {/* Right Side - Current Question */}
+          {/* Right Side - Question List */}
           <Box sx={{ flex: '0 0 300px', height: '100%' }}>
             <InputTakerUpdated
               items={questions}

@@ -12,6 +12,7 @@ import {downloadDocument} from "./services/document/downloadApi";
 import {downloadPdfApi} from "./services/document/download-pdf";
 import { sendReviewApi } from "./services/common/send_review";
 import {getUnansweredQuestionsApi} from "./services/common/getUnansweredQuestionsApi";
+import { addQuestionApi } from "./services/common/addQuestion";
 
 // Create the store
 export const store = configureStore({
@@ -28,6 +29,7 @@ export const store = configureStore({
     [downloadPdfApi.reducerPath]: downloadPdfApi.reducer,
     [sendReviewApi.reducerPath]: sendReviewApi.reducer,
     [getUnansweredQuestionsApi.reducerPath]: getUnansweredQuestionsApi.reducer,
+    [addQuestionApi.reducerPath]: addQuestionApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware()
@@ -42,6 +44,7 @@ export const store = configureStore({
       .concat(downloadPdfApi.middleware)
       .concat(sendReviewApi.middleware)
       .concat(getUnansweredQuestionsApi.middleware)
+      .concat(addQuestionApi.middleware)
 });
 
 // Infer types for RootState and AppDispatch
