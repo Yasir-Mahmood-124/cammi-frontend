@@ -10,6 +10,7 @@ import { refineApi } from "./services/common/refineApi";
 import { uploadApiSlice } from "./services/common/uploadApiSlice";
 import {downloadDocument} from "./services/document/downloadApi";
 import {downloadPdfApi} from "./services/document/download-pdf";
+import { sendReviewApi } from "./services/common/send_review";
 
 // Create the store
 export const store = configureStore({
@@ -24,6 +25,7 @@ export const store = configureStore({
     [uploadApiSlice.reducerPath]: uploadApiSlice.reducer,
     [downloadDocument.reducerPath]: downloadDocument.reducer,
     [downloadPdfApi.reducerPath]: downloadPdfApi.reducer,
+    [sendReviewApi.reducerPath]: sendReviewApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware()
@@ -35,7 +37,8 @@ export const store = configureStore({
       .concat(refineApi.middleware)
       .concat(uploadApiSlice.middleware)
       .concat(downloadDocument.middleware)
-      .concat(downloadPdfApi.middleware),
+      .concat(downloadPdfApi.middleware)
+      .concat(sendReviewApi.middleware)
 });
 
 // Infer types for RootState and AppDispatch
