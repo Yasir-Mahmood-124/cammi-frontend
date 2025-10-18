@@ -7,7 +7,10 @@ import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import UserInput from './UserInput';
 import InputTaker from './InputTaker';
 import FinalPreview from './FinalPreview';
+import Generating from './Generating';
 import { useRefineMutation } from '@/redux/services/common/refineApi';
+import { useUploadTextFileMutation } from '@/redux/services/common/uploadApiSlice';
+import Cookies from 'js-cookie';
 
 interface Question {
   id: number;
@@ -29,9 +32,14 @@ const GTMPage: React.FC = () => {
 
   // Redux mutation hook
   const [refine, { isLoading }] = useRefineMutation();
+  const [uploadTextFile, { isLoading: isUploading }] = useUploadTextFileMutation();
 
   // Session ID for conversation continuity
   const [sessionId, setSessionId] = useState<string | undefined>(undefined);
+
+  // Document generation states
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [wsUrl, setWsUrl] = useState<string>('');
 
   // All questions
   const initialQuestions: Question[] = [
@@ -62,9 +70,54 @@ const GTMPage: React.FC = () => {
     setAnchorEl(null);
   };
 
-  const handleOptionSelect = (option: 'text' | 'infographic') => {
+  const handleOptionSelect = async (option: 'text' | 'infographic') => {
     setSelectedOption(option);
     handleClose();
+
+    if (option === 'text') {
+      await handleGenerateDocument();
+    }
+  };
+
+  // Handle document generation
+  const handleGenerateDocument = async () => {
+    try {
+      const dynamicFileName = "businessidea.txt";
+      const savedToken = Cookies.get("token");
+      const project_id = JSON.parse(
+        localStorage.getItem("currentProject") || "{}"
+      ).project_id;
+
+      // Prepare text content from all Q&A
+      const textContent = questions
+        .map((q) => `Q: ${q.question}\nA: ${q.answer}`)
+        .join("\n\n");
+
+      const base64Content = btoa(unescape(encodeURIComponent(textContent)));
+
+      const payload = {
+        fileName: dynamicFileName,
+        fileContent: base64Content,
+        token: savedToken,
+        project_id: project_id,
+        document_type: "gtm",
+      };
+
+      await uploadTextFile(payload).unwrap();
+      console.log("✅ File uploaded successfully");
+
+      // Set WebSocket URL and show Generating component
+      const websocketUrl = `wss://4iqvtvmxle.execute-api.us-east-1.amazonaws.com/prod/?session_id=${savedToken}`;
+      setWsUrl(websocketUrl);
+      setIsGenerating(true);
+    } catch (err) {
+      console.error("❌ Upload failed", err);
+    }
+  };
+
+  const handleGenerationComplete = () => {
+    console.log("Document generation completed!");
+    // You can add logic here to show a success message or navigate
   };
 
   // Handle generating answer from API
@@ -120,16 +173,6 @@ const GTMPage: React.FC = () => {
     setCurrentAnswer(newAnswer);
   };
 
-  // Handle clicking on a question in InputTaker
-  const handleQuestionClick = (id: number) => {
-    const questionIndex = questions.findIndex(q => q.id === id);
-    if (questionIndex !== -1) {
-      setCurrentQuestionIndex(questionIndex);
-      setCurrentAnswer(questions[questionIndex].answer);
-      setShowFinalPreview(false); // Go back to editing mode
-    }
-  };
-
   // Handle answer update in FinalPreview
   const handleFinalPreviewUpdate = (id: number, newAnswer: string) => {
     const updatedQuestions = [...questions];
@@ -162,147 +205,156 @@ const GTMPage: React.FC = () => {
         overflow: 'hidden',
       }}
     >
-      <Box sx={{ flex: 1, display: 'flex', justifyContent: 'center', overflow: 'hidden' }}>
-        {showFinalPreview ? (
-          <FinalPreview 
-            questionsAnswers={questions.map(q => ({
-              id: q.id,
-              question: q.question,
-              answer: q.answer
-            }))}
-            onAnswerUpdate={handleFinalPreviewUpdate}
-          />
-        ) : (
-          <UserInput
-            number={currentQuestion.id}
-            question={currentQuestion.question}
-            answer={currentAnswer}
-            isLoading={isLoading}
-            onGenerate={handleGenerateAnswer}
-            onRegenerate={handleRegenerate}
-            onConfirm={handleConfirm}
-            // onAnswerEdit={handleAnswerEdit}
-          />
-        )}
-      </Box>
+      {isGenerating ? (
+        // Show Generating component when document is being generated
+        <Box sx={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+          <Generating wsUrl={wsUrl} onComplete={handleGenerationComplete} />
+        </Box>
+      ) : (
+        <>
+          <Box sx={{ flex: 1, display: 'flex', justifyContent: 'center', overflow: 'hidden' }}>
+            {showFinalPreview ? (
+              <FinalPreview 
+                questionsAnswers={questions.map(q => ({
+                  id: q.id,
+                  question: q.question,
+                  answer: q.answer
+                }))}
+                onAnswerUpdate={handleFinalPreviewUpdate}
+              />
+            ) : (
+              <UserInput
+                number={currentQuestion.id}
+                question={currentQuestion.question}
+                answer={currentAnswer}
+                isLoading={isLoading}
+                onGenerate={handleGenerateAnswer}
+                onRegenerate={handleRegenerate}
+                onConfirm={handleConfirm}
+                // onAnswerEdit={handleAnswerEdit}
+              />
+            )}
+          </Box>
 
-      <Box sx={{ width: '350px', display: 'flex', flexDirection: 'column', height: '100%' }}>
-        <InputTaker 
-          items={inputItems}
-          currentQuestionId={currentQuestion.id}
-          answeredIds={questions.filter(q => q.isAnswered).map(q => q.id)}
-          isClickable={false}
-        />
-      </Box>
+          <Box sx={{ width: '350px', display: 'flex', flexDirection: 'column', height: '100%' }}>
+            <InputTaker 
+              items={inputItems}
+              currentQuestionId={currentQuestion.id}
+              answeredIds={questions.filter(q => q.isAnswered).map(q => q.id)}
+              isClickable={false}
+            />
+          </Box>
 
-      <Box
-        sx={{
-          position: 'fixed',
-          bottom: '19px',
-          right: '118px',
-        }}
-      >
-        <Button
-          variant="contained"
-          endIcon={<ArrowForwardIcon sx={{ fontSize: '14px' }} />}
-          onClick={handleClick}
-          disabled={!allQuestionsAnswered}
-          sx={{
-            background: 'linear-gradient(135deg, #3EA3FF, #FF3C80)',
-            color: '#fff',
-            textTransform: 'none',
-            fontFamily: 'Poppins',
-            fontSize: '13px',
-            fontWeight: 600,
-            padding: '10px 20px',
-            borderRadius: '10px',
-            boxShadow: '0 3px 8px rgba(62, 163, 255, 0.3)',
-            '&:hover': {
-              background: 'linear-gradient(135deg, #2E8FE6, #E6356D)',
-              boxShadow: '0 4px 11px rgba(62, 163, 255, 0.4)',
-            },
-            '&:disabled': {
-              background: '#ccc',
-              color: '#666',
-            },
-          }}
-        >
-          Generate Document
-        </Button>
-
-        <Menu
-          anchorEl={anchorEl}
-          open={open}
-          onClose={handleClose}
-          anchorOrigin={{
-            vertical: 'top',
-            horizontal: 'center',
-          }}
-          transformOrigin={{
-            vertical: 'bottom',
-            horizontal: 'center',
-          }}
-          PaperProps={{
-            sx: {
-              borderRadius: '10px',
-              border: '1px solid #D2D2D2',
-              backgroundColor: '#FFF',
-              minWidth: '180px',
-              marginTop: '-8px',
-            },
-          }}
-        >
-          <MenuItem
-            onClick={() => handleOptionSelect('text')}
+          <Box
             sx={{
-              fontFamily: 'Poppins',
-              fontSize: '11px',
-              padding: '10px 14px',
-              backgroundColor: selectedOption === 'text' ? '#D9D9D980' : 'transparent',
-              '&:hover': {
-                backgroundColor: '#D9D9D980',
-              },
+              position: 'fixed',
+              bottom: '19px',
+              right: '118px',
             }}
           >
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
-              <Typography sx={{ fontFamily: 'Poppins', fontSize: '11px' }}>
-                Text Base
-              </Typography>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: '4px', marginLeft: '16px' }}>
-                <Typography sx={{ fontFamily: 'Poppins', fontSize: '11px', color: '#3EA3FF' }}>
-                  25
-                </Typography>
-                <AccountBalanceWalletIcon sx={{ fontSize: '13px', color: '#3EA3FF' }} />
-              </Box>
-            </Box>
-          </MenuItem>
-          
-          <MenuItem
-            onClick={() => handleOptionSelect('infographic')}
-            sx={{
-              fontFamily: 'Poppins',
-              fontSize: '11px',
-              padding: '10px 14px',
-              backgroundColor: selectedOption === 'infographic' ? '#D9D9D980' : 'transparent',
-              '&:hover': {
-                backgroundColor: '#D9D9D980',
-              },
-            }}
-          >
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
-              <Typography sx={{ fontFamily: 'Poppins', fontSize: '11px' }}>
-                Infographic Base
-              </Typography>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: '4px', marginLeft: '16px' }}>
-                <Typography sx={{ fontFamily: 'Poppins', fontSize: '11px', color: '#3EA3FF' }}>
-                  50
-                </Typography>
-                <AccountBalanceWalletIcon sx={{ fontSize: '13px', color: '#3EA3FF' }} />
-              </Box>
-            </Box>
-          </MenuItem>
-        </Menu>
-      </Box>
+            <Button
+              variant="contained"
+              endIcon={<ArrowForwardIcon sx={{ fontSize: '14px' }} />}
+              onClick={handleClick}
+              disabled={!allQuestionsAnswered || isUploading}
+              sx={{
+                background: 'linear-gradient(135deg, #3EA3FF, #FF3C80)',
+                color: '#fff',
+                textTransform: 'none',
+                fontFamily: 'Poppins',
+                fontSize: '13px',
+                fontWeight: 600,
+                padding: '10px 20px',
+                borderRadius: '10px',
+                boxShadow: '0 3px 8px rgba(62, 163, 255, 0.3)',
+                '&:hover': {
+                  background: 'linear-gradient(135deg, #2E8FE6, #E6356D)',
+                  boxShadow: '0 4px 11px rgba(62, 163, 255, 0.4)',
+                },
+                '&:disabled': {
+                  background: '#ccc',
+                  color: '#666',
+                },
+              }}
+            >
+              {isUploading ? 'Uploading...' : 'Generate Document'}
+            </Button>
+
+            <Menu
+              anchorEl={anchorEl}
+              open={open}
+              onClose={handleClose}
+              anchorOrigin={{
+                vertical: 'top',
+                horizontal: 'center',
+              }}
+              transformOrigin={{
+                vertical: 'bottom',
+                horizontal: 'center',
+              }}
+              PaperProps={{
+                sx: {
+                  borderRadius: '10px',
+                  border: '1px solid #D2D2D2',
+                  backgroundColor: '#FFF',
+                  minWidth: '180px',
+                  marginTop: '-8px',
+                },
+              }}
+            >
+              <MenuItem
+                onClick={() => handleOptionSelect('text')}
+                sx={{
+                  fontFamily: 'Poppins',
+                  fontSize: '11px',
+                  padding: '10px 14px',
+                  backgroundColor: selectedOption === 'text' ? '#D9D9D980' : 'transparent',
+                  '&:hover': {
+                    backgroundColor: '#D9D9D980',
+                  },
+                }}
+              >
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+                  <Typography sx={{ fontFamily: 'Poppins', fontSize: '11px' }}>
+                    Text Base
+                  </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: '4px', marginLeft: '16px' }}>
+                    <Typography sx={{ fontFamily: 'Poppins', fontSize: '11px', color: '#3EA3FF' }}>
+                      25
+                    </Typography>
+                    <AccountBalanceWalletIcon sx={{ fontSize: '13px', color: '#3EA3FF' }} />
+                  </Box>
+                </Box>
+              </MenuItem>
+              
+              <MenuItem
+                onClick={() => handleOptionSelect('infographic')}
+                sx={{
+                  fontFamily: 'Poppins',
+                  fontSize: '11px',
+                  padding: '10px 14px',
+                  backgroundColor: selectedOption === 'infographic' ? '#D9D9D980' : 'transparent',
+                  '&:hover': {
+                    backgroundColor: '#D9D9D980',
+                  },
+                }}
+              >
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+                  <Typography sx={{ fontFamily: 'Poppins', fontSize: '11px' }}>
+                    Infographic Base
+                  </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: '4px', marginLeft: '16px' }}>
+                    <Typography sx={{ fontFamily: 'Poppins', fontSize: '11px', color: '#3EA3FF' }}>
+                      50
+                    </Typography>
+                    <AccountBalanceWalletIcon sx={{ fontSize: '13px', color: '#3EA3FF' }} />
+                  </Box>
+                </Box>
+              </MenuItem>
+            </Menu>
+          </Box>
+        </>
+      )}
     </Box>
   );
 };
