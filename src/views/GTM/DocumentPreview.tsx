@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Box, Button, Typography, CircularProgress, Menu, MenuItem } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import { useDownloadPdfMutation } from '@/redux/services/document/download-pdf';
+import { useSendReviewDocumentMutation } from '@/redux/services/common/send_review';
 import Cookies from 'js-cookie';
 
 interface DocumentPreviewProps {
@@ -21,12 +22,15 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ docxBase64, fileName 
   const [tableOfContents, setTableOfContents] = useState<TableOfContentsItem[]>([]);
   const [activeSection, setActiveSection] = useState<string>('');
   const [documentHtml, setDocumentHtml] = useState<string>('');
+  const [documentText, setDocumentText] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [selectedFormat, setSelectedFormat] = useState<'PDF' | 'DOCx'>('DOCx');
+  const [selectedFormat, setSelectedFormat] = useState<'PDF' | 'DOCx' | null>(null);
   const open = Boolean(anchorEl);
+  const contentRef = useRef<HTMLDivElement>(null);
 
   const [downloadPdf, { isLoading: isPdfLoading }] = useDownloadPdfMutation();
+  const [sendReview, { isLoading: isReviewLoading }] = useSendReviewDocumentMutation();
 
   useEffect(() => {
     const parseDocx = async () => {
@@ -43,9 +47,12 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ docxBase64, fileName 
         
         // Convert to HTML
         const result = await mammoth.convertToHtml({ arrayBuffer: bytes.buffer });
-        setDocumentHtml(result.value);
         
-        // Extract table of contents from the HTML
+        // Extract plain text
+        const textResult = await mammoth.extractRawText({ arrayBuffer: bytes.buffer });
+        setDocumentText(textResult.value);
+        
+        // Parse HTML and add IDs to headings
         const parser = new DOMParser();
         const doc = parser.parseFromString(result.value, 'text/html');
         const headings = doc.querySelectorAll('h1, h2, h3, h4, h5, h6');
@@ -60,7 +67,10 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ docxBase64, fileName 
           toc.push({ id, text, level });
         });
         
+        // Get updated HTML with IDs
+        setDocumentHtml(doc.body.innerHTML);
         setTableOfContents(toc);
+        
         if (toc.length > 0) {
           setActiveSection(toc[0].id);
         }
@@ -74,6 +84,30 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ docxBase64, fileName 
 
     parseDocx();
   }, [docxBase64]);
+
+  // Track scroll position to update active section
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!contentRef.current) return;
+
+      const scrollPosition = contentRef.current.scrollTop + 100; // offset for better UX
+
+      // Find which heading is currently in view
+      for (let i = tableOfContents.length - 1; i >= 0; i--) {
+        const element = contentRef.current.querySelector(`#${tableOfContents[i].id}`) as HTMLElement;
+        if (element && element.offsetTop <= scrollPosition) {
+          setActiveSection(tableOfContents[i].id);
+          break;
+        }
+      }
+    };
+
+    const container = contentRef.current;
+    if (container) {
+      container.addEventListener('scroll', handleScroll);
+      return () => container.removeEventListener('scroll', handleScroll);
+    }
+  }, [tableOfContents]);
 
   const handleDownloadClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     setAnchorEl(event.currentTarget);
@@ -127,14 +161,19 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ docxBase64, fileName 
         document_type: 'gtm',
       }).unwrap();
 
-      // Convert base64 PDF to blob and download
-      const binaryString = atob(response.base64_pdf);
-      const bytes = new Uint8Array(binaryString.length);
-      for (let i = 0; i < binaryString.length; i++) {
-        bytes[i] = binaryString.charCodeAt(i);
+      console.log("📄 PDF Response:", response);
+
+      // Optimized base64 to blob conversion
+      const byteCharacters = atob(response.base64_pdf);
+      const byteArrays = [];
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteArrays.push(byteCharacters.charCodeAt(i));
       }
-      
-      const blob = new Blob([bytes], { type: 'application/pdf' });
+
+      const blob = new Blob([new Uint8Array(byteArrays)], {
+        type: "application/pdf",
+      });
+
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
@@ -155,27 +194,42 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ docxBase64, fileName 
     // Implement edit functionality
   };
 
-  const handleSubmitForReview = () => {
-    console.log('Submit for review functionality to be implemented');
-    // Implement submit for review functionality
+  const handleSubmitForReview = async () => {
+    try {
+      const savedToken = Cookies.get("token");
+      const project_id = JSON.parse(
+        localStorage.getItem("currentProject") || "{}"
+      ).project_id;
+
+      const response = await sendReview({
+        session_id: savedToken || '',
+        project_id: project_id,
+        document_type: 'gtm',
+        document_text: documentText,
+      }).unwrap();
+
+      console.log('✅ Document submitted for review:', response);
+      // You can add a success notification here
+    } catch (error) {
+      console.error('❌ Failed to submit for review:', error);
+      // You can add an error notification here
+    }
   };
 
   const scrollToSection = (id: string) => {
     setActiveSection(id);
     
-    // Find the element in the document content area
-    const documentContainer = document.querySelector('[data-document-content]');
-    const element = documentContainer?.querySelector(`#${id}`);
-    
-    if (element && documentContainer) {
-      // Get the position of the element relative to the container
-      const elementTop = (element as HTMLElement).offsetTop;
+    if (contentRef.current) {
+      const element = contentRef.current.querySelector(`#${id}`) as HTMLElement;
       
-      // Scroll the container to the element with smooth behavior
-      documentContainer.scrollTo({
-        top: elementTop - 20, // 20px offset from top for better visibility
-        behavior: 'smooth'
-      });
+      if (element) {
+        const elementTop = element.offsetTop;
+        
+        contentRef.current.scrollTo({
+          top: elementTop - 20,
+          behavior: 'smooth'
+        });
+      }
     }
   };
 
@@ -302,7 +356,7 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ docxBase64, fileName 
 
         {/* Document Content - Right Side */}
         <Box 
-          data-document-content
+          ref={contentRef}
           sx={{ 
             flex: 1,
             backgroundColor: '#FFFFFF',
@@ -397,10 +451,10 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ docxBase64, fileName 
         display: 'flex',
         justifyContent: 'center',
         gap: '16px',
-        alignItems: 'center'
+        alignItems: 'stretch'
       }}>
         {/* Download Button with Dropdown */}
-        <Box sx={{ position: 'relative' }}>
+        <Box sx={{ position: 'relative', display: 'flex' }}>
           <Button
             variant="outlined"
             endIcon={<KeyboardArrowUpIcon sx={{ 
@@ -421,6 +475,7 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ docxBase64, fileName 
               borderColor: '#3EA3FF',
               color: '#3EA3FF',
               textTransform: 'none',
+              height: '100%',
               '&:hover': {
                 borderColor: '#2E8FE6',
                 backgroundColor: '#E3F2FD',
@@ -463,7 +518,6 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ docxBase64, fileName 
                 fontSize: '12px',
                 padding: '10px 20px',
                 justifyContent: 'center',
-                backgroundColor: selectedFormat === 'PDF' ? '#D9D9D980' : 'transparent',
                 '&:hover': {
                   backgroundColor: '#D9D9D980',
                 },
@@ -479,7 +533,6 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ docxBase64, fileName 
                 fontSize: '12px',
                 padding: '10px 20px',
                 justifyContent: 'center',
-                backgroundColor: selectedFormat === 'DOCx' ? '#D9D9D980' : 'transparent',
                 '&:hover': {
                   backgroundColor: '#D9D9D980',
                 },
@@ -517,6 +570,7 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ docxBase64, fileName 
         <Button
           variant="outlined"
           onClick={handleSubmitForReview}
+          disabled={isReviewLoading}
           sx={{
             fontFamily: 'Poppins',
             fontSize: '13px',
@@ -528,15 +582,18 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ docxBase64, fileName 
             color: '#333',
             textTransform: 'none',
             display: 'flex',
-            flexDirection: 'column',
+            flexDirection: 'row',
             alignItems: 'center',
-            gap: '2px',
+            gap: '8px',
             '&:hover': {
               background: 'linear-gradient(#F8F8F8, #F8F8F8) padding-box, linear-gradient(135deg, #3EA3FF, #FF3C80) border-box',
             },
+            '&:disabled': {
+              opacity: 0.6,
+            },
           }}
         >
-          <span>Submit for review</span>
+          <span>{isReviewLoading ? 'Submitting...' : 'Submit for review'}</span>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
             <Typography sx={{ fontFamily: 'Poppins', fontSize: '11px', color: '#3EA3FF', fontWeight: 600 }}>
               25
