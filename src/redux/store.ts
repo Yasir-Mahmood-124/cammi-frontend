@@ -14,6 +14,13 @@ import { sendReviewApi } from "./services/common/send_review";
 import {getUnansweredQuestionsApi} from "./services/common/getUnansweredQuestionsApi";
 import { addQuestionApi } from "./services/common/addQuestion";
 import { getQuestionsApi } from "./services/common/getQuestionsApi";
+import {aiGenerateApi} from "./services/linkedin/aiGenerateApi";
+import { editDeleteApi } from "./services/linkedin/editDeleteApi";
+import { fetchSchedulePostApi } from "./services/linkedin/fetchSchedulePostApi";
+import { linkedinLoginApi } from "./services/linkedin/linkedinLoginApi";
+import { linkedinPostApi } from "./services/linkedin/linkedinPostApi";
+import {schedulePostApi} from "./services/linkedin/schedulePostApi";
+import { viewApiSlice } from "./services/linkedin/viewApiSlice";
 
 // Create the store
 export const store = configureStore({
@@ -32,6 +39,13 @@ export const store = configureStore({
     [getUnansweredQuestionsApi.reducerPath]: getUnansweredQuestionsApi.reducer,
     [addQuestionApi.reducerPath]: addQuestionApi.reducer,
     [getQuestionsApi.reducerPath]: getQuestionsApi.reducer,
+    [aiGenerateApi.reducerPath]: aiGenerateApi.reducer,
+    [editDeleteApi.reducerPath]: editDeleteApi.reducer,
+    [fetchSchedulePostApi.reducerPath]: fetchSchedulePostApi.reducer,
+    [linkedinLoginApi.reducerPath]: linkedinLoginApi.reducer,
+    [linkedinPostApi.reducerPath]: linkedinPostApi.reducer,
+    [schedulePostApi.reducerPath]: schedulePostApi.reducer,
+    [viewApiSlice.reducerPath]: viewApiSlice.reducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware()
@@ -48,6 +62,13 @@ export const store = configureStore({
       .concat(getUnansweredQuestionsApi.middleware)
       .concat(addQuestionApi.middleware)
       .concat(getQuestionsApi.middleware)
+      .concat(aiGenerateApi.middleware)
+      .concat(editDeleteApi.middleware)
+      .concat(fetchSchedulePostApi.middleware)
+      .concat(linkedinLoginApi.middleware)
+      .concat(linkedinPostApi.middleware)
+      .concat(schedulePostApi.middleware)
+      .concat(viewApiSlice.middleware)
 });
 
 // Infer types for RootState and AppDispatch
