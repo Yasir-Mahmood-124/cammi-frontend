@@ -158,7 +158,7 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ docxBase64, fileName 
       const response = await downloadPdf({
         session_id: savedToken || '',
         project_id: project_id,
-        document_type: 'bs',
+        document_type: 'kmf',
       }).unwrap();
 
       console.log("📄 PDF Response:", response);
@@ -204,7 +204,7 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ docxBase64, fileName 
       const response = await sendReview({
         session_id: savedToken || '',
         project_id: project_id,
-        document_type: 'bs',
+        document_type: 'kmf',
         document_text: documentText,
       }).unwrap();
 
