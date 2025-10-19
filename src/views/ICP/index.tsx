@@ -42,7 +42,7 @@ const ICPPage: React.FC = () => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [selectedOption, setSelectedOption] = useState<'text' | 'infographic'>('text');
 
-  // Document generation states - MATCHING GTMPage pattern
+  // Document generation states
   const [isGenerating, setIsGenerating] = useState(false);
   const [wsUrl, setWsUrl] = useState<string>('');
   
@@ -68,6 +68,14 @@ const ICPPage: React.FC = () => {
         console.error('Error parsing currentProject from localStorage:', error);
       }
     }
+  }, []);
+
+  // Setup WebSocket URL for upload - USING THE CORRECT DEV ENDPOINT
+  useEffect(() => {
+    // Use the WebSocket URL from your working project
+    const websocketUrl = "wss://91vm5ilj37.execute-api.us-east-1.amazonaws.com/dev";
+    setWsUrl(websocketUrl);
+    console.log('🔌 WebSocket URL set for upload:', websocketUrl);
   }, []);
 
   // RTK Query for unanswered questions
@@ -100,10 +108,14 @@ const ICPPage: React.FC = () => {
     }
   );
 
-  // Handle unanswered questions response
+  // Handle unanswered questions response (NO flow)
   useEffect(() => {
     if (unansweredData) {
+      console.log(' Unanswered questions data received:', unansweredData);
+      
       if (unansweredData.missing_questions && unansweredData.missing_questions.length > 0) {
+        console.log(' Has unanswered questions:', unansweredData.missing_questions.length);
+        
         const formattedQuestions: Question[] = unansweredData.missing_questions.map((q, index) => ({
           id: index + 1,
           question: q,
@@ -113,7 +125,7 @@ const ICPPage: React.FC = () => {
         setView('questions');
         setShouldFetchUnanswered(false);
       } else {
-        console.log('No unanswered questions found, fetching all answered questions...');
+        console.log(' No unanswered questions - fetching all answered questions');
         setShouldFetchUnanswered(false);
         setShouldFetchAll(true);
       }
@@ -123,6 +135,8 @@ const ICPPage: React.FC = () => {
   // Handle all questions (answered) response
   useEffect(() => {
     if (allQuestionsData && allQuestionsData.questions) {
+      console.log('All questions data received:', allQuestionsData.questions.length, 'questions');
+      
       const formattedQuestions: Question[] = allQuestionsData.questions.map((q, index) => ({
         id: index + 1,
         question: q.question_text,
@@ -145,8 +159,79 @@ const ICPPage: React.FC = () => {
     setShouldFetchUnanswered(true);
   };
 
-  const handleUpload = (file: File) => {
-    console.log('File uploaded:', file.name);
+  // Handle WebSocket upload response - MATCHING YOUR WORKING PROJECT
+  const handleUploadComplete = (data: any) => {
+    // Handle processing_started
+    if (data.status === "processing_started") {
+      console.log('Processing started:', data.message);
+      return;
+    }
+
+    // Handle analyzing_document
+    if (data.status === "analyzing_document") {
+      console.log('🔍 Analyzing document:', data.message);
+      return;
+    }
+
+    // Handle questions_need_answers - MAIN CASE
+    if (data.status === 'questions_need_answers' && data.not_found_questions) {
+      console.log(' Questions need answers - Count:', data.not_found_questions.length);
+      console.log('Questions array:', data.not_found_questions);
+      
+      // Extract questions from the objects
+      const formattedQuestions: Question[] = data.not_found_questions.map((item: any, index: number) => {
+        // The question might be in item.question or item.question_text
+        const questionText = item.question || item.question_text || item;
+        console.log(`Question ${index + 1}:`, questionText);
+        
+        return {
+          id: index + 1,
+          question: typeof questionText === 'string' ? questionText : String(questionText),
+          answer: ''
+        };
+      });
+      setQuestions(formattedQuestions);
+      setView('questions');
+      
+      console.log(' Switched to questions view');
+      return;
+    }
+
+    // Handle processing_complete
+    if (data.status === "processing_complete") {
+      console.log(' Processing complete!');
+      
+      // Check if there are any results with "Not Found" 
+      if (data.results) {
+        const notFoundQuestions = Object.entries(data.results)
+          .filter(([_, answer]) => answer === "Not Found")
+          .map(([question, _], index) => ({
+            id: index + 1,
+            question: question,
+            answer: ''
+          }));
+
+        if (notFoundQuestions.length > 0) {
+          console.log(' Found "Not Found" questions:', notFoundQuestions.length);
+          setQuestions(notFoundQuestions);
+          setView('questions');
+        } else {
+          console.log('No missing questions - Going to preview');
+          setShouldFetchAll(true);
+        }
+      } else {
+        // No results, go to preview
+        console.log(' No results field - Going to preview');
+        setShouldFetchAll(true);
+      }
+      return;
+    }
+
+    // Handle errors
+    if (data.message === "Forbidden" || data.status === "error") {
+      console.error(' WebSocket Error:', data.message || data.status);
+      return;
+    }
   };
 
   const handleGenerate = (generatedAnswer: string) => {
@@ -179,10 +264,6 @@ const ICPPage: React.FC = () => {
     }
   };
 
-  const handleViewPreview = () => {
-    setView('preview');
-  };
-
   const handleBackToQuestions = () => {
     setView('questions');
   };
@@ -211,42 +292,20 @@ const ICPPage: React.FC = () => {
     }
   };
 
-  // Handle document generation - MATCHING GTMPage pattern exactly
+  // Handle document generation from Q&A
   const handleGenerateDocument = async () => {
     try {
-      console.log('═══════════════════════════════════════════════════════');
-      console.log('🚀 STARTING DOCUMENT GENERATION FOR ICP');
-      console.log('═══════════════════════════════════════════════════════');
-      
       const dynamicFileName = "businessidea.txt";
       const savedToken = Cookies.get("token");
       const project_id = JSON.parse(
         localStorage.getItem("currentProject") || "{}"
       ).project_id;
 
-      console.log('📋 Configuration:');
-      console.log('   - File Name:', dynamicFileName);
-      console.log('   - Token:', savedToken ? `${savedToken.substring(0, 20)}...` : 'MISSING!');
-      console.log('   - Project ID:', project_id);
-      console.log('   - Document Type: icp');
-      console.log('───────────────────────────────────────────────────────');
-
-      // Prepare text content from all Q&A
       const textContent = questions
         .map((q) => `Q: ${q.question}\nA: ${q.answer}`)
         .join("\n\n");
 
-      console.log('📄 Text Content:');
-      console.log('   - Total Length:', textContent.length, 'characters');
-      console.log('   - Number of Questions:', questions.length);
-      console.log('   - Preview (first 200 chars):');
-      console.log('   ', textContent.substring(0, 200) + '...');
-      console.log('───────────────────────────────────────────────────────');
-
       const base64Content = btoa(unescape(encodeURIComponent(textContent)));
-      console.log('📦 Base64 Encoded:');
-      console.log('   - Base64 Length:', base64Content.length, 'characters');
-      console.log('───────────────────────────────────────────────────────');
 
       const payload = {
         fileName: dynamicFileName,
@@ -256,58 +315,22 @@ const ICPPage: React.FC = () => {
         document_type: "icp",
       };
 
-      console.log('📤 UPLOADING FILE TO SERVER...');
-      console.log('   - Payload Keys:', Object.keys(payload));
-      console.log('   - Calling uploadTextFile mutation...');
-
       const uploadResponse = await uploadTextFile(payload).unwrap();
-      
-      console.log('═══════════════════════════════════════════════════════');
-      console.log('✅ FILE UPLOADED SUCCESSFULLY!');
-      console.log('═══════════════════════════════════════════════════════');
-      console.log('📥 Upload Response:', uploadResponse);
-      console.log('───────────────────────────────────────────────────────');
+      console.log('FILE UPLOADED SUCCESSFULLY!', uploadResponse);
 
-      // Set WebSocket URL and show Generating component - EXACTLY like GTMPage
       const websocketUrl = `wss://4iqvtvmxle.execute-api.us-east-1.amazonaws.com/prod/?session_id=${savedToken}`;
       
-      console.log('🔌 WEBSOCKET CONFIGURATION:');
-      console.log('   - WebSocket URL:', websocketUrl);
-      console.log('   - Session ID:', savedToken);
-      console.log('───────────────────────────────────────────────────────');
-      
-      console.log('⚙️  SETTING STATE:');
-      console.log('   - Setting wsUrl state...');
       setWsUrl(websocketUrl);
-      console.log('   - wsUrl state set to:', websocketUrl);
-      
-      console.log('   - Setting isGenerating to true...');
       setIsGenerating(true);
-      console.log('   - isGenerating state set to: true');
-      
-      console.log('═══════════════════════════════════════════════════════');
-      console.log('✨ SWITCHED TO GENERATING VIEW');
-      console.log('   - Component should now render <Generating />');
-      console.log('   - WebSocket should connect automatically');
-      console.log('═══════════════════════════════════════════════════════');
       
     } catch (err: any) {
-      console.log('═══════════════════════════════════════════════════════');
-      console.error("❌ UPLOAD FAILED!");
-      console.log('═══════════════════════════════════════════════════════');
-      console.error('Error Object:', err);
-      console.error('Error Name:', err?.name);
-      console.error('Error Message:', err?.message);
-      console.error('Error Status:', err?.status);
-      console.error('Error Data:', err?.data);
-      console.error('Full Error:', JSON.stringify(err, null, 2));
-      console.log('═══════════════════════════════════════════════════════');
+      console.error(" UPLOAD FAILED!", err);
       alert('Upload failed. Please try again.');
     }
   };
 
   const handleGenerationComplete = async () => {
-    console.log("🎉 Document generation completed! Fetching document...");
+    console.log(" Document generation completed! Fetching document...");
     
     try {
       const savedToken = Cookies.get("token");
@@ -315,38 +338,28 @@ const ICPPage: React.FC = () => {
         localStorage.getItem("currentProject") || "{}"
       ).project_id;
 
-      console.log('📥 Downloading document...');
-
-      // Call the download API
       const response = await getDocxFile({
         session_id: savedToken || '',
         document_type: 'icp',
         project_id: project_id,
       }).unwrap();
 
-      console.log('📄 Document received');
-
-      // Set the document data
       setDocxBase64(response.docxBase64);
       setFileName(response.fileName || 'icp_document.docx');
       
-      // Hide generating and show document preview - EXACTLY like GTMPage
       setIsGenerating(false);
       setShowDocumentPreview(true);
       
-      console.log("✅ Document fetched successfully");
+      console.log("Document fetched successfully");
     } catch (error) {
-      console.error("❌ Failed to fetch document:", error);
+      console.error(" Failed to fetch document:", error);
       setIsGenerating(false);
       alert('Failed to download document. Please try again.');
     }
   };
 
-  // Combined loading state
   const isLoading = isLoadingUnanswered || isLoadingAll;
   const isError = isErrorUnanswered || isErrorAll;
-
-  // Show button when in questions or preview view
   const showButton = view === 'questions' || view === 'preview';
 
   if (isError) {
@@ -365,7 +378,6 @@ const ICPPage: React.FC = () => {
     );
   }
 
-  // Show document preview if ready - EXACTLY like GTMPage
   if (showDocumentPreview && docxBase64) {
     return <DocumentPreview docxBase64={docxBase64} fileName={fileName} />;
   }
@@ -373,7 +385,6 @@ const ICPPage: React.FC = () => {
   return (
     <Box
       sx={{
-        minHeight: '100vh',
         backgroundColor: '#EFF1F5',
         padding: '20px',
         display: 'flex',
@@ -383,13 +394,11 @@ const ICPPage: React.FC = () => {
       }}
     >
       {isGenerating ? (
-        // Show Generating component when document is being generated - EXACTLY like GTMPage
         <Box sx={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
           <Generating wsUrl={wsUrl} onComplete={handleGenerationComplete} />
         </Box>
       ) : (
         <>
-          {/* INITIAL VIEW */}
           {view === 'initial' && (
             <DocumentQuestion 
               onYesClick={handleYesClick} 
@@ -398,16 +407,14 @@ const ICPPage: React.FC = () => {
             />
           )}
 
-          {/* UPLOAD VIEW */}
           {view === 'upload' && (
             <UploadDocument 
-              onUpload={handleUpload}
-              projectId={projectId}
-              documentType="icp"
+              document_type="icp"
+              wsUrl={wsUrl}
+              onUploadComplete={handleUploadComplete}
             />
           )}
 
-          {/* QUESTIONS VIEW */}
           {view === 'questions' && questions.length > 0 && (
             <Box sx={{ width: '100%', maxWidth: '1200px' }}>
               <Box sx={{ 
@@ -418,9 +425,7 @@ const ICPPage: React.FC = () => {
                 height: '100%',
                 maxHeight: '500px',
               }}>
-                
-                {/* Left Side - Current Question Input */}
-                <Box sx={{ flex: 1, height: '200vh' }}>
+                <Box sx={{ flex: 1, height: '100vh' }}>
                   <UserInput
                     number={questions[currentQuestionIndex].id}
                     question={questions[currentQuestionIndex].question}
@@ -433,7 +438,6 @@ const ICPPage: React.FC = () => {
                   />
                 </Box>
 
-                {/* Right Side - Question List */}
                 <Box sx={{ flex: '0 0 300px', height: '100%' }}>
                   <InputTakerUpdated
                     items={questions}
@@ -444,38 +448,9 @@ const ICPPage: React.FC = () => {
                   />
                 </Box>
               </Box>
-
-              {/* Preview Button */}
-              {allQuestionsAnswered && (
-                <Box sx={{ 
-                  display: 'flex', 
-                  justifyContent: 'center', 
-                  marginTop: '24px' 
-                }}>
-                  <Button
-                    onClick={handleViewPreview}
-                    sx={{
-                      background: 'linear-gradient(135deg, #3EA3FF, #FF3C80)',
-                      color: '#fff',
-                      textTransform: 'none',
-                      fontFamily: 'Poppins',
-                      fontSize: '14px',
-                      fontWeight: 600,
-                      padding: '10px 32px',
-                      borderRadius: '8px',
-                      '&:hover': {
-                        background: 'linear-gradient(135deg, #3595E8, #E63573)',
-                      },
-                    }}
-                  >
-                    View Final Preview
-                  </Button>
-                </Box>
-              )}
             </Box>
           )}
 
-          {/* PREVIEW VIEW */}
           {view === 'preview' && (
             <Box sx={{ 
               width: '100%', 
@@ -485,30 +460,24 @@ const ICPPage: React.FC = () => {
               paddingLeft: '20px',
             }}>
               <Box sx={{ width: '100%', maxWidth: '900px' }}>
-                <Box sx={{ 
-                  display: 'flex', 
-                  justifyContent: 'flex-start', 
-                  alignItems: 'center',
-                  marginBottom: '16px' 
-                }}>
-                  {questions.some(q => q.answer === '') && (
-                    <Button
-                      onClick={handleBackToQuestions}
-                      sx={{
-                        color: '#3EA3FF',
-                        textTransform: 'none',
-                        fontFamily: 'Poppins',
-                        fontSize: '14px',
-                        fontWeight: 500,
-                        '&:hover': {
-                          backgroundColor: 'rgba(62, 163, 255, 0.1)',
-                        },
-                      }}
-                    >
-                      ← Back to Questions
-                    </Button>
-                  )}
-                </Box>
+                {questions.some(q => q.answer === '') && (
+                  <Button
+                    onClick={handleBackToQuestions}
+                    sx={{
+                      color: '#3EA3FF',
+                      textTransform: 'none',
+                      fontFamily: 'Poppins',
+                      fontSize: '14px',
+                      fontWeight: 500,
+                      marginBottom: '16px',
+                      '&:hover': {
+                        backgroundColor: 'rgba(62, 163, 255, 0.1)',
+                      },
+                    }}
+                  >
+                    ← Back to Questions
+                  </Button>
+                )}
 
                 <FinalPreview 
                   questionsAnswers={questions}
@@ -518,15 +487,8 @@ const ICPPage: React.FC = () => {
             </Box>
           )}
 
-          {/* Generate Document Button */}
           {showButton && (
-            <Box
-              sx={{
-                position: 'fixed',
-                bottom: '19px',
-                right: '118px',
-              }}
-            >
+            <Box sx={{ position: 'fixed', bottom: '30px', right: '30px' }}>
               <Button
                 variant="contained"
                 endIcon={<ArrowForwardIcon sx={{ fontSize: '14px' }} />}
@@ -544,7 +506,6 @@ const ICPPage: React.FC = () => {
                   boxShadow: '0 3px 8px rgba(62, 163, 255, 0.3)',
                   '&:hover': {
                     background: 'linear-gradient(135deg, #2E8FE6, #E6356D)',
-                    boxShadow: '0 4px 11px rgba(62, 163, 255, 0.4)',
                   },
                   '&:disabled': {
                     background: '#ccc',
@@ -559,14 +520,8 @@ const ICPPage: React.FC = () => {
                 anchorEl={anchorEl}
                 open={open}
                 onClose={handleClose}
-                anchorOrigin={{
-                  vertical: 'top',
-                  horizontal: 'center',
-                }}
-                transformOrigin={{
-                  vertical: 'bottom',
-                  horizontal: 'center',
-                }}
+                anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+                transformOrigin={{ vertical: 'bottom', horizontal: 'center' }}
                 PaperProps={{
                   sx: {
                     borderRadius: '10px',
@@ -577,51 +532,20 @@ const ICPPage: React.FC = () => {
                   },
                 }}
               >
-                <MenuItem
-                  onClick={() => handleOptionSelect('text')}
-                  sx={{
-                    fontFamily: 'Poppins',
-                    fontSize: '11px',
-                    padding: '10px 14px',
-                    backgroundColor: selectedOption === 'text' ? '#D9D9D980' : 'transparent',
-                    '&:hover': {
-                      backgroundColor: '#D9D9D980',
-                    },
-                  }}
-                >
+                <MenuItem onClick={() => handleOptionSelect('text')} sx={{ fontFamily: 'Poppins', fontSize: '11px', padding: '10px 14px', backgroundColor: selectedOption === 'text' ? '#D9D9D980' : 'transparent', '&:hover': { backgroundColor: '#D9D9D980' } }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
-                    <Typography sx={{ fontFamily: 'Poppins', fontSize: '11px' }}>
-                      Text Base
-                    </Typography>
+                    <Typography sx={{ fontFamily: 'Poppins', fontSize: '11px' }}>Text Base</Typography>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: '4px', marginLeft: '16px' }}>
-                      <Typography sx={{ fontFamily: 'Poppins', fontSize: '11px', color: '#3EA3FF' }}>
-                        25
-                      </Typography>
+                      <Typography sx={{ fontFamily: 'Poppins', fontSize: '11px', color: '#3EA3FF' }}>25</Typography>
                       <AccountBalanceWalletIcon sx={{ fontSize: '13px', color: '#3EA3FF' }} />
                     </Box>
                   </Box>
                 </MenuItem>
-                
-                <MenuItem
-                  onClick={() => handleOptionSelect('infographic')}
-                  sx={{
-                    fontFamily: 'Poppins',
-                    fontSize: '11px',
-                    padding: '10px 14px',
-                    backgroundColor: selectedOption === 'infographic' ? '#D9D9D980' : 'transparent',
-                    '&:hover': {
-                      backgroundColor: '#D9D9D980',
-                    },
-                  }}
-                >
+                <MenuItem onClick={() => handleOptionSelect('infographic')} sx={{ fontFamily: 'Poppins', fontSize: '11px', padding: '10px 14px', backgroundColor: selectedOption === 'infographic' ? '#D9D9D980' : 'transparent', '&:hover': { backgroundColor: '#D9D9D980' } }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
-                    <Typography sx={{ fontFamily: 'Poppins', fontSize: '11px' }}>
-                      Infographic Base
-                    </Typography>
+                    <Typography sx={{ fontFamily: 'Poppins', fontSize: '11px' }}>Infographic Base</Typography>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: '4px', marginLeft: '16px' }}>
-                      <Typography sx={{ fontFamily: 'Poppins', fontSize: '11px', color: '#3EA3FF' }}>
-                        50
-                      </Typography>
+                      <Typography sx={{ fontFamily: 'Poppins', fontSize: '11px', color: '#3EA3FF' }}>50</Typography>
                       <AccountBalanceWalletIcon sx={{ fontSize: '13px', color: '#3EA3FF' }} />
                     </Box>
                   </Box>
