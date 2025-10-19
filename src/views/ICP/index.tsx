@@ -488,7 +488,7 @@ const ICPPage: React.FC = () => {
           )}
 
           {showButton && (
-            <Box sx={{ position: 'fixed', bottom: '30px', right: '30px' }}>
+            <Box sx={{ position: 'fixed', bottom: '25px', right: '60px' }}>
               <Button
                 variant="contained"
                 endIcon={<ArrowForwardIcon sx={{ fontSize: '14px' }} />}
