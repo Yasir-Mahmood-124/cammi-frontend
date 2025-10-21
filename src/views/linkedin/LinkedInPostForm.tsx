@@ -8,21 +8,20 @@ import {
   IconButton,
   Popover,
   Box,
-  Card,
-  CardContent,
+  Tabs,
+  Tab,
   TextField,
-  Grid,
 } from "@mui/material";
 import {
-  CheckCircle,
-  Schedule,
-  Send,
-  AccessTime,
+  AttachFile,
+  Image as ImageIcon,
+  Event,
   Close,
-  PhotoLibrary,
-  Psychology,
+  ArrowForward,
+  Schedule,
+  AccessTime,
+  CheckCircle,
 } from "@mui/icons-material";
-
 import { LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker";
@@ -31,7 +30,14 @@ import dayjs, { Dayjs } from "dayjs";
 import { useCreateLinkedInPostMutation } from "@/redux/services/linkedin/linkedinPostApi";
 import { useSchedulePostMutation } from "@/redux/services/linkedin/schedulePostApi";
 import { useGenerateIdeaMutation } from "@/redux/services/linkedin/aiGenerateApi";
-// import CustomSnackbar from "@/components/common/CustomSnackbar";
+
+// LinkedIn Logo Component
+const LinkedInLogo = () => (
+  <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+    <rect width="24" height="24" rx="4" fill="#000000"/>
+    <path d="M7 9H9V17H7V9ZM8 6C7.45 6 7 6.45 7 7C7 7.55 7.45 8 8 8C8.55 8 9 7.55 9 7C9 6.45 8.55 6 8 6ZM11 9H13V10.07C13.33 9.45 14.19 9 15.13 9C17.03 9 17.5 10.17 17.5 12V17H15.5V12.5C15.5 11.67 15.17 11 14.33 11C13.33 11 13 11.83 13 12.5V17H11V9Z" fill="white"/>
+  </svg>
+);
 
 interface LinkedInPostProps {
   sub: string | null;
@@ -44,10 +50,10 @@ interface ImageFile {
 }
 
 const LinkedInPostForm: React.FC<LinkedInPostProps> = ({ sub }) => {
+  const [activeTab, setActiveTab] = useState(0);
   const [message, setMessage] = useState("");
-  const [scheduledDateTime, setScheduledDateTime] = useState<Dayjs | null>(
-    null
-  );
+  const [imagePrompt, setImagePrompt] = useState("");
+  const [scheduledDateTime, setScheduledDateTime] = useState<Dayjs | null>(null);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [selectedImages, setSelectedImages] = useState<ImageFile[]>([]);
 
@@ -61,10 +67,8 @@ const LinkedInPostForm: React.FC<LinkedInPostProps> = ({ sub }) => {
   // API hooks
   const [createPost, { isLoading, isError, error, isSuccess }] =
     useCreateLinkedInPostMutation();
-  const [
-    schedulePost,
-    { isLoading: isScheduling, isSuccess: scheduleSuccess },
-  ] = useSchedulePostMutation();
+  const [schedulePost, { isLoading: isScheduling, isSuccess: scheduleSuccess }] =
+    useSchedulePostMutation();
   const [generateIdea, { isLoading: isGenerating }] = useGenerateIdeaMutation();
 
   /** ---------------- Utilities ------------------ */
@@ -215,7 +219,6 @@ const LinkedInPostForm: React.FC<LinkedInPostProps> = ({ sub }) => {
       const payload = await buildPayload();
       if (!payload || !scheduledDateTime) return;
 
-      // ✅ Prevent past date/time
       if (dayjs(scheduledDateTime).isBefore(dayjs())) {
         setSnackbar({
           open: true,
@@ -225,7 +228,6 @@ const LinkedInPostForm: React.FC<LinkedInPostProps> = ({ sub }) => {
         return;
       }
 
-      // UTC date (no manual offset needed)
       const utcDate = scheduledDateTime
         .toDate()
         .toISOString()
@@ -233,11 +235,8 @@ const LinkedInPostForm: React.FC<LinkedInPostProps> = ({ sub }) => {
 
       await schedulePost({
         ...payload,
-        scheduled_time: utcDate, // always UTC
+        scheduled_time: utcDate,
       }).unwrap();
-
-      console.log("Scheduled Post Payload:", payload);
-      console.log("Scheduled Time (UTC):", utcDate);
 
       setSnackbar({
         open: true,
@@ -258,7 +257,7 @@ const LinkedInPostForm: React.FC<LinkedInPostProps> = ({ sub }) => {
     }
   };
 
-  const handleAIGenerate = async () => {
+  const handleRefine = async () => {
     try {
       const response = await generateIdea({
         prompt: message || "Generate an engaging LinkedIn post idea",
@@ -283,9 +282,23 @@ const LinkedInPostForm: React.FC<LinkedInPostProps> = ({ sub }) => {
     }
   };
 
+  const handleImageGenerate = async () => {
+    // TODO: Add your image generation API call here
+    console.log("Image generation with prompt:", imagePrompt);
+    setSnackbar({
+      open: true,
+      severity: "success",
+      message: "Image generation API to be integrated",
+    });
+  };
+
   const handleScheduleClick = (event: React.MouseEvent<HTMLElement>) =>
     setAnchorEl(event.currentTarget);
   const handleScheduleClose = () => setAnchorEl(null);
+
+  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+    setActiveTab(newValue);
+  };
 
   /** ---------------- Effects ------------------ */
   useEffect(() => {
@@ -322,216 +335,337 @@ const LinkedInPostForm: React.FC<LinkedInPostProps> = ({ sub }) => {
 
   /** ---------------- Render ------------------ */
   return (
-    <Box display="flex" gap={3} alignItems="flex-start">
-      {/* Main Card - Always visible */}
-      <Box flex={selectedImages.length > 0 ? 2 : 1}>
-        <Card
-          elevation={0}
-          sx={{
-            background: "#ECECEC",
-            borderRadius: 3,
-            border: "none",
-          }}
-        >
-          <CardContent sx={{ p: 3 }}>
-            {/* Create Tab Button */}
-            <Typography
-              variant="h6"
-              sx={{
-                mb: 3,
-                fontWeight: 600,
-                color: "#333",
-              }}
-            >
-              Create
-            </Typography>
-
-            {/* Main Text Area */}
-            <TextField
-              fullWidth
-              multiline
-              rows={8}
-              placeholder="What's on your mind?"
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              sx={{
-                mb: 3,
-                "& .MuiOutlinedInput-root": {
-                  background: "#F6F6F6",
-                  border: "none",
-                  borderRadius: 2,
-                  "& fieldset": {
-                    border: "none",
-                  },
-                  "&:hover fieldset": {
-                    border: "none",
-                  },
-                  "&.Mui-focused fieldset": {
-                    border: "none",
-                  },
-                },
-                "& .MuiInputBase-input::placeholder": {
-                  color: "#999",
-                  opacity: 1,
-                },
-              }}
-            />
-
-            {/* Action Buttons */}
-            <Box
-              display="flex"
-              justifyContent="space-between"
-              alignItems="center"
-            >
-              {/* Left side buttons */}
-              <Box display="flex" gap={1.5}>
-                <Button
-                  variant="outlined"
-                  component="label"
-                  startIcon={<PhotoLibrary />}
-                  size="small"
-                  sx={{
-                    background: "#EFF1FF",
-                    border: "1px solid #5573AE",
-                    color: "#5573AE",
-                    borderRadius: 2,
-                    fontSize: "0.75rem",
-                    px: 2,
-                    py: 1,
-                    "&:hover": {
-                      background: "#E5EDFF",
-                      border: "1px solid #5573AE",
-                    },
-                  }}
-                >
-                  Add Images
-                  <input
-                    type="file"
-                    multiple
-                    accept="image/*"
-                    onChange={handleImageChange}
-                    style={{ display: "none" }}
-                  />
-                </Button>
-
-                <Button
-                  variant="outlined"
-                  startIcon={<Schedule />}
-                  onClick={handleScheduleClick}
-                  size="small"
-                  sx={{
-                    background: "#EFF1FF",
-                    border: "1px solid #5573AE",
-                    color: "#5573AE",
-                    borderRadius: 2,
-                    fontSize: "0.75rem",
-                    px: 2,
-                    py: 1,
-                    "&:hover": {
-                      background: "#E5EDFF",
-                      border: "1px solid #5573AE",
-                    },
-                  }}
-                >
-                  Schedule
-                </Button>
-
-                <Button
-                  variant="contained"
-                  onClick={handlePost}
-                  disabled={isLoading || !message.trim()}
-                  startIcon={
-                    isLoading ? (
-                      <CircularProgress size={16} color="inherit" />
-                    ) : (
-                      <Send />
-                    )
-                  }
-                  size="small"
-                  sx={{
-                    background:
-                      "linear-gradient(266deg, #EC5188 -0.23%, #6489C4 93.46%)",
-                    color: "white",
-                    borderRadius: 2,
-                    fontSize: "0.75rem",
-                    px: 2,
-                    py: 1,
-                    "&:hover": {
-                      background:
-                        "linear-gradient(266deg, #EC5188 -0.23%, #6489C4 93.46%)",
-                      opacity: 0.9,
-                    },
-                    "&:disabled": {
-                      background: "#ccc",
-                      color: "#999",
-                    },
-                  }}
-                >
-                  {isLoading ? "Posting..." : "Publish Post"}
-                </Button>
-              </Box>
-
-              {/* Right side AI Generate button */}
-              <Button
-                variant="outlined"
-                startIcon={
-                  isGenerating ? <CircularProgress size={14} /> : <Psychology />
-                }
-                onClick={handleAIGenerate}
-                disabled={isGenerating}
-                size="small"
-                sx={{
-                  background: "#EFF1FF",
-                  border: "1px solid #5573AE",
-                  color: "#5573AE",
-                  borderRadius: 2,
-                  fontSize: "0.75rem",
-                  px: 2,
-                  py: 1,
-                  "&:hover": {
-                    background: "#E5EDFF",
-                    border: "1px solid #5573AE",
-                  },
-                }}
-              >
-                {isGenerating ? "Generating..." : "AI Generate"}
-              </Button>
-            </Box>
-          </CardContent>
-        </Card>
-      </Box>
-
-      {/* Image Preview Card - Only visible when images are selected */}
-      {selectedImages.length > 0 && (
-        <Box flex={1} sx={{ minWidth: 300 }}>
-          <Card
-            elevation={0}
+    <Box sx={{ maxWidth: 1400, mx: "auto", p: 3 }}>
+      {/* Header */}
+      <Box sx={{ mb: 3 }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 0.5 }}>
+          <Typography
             sx={{
-              background: "#E2EDF8",
-              borderRadius: 3,
-              border: "none",
+              fontSize: "32px",
+              fontWeight: 700,
+              fontFamily: "Poppins, sans-serif",
+              color: "#000",
+              letterSpacing: "-0.5px",
             }}
           >
-            <CardContent sx={{ p: 3 }}>
-              {/* Images Grid - 2 images per row */}
+            LinkedIn Post
+          </Typography>
+          <LinkedInLogo />
+        </Box>
+        <Typography
+          sx={{
+            fontSize: "14px",
+            color: "#666",
+            fontFamily: "Poppins, sans-serif",
+          }}
+        >
+          Craft engaging post that drives result
+        </Typography>
+      </Box>
+
+      {/* Main Card with Gradient Border */}
+      <Box
+        sx={{
+          background: "#fff",
+          borderRadius: 4,
+          border: "3px solid transparent",
+          backgroundImage:
+            "linear-gradient(white, white), linear-gradient(135deg, #3EA3FF 0%, #9C6FDE 50%, #FF5E9D 100%)",
+          backgroundOrigin: "border-box",
+          backgroundClip: "padding-box, border-box",
+          overflow: "hidden",
+        }}
+      >
+        {/* Tabs */}
+        <Box sx={{ borderBottom: "1px solid #E8E8E8", px: 3, pt: 2 }}>
+          <Tabs
+            value={activeTab}
+            onChange={handleTabChange}
+            sx={{
+              minHeight: 40,
+              "& .MuiTab-root": {
+                textTransform: "none",
+                fontSize: "15px",
+                fontWeight: 500,
+                fontFamily: "Poppins, sans-serif",
+                color: "#999",
+                minHeight: 40,
+                px: 2,
+                "&.Mui-selected": {
+                  color: "#000",
+                  fontWeight: 600,
+                },
+              },
+              "& .MuiTabs-indicator": {
+                height: 3,
+                background: "linear-gradient(90deg, #3EA3FF 0%, #9C6FDE 50%, #FF5E9D 100%)",
+              },
+            }}
+          >
+            <Tab label="Create Post" />
+            <Tab label="Image Generation" />
+          </Tabs>
+        </Box>
+
+        {/* Content Area - Horizontal Layout */}
+        <Box sx={{ display: "flex", p: 3, gap: 3 }}>
+          {/* Left Side - Text Area and Buttons */}
+          <Box sx={{ flex: 1 }}>
+            {activeTab === 0 ? (
+              <>
+                {/* Create Post Text Area */}
+                <TextField
+                  fullWidth
+                  multiline
+                  rows={12}
+                  placeholder="What do you want to post about?"
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  sx={{
+                    mb: 2.5,
+                    "& .MuiOutlinedInput-root": {
+                      background: "#F8F8F8",
+                      border: "1px solid #D9D9D9",
+                      borderRadius: "12px",
+                      fontFamily: "Poppins, sans-serif",
+                      "& fieldset": {
+                        border: "none",
+                      },
+                      "&:hover fieldset": {
+                        border: "none",
+                      },
+                      "&.Mui-focused fieldset": {
+                        border: "none",
+                      },
+                    },
+                    "& .MuiInputBase-input": {
+                      fontSize: "14px",
+                      color: "#333",
+                    },
+                    "& .MuiInputBase-input::placeholder": {
+                      color: "#999",
+                      opacity: 1,
+                    },
+                  }}
+                />
+
+                {/* Bottom Actions */}
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}
+                >
+                  {/* Refine Button */}
+                  <Button
+                    variant="contained"
+                    onClick={handleRefine}
+                    disabled={isGenerating}
+                    startIcon={isGenerating ? <CircularProgress size={14} /> : null}
+                    sx={{
+                      background: "linear-gradient(90deg, #DA5B91 0%, #5D89C7 100%)",
+                      color: "#fff",
+                      borderRadius: "25px",
+                      fontSize: "13px",
+                      fontWeight: 500,
+                      px: 3,
+                      py: 1,
+                      textTransform: "none",
+                      fontFamily: "Poppins, sans-serif",
+                      boxShadow: "none",
+                      "&:hover": {
+                        background: "linear-gradient(90deg, #DA5B91 0%, #5D89C7 100%)",
+                        opacity: 0.9,
+                        boxShadow: "none",
+                      },
+                    }}
+                  >
+                    {isGenerating ? "Refining..." : "Refine"}
+                  </Button>
+
+                  {/* Right Side Icons and Post Button */}
+                  <Box sx={{ display: "flex", gap: 1.5, alignItems: "center" }}>
+                    <IconButton
+                      sx={{
+                        bgcolor: "transparent",
+                        "&:hover": { bgcolor: "#f5f5f5" },
+                      }}
+                    >
+                      <AttachFile sx={{ fontSize: 22, color: "#666" }} />
+                    </IconButton>
+
+                    <IconButton
+                      component="label"
+                      sx={{
+                        bgcolor: "transparent",
+                        "&:hover": { bgcolor: "#f5f5f5" },
+                      }}
+                    >
+                      <ImageIcon sx={{ fontSize: 22, color: "#666" }} />
+                      <input
+                        type="file"
+                        multiple
+                        accept="image/*"
+                        onChange={handleImageChange}
+                        style={{ display: "none" }}
+                      />
+                    </IconButton>
+
+                    <IconButton
+                      onClick={handleScheduleClick}
+                      sx={{
+                        bgcolor: "transparent",
+                        "&:hover": { bgcolor: "#f5f5f5" },
+                      }}
+                    >
+                      <Event sx={{ fontSize: 22, color: "#666" }} />
+                    </IconButton>
+
+                    <Button
+                      variant="contained"
+                      onClick={handlePost}
+                      disabled={isLoading || !message.trim()}
+                      endIcon={
+                        isLoading ? (
+                          <CircularProgress size={14} color="inherit" />
+                        ) : (
+                          <ArrowForward sx={{ fontSize: 16 }} />
+                        )
+                      }
+                      sx={{
+                        background: "#3EA3FF",
+                        color: "#fff",
+                        borderRadius: "8px",
+                        fontSize: "13px",
+                        fontWeight: 500,
+                        px: 3,
+                        py: 1,
+                        textTransform: "none",
+                        fontFamily: "Poppins, sans-serif",
+                        boxShadow: "none",
+                        "&:hover": {
+                          background: "#3EA3FF",
+                          opacity: 0.9,
+                          boxShadow: "none",
+                        },
+                        "&:disabled": {
+                          background: "#ccc",
+                          color: "#999",
+                        },
+                      }}
+                    >
+                      {isLoading ? "Posting..." : "Post"}
+                    </Button>
+                  </Box>
+                </Box>
+              </>
+            ) : (
+              <>
+                {/* Image Generation Text Area */}
+                <TextField
+                  fullWidth
+                  multiline
+                  rows={12}
+                  placeholder="Generate an image by entering a prompt"
+                  value={imagePrompt}
+                  onChange={(e) => setImagePrompt(e.target.value)}
+                  sx={{
+                    mb: 2.5,
+                    "& .MuiOutlinedInput-root": {
+                      background: "#F8F8F8",
+                      border: "1px solid #D9D9D9",
+                      borderRadius: "12px",
+                      fontFamily: "Poppins, sans-serif",
+                      "& fieldset": {
+                        border: "none",
+                      },
+                    },
+                    "& .MuiInputBase-input": {
+                      fontSize: "14px",
+                      color: "#333",
+                    },
+                    "& .MuiInputBase-input::placeholder": {
+                      color: "#999",
+                      opacity: 1,
+                    },
+                  }}
+                />
+
+                {/* Generate Button - Centered */}
+                <Box sx={{ display: "flex", justifyContent: "center" }}>
+                  <Button
+                    variant="contained"
+                    onClick={handleImageGenerate}
+                    disabled={!imagePrompt.trim()}
+                    sx={{
+                      background: "linear-gradient(90deg, #DA5B91 0%, #5D89C7 100%)",
+                      color: "#fff",
+                      borderRadius: "25px",
+                      fontSize: "14px",
+                      fontWeight: 500,
+                      px: 5,
+                      py: 1.2,
+                      textTransform: "none",
+                      fontFamily: "Poppins, sans-serif",
+                      boxShadow: "none",
+                      "&:hover": {
+                        background: "linear-gradient(90deg, #DA5B91 0%, #5D89C7 100%)",
+                        opacity: 0.9,
+                        boxShadow: "none",
+                      },
+                      "&:disabled": {
+                        background: "#ccc",
+                        color: "#999",
+                      },
+                    }}
+                  >
+                    Generate
+                  </Button>
+                </Box>
+              </>
+            )}
+          </Box>
+
+          {/* Right Side - Image Preview */}
+          {selectedImages.length > 0 && (
+            <Box
+              sx={{
+                width: 280,
+                background: "#EFF1F5",
+                borderRadius: "16px",
+                p: 2.5,
+              }}
+            >
+              {/* Images Grid - 2x3 */}
               <Box
                 sx={{
                   display: "grid",
                   gridTemplateColumns: "repeat(2, 1fr)",
-                  gap: 2,
-                  mb: 3,
+                  gap: 1.5,
+                  mb: 2,
                 }}
               >
                 {selectedImages.map((img) => (
-                  <Box key={img.id} sx={{ position: "relative" }}>
+                  <Box
+                    key={img.id}
+                    sx={{
+                      position: "relative",
+                      paddingTop: "100%",
+                      borderRadius: "12px",
+                      overflow: "hidden",
+                    }}
+                  >
                     <img
                       src={img.preview}
                       alt="preview"
                       style={{
+                        position: "absolute",
+                        top: 0,
+                        left: 0,
                         width: "100%",
-                        height: 120,
+                        height: "100%",
                         objectFit: "cover",
-                        borderRadius: 8,
                       }}
                     />
                     <IconButton
@@ -542,10 +676,11 @@ const LinkedInPostForm: React.FC<LinkedInPostProps> = ({ sub }) => {
                         right: 4,
                         bgcolor: "rgba(0,0,0,0.7)",
                         color: "white",
-                        width: 24,
-                        height: 24,
+                        width: 20,
+                        height: 20,
+                        padding: 0,
                         "&:hover": {
-                          bgcolor: "rgba(0,0,0,0.9)",
+                          bgcolor: "rgba(0,0,0,0.85)",
                         },
                       }}
                     >
@@ -559,27 +694,30 @@ const LinkedInPostForm: React.FC<LinkedInPostProps> = ({ sub }) => {
               <Button
                 fullWidth
                 onClick={clearAllImages}
-                startIcon={<Close />}
+                startIcon={<Close sx={{ fontSize: 16 }} />}
                 sx={{
-                  background: "#EFF1FF",
-                  border: "1px solid #5573AE",
-                  color: "#FF3131",
-                  borderRadius: 2,
+                  background: "#FFFFFF",
+                  color: "#000",
+                  borderRadius: "8px",
+                  fontSize: "13px",
+                  fontWeight: 500,
+                  py: 0.8,
+                  textTransform: "none",
+                  fontFamily: "Poppins, sans-serif",
+                  border: "1px solid #E0E0E0",
+                  boxShadow: "none",
                   "&:hover": {
-                    background: "#E5EDFF",
-                    border: "1px solid #5573AE",
-                  },
-                  "& .MuiButton-startIcon": {
-                    color: "#FF3131",
+                    background: "#F8F8F8",
+                    boxShadow: "none",
                   },
                 }}
               >
                 Clear All
               </Button>
-            </CardContent>
-          </Card>
+            </Box>
+          )}
         </Box>
-      )}
+      </Box>
 
       {/* Schedule Popover */}
       <Popover
@@ -609,6 +747,17 @@ const LinkedInPostForm: React.FC<LinkedInPostProps> = ({ sub }) => {
                 <AccessTime />
               )
             }
+            sx={{
+              background: "linear-gradient(90deg, #DA5B91 0%, #5D89C7 100%)",
+              textTransform: "none",
+              fontFamily: "Poppins, sans-serif",
+              boxShadow: "none",
+              "&:hover": {
+                background: "linear-gradient(90deg, #DA5B91 0%, #5D89C7 100%)",
+                opacity: 0.9,
+                boxShadow: "none",
+              },
+            }}
           >
             {isScheduling ? "Scheduling..." : "Schedule"}
           </Button>

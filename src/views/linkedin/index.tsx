@@ -37,12 +37,6 @@ const Linkedin = () => {
 
     return (
         <Container maxWidth="lg" sx={{ mt: 4 }}>
-            {/* <Box sx={{ mb: 2 }}>
-                <GradientCard
-                    heading="Linkedin Post"
-                    content="Craft Engaging Posts that drives results."
-                />
-            </Box> */}
 
             <LinkedInPostForm sub={sub} />
         </Container>
