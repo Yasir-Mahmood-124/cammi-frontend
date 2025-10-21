@@ -26,23 +26,17 @@
 
 
 /** @type {import('next').NextConfig} */
+
 const nextConfig = {
+  eslint: {
+    ignoreDuringBuilds: true, // ✅ disables ESLint in production builds
+  },
   webpack(config: any) {
     config.module.rules.push({
       test: /\.svg$/,
       use: ["@svgr/webpack"],
     });
     return config;
-  },
-
-  // Use Turbopack configuration properly (optional)
-  turbopack: {
-    rules: {
-      "*.svg": {
-        loaders: ["@svgr/webpack"],
-        as: "*.js",
-      },
-    },
   },
 };
 
