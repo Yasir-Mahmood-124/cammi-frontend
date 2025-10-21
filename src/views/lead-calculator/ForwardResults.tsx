@@ -27,17 +27,12 @@ const ForwardResults: React.FC<ForwardResultsProps> = ({ results }) => {
         </Typography>
         <TableContainer>
           <Table size="small">
-            <TableHead>
+            <TableHead sx={{ backgroundColor: '#f5f5f5' }}>
               <TableRow>
-                <TableCell>
-                  <strong>Stage Name</strong>
-                </TableCell>
-                <TableCell align="right">
-                  <strong>Stage Volume</strong>
-                </TableCell>
-                <TableCell align="right">
-                  <strong>Conversion to Next</strong>
-                </TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Stage Name</TableCell>
+                <TableCell align="right" sx={{ fontWeight: 600 }}>Stage Volume</TableCell>
+                <TableCell align="right" sx={{ fontWeight: 600 }}>Conversion to Next</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Values</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -48,6 +43,9 @@ const ForwardResults: React.FC<ForwardResultsProps> = ({ results }) => {
                     {row.stageVolume.toLocaleString()}
                   </TableCell>
                   <TableCell align="right">{row.conversionToNext}</TableCell>
+                  <TableCell>
+                    {row.stageName}: {row.stageVolume.toLocaleString()}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>

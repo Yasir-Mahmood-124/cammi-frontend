@@ -6,6 +6,7 @@ import FunnelInputs from "./FunnelInputs";
 import StagesTable from "./StagesTable";
 import ForwardResults from "./ForwardResults";
 import ReverseResults from "./ReverseResults";
+import Summary from "./Summary";
 import Charts from "./Charts";
 import { Stage, forwardCalc, reverseCalc } from "@/utils/calculations";
 
@@ -24,14 +25,42 @@ export default function Home() {
   const [targetRevenue, setTargetRevenue] = useState<number>(500000);
   const [startingVolume, setStartingVolume] = useState<number>(20000);
   const [stages, setStages] = useState<Stage[]>(DEFAULT_STAGES);
+  const [calculationRun, setCalculationRun] = useState(false);
 
   const forwardCalculation = useMemo(() => {
-    return forwardCalc(stages, startingVolume, averageDealSize);
-  }, [stages, startingVolume, averageDealSize]);
+    return calculationRun ? forwardCalc(stages, startingVolume, averageDealSize) : null;
+  }, [stages, startingVolume, averageDealSize, calculationRun]);
 
   const reverseCalculation = useMemo(() => {
-    return reverseCalc(stages, targetRevenue, averageDealSize);
-  }, [stages, targetRevenue, averageDealSize]);
+    return calculationRun ? reverseCalc(stages, targetRevenue, averageDealSize) : null;
+  }, [stages, targetRevenue, averageDealSize, calculationRun]);
+
+  // Calculate customers and revenue from the forward calculation results
+  const customers = useMemo(() => {
+    if (!forwardCalculation || !forwardCalculation.results || forwardCalculation.results.length === 0) {
+      return 0;
+    }
+    // Get the last stage volume (customers)
+    return forwardCalculation.results[forwardCalculation.results.length - 1].stageVolume;
+  }, [forwardCalculation]);
+
+  const totalRevenue = useMemo(() => {
+    return customers * averageDealSize;
+  }, [customers, averageDealSize]);
+
+  const handleInputChange = (setter: any) => (value: number) => {
+    setter(value);
+    setCalculationRun(false);
+  };
+
+  const handleStagesChange = (newStages: Stage[]) => {
+    setStages(newStages);
+    setCalculationRun(false);
+  };
+
+  const runCalculation = () => {
+    setCalculationRun(true);
+  };
 
   return (
     <Box sx={{ backgroundColor: "#F8F9FA", minHeight: "100vh", py: 4 }}>
@@ -43,42 +72,58 @@ export default function Home() {
             fontWeight: 700,
             color: "#1E1548",
             fontSize: "28px",
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1
           }}
         >
-          Lead Calculator
+          📊 Lead Funnel Calculator
         </Typography>
 
         <FunnelInputs
           averageDealSize={averageDealSize}
-          setAverageDealSize={setAverageDealSize}
+          setAverageDealSize={handleInputChange(setAverageDealSize)}
           targetRevenue={targetRevenue}
-          setTargetRevenue={setTargetRevenue}
+          setTargetRevenue={handleInputChange(setTargetRevenue)}
           startingVolume={startingVolume}
-          setStartingVolume={setStartingVolume}
+          setStartingVolume={handleInputChange(setStartingVolume)}
         />
 
-        {/* Two-column responsive layout replacing Grid */}
-        <Box
-          display="flex"
-          flexWrap="wrap"
-          gap={3}
-          sx={{
-            mb: 4,
-            "& > *": {
-              flex: { xs: "1 1 100%", md: "1 1 calc(50% - 12px)" }, // 1 per row on mobile, 2 per row on desktop
-            },
-          }}
-        >
-          <StagesTable stages={stages} setStages={setStages} />
-          <ForwardResults results={forwardCalculation.results} />
-        </Box>
-
-        <ReverseResults results={reverseCalculation.results} />
-
-        <Charts
-          forwardResults={forwardCalculation.results}
-          reverseResults={reverseCalculation.results}
+        <StagesTable 
+          stages={stages} 
+          setStages={handleStagesChange}
+          onRunCalculation={runCalculation}
         />
+
+        {calculationRun && forwardCalculation && reverseCalculation && (
+          <>
+            <Box
+              display="flex"
+              flexWrap="wrap"
+              gap={3}
+              sx={{
+                mb: 4,
+                "& > *": {
+                  flex: { xs: "1 1 100%", lg: "1 1 calc(50% - 12px)" },
+                },
+              }}
+            >
+              <ForwardResults results={forwardCalculation.results} />
+              <ReverseResults results={reverseCalculation.results} />
+            </Box>
+
+            <Summary
+              averageDealSize={averageDealSize}
+              customers={customers}
+              revenue={totalRevenue}
+            />
+
+            <Charts
+              forwardResults={forwardCalculation.results}
+              reverseResults={reverseCalculation.results}
+            />
+          </>
+        )}
       </Container>
     </Box>
   );

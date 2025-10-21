@@ -7,7 +7,7 @@ interface AIGenerateRequest {
 
 interface AIGenerateResponse {
   message: string;
-  groq_response: string;
+  final_response: string;
 }
 
 export const aiGenerateApi = createApi({

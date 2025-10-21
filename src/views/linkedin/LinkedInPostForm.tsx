@@ -26,16 +26,21 @@ import { LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker";
 import dayjs, { Dayjs } from "dayjs";
+import Cookies from "js-cookie";
 
 import { useCreateLinkedInPostMutation } from "@/redux/services/linkedin/linkedinPostApi";
 import { useSchedulePostMutation } from "@/redux/services/linkedin/schedulePostApi";
 import { useGenerateIdeaMutation } from "@/redux/services/linkedin/aiGenerateApi";
+import { useGenerateImageMutation } from "@/redux/services/linkedin/imageGeneration";
 
 // LinkedIn Logo Component
 const LinkedInLogo = () => (
   <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
-    <rect width="24" height="24" rx="4" fill="#000000"/>
-    <path d="M7 9H9V17H7V9ZM8 6C7.45 6 7 6.45 7 7C7 7.55 7.45 8 8 8C8.55 8 9 7.55 9 7C9 6.45 8.55 6 8 6ZM11 9H13V10.07C13.33 9.45 14.19 9 15.13 9C17.03 9 17.5 10.17 17.5 12V17H15.5V12.5C15.5 11.67 15.17 11 14.33 11C13.33 11 13 11.83 13 12.5V17H11V9Z" fill="white"/>
+    <rect width="24" height="24" rx="4" fill="#000000" />
+    <path
+      d="M7 9H9V17H7V9ZM8 6C7.45 6 7 6.45 7 7C7 7.55 7.45 8 8 8C8.55 8 9 7.55 9 7C9 6.45 8.55 6 8 6ZM11 9H13V10.07C13.33 9.45 14.19 9 15.13 9C17.03 9 17.5 10.17 17.5 12V17H15.5V12.5C15.5 11.67 15.17 11 14.33 11C13.33 11 13 11.83 13 12.5V17H11V9Z"
+      fill="white"
+    />
   </svg>
 );
 
@@ -47,15 +52,22 @@ interface ImageFile {
   file: File;
   preview: string;
   id: string;
+  base64?: string;
 }
 
 const LinkedInPostForm: React.FC<LinkedInPostProps> = ({ sub }) => {
   const [activeTab, setActiveTab] = useState(0);
   const [message, setMessage] = useState("");
   const [imagePrompt, setImagePrompt] = useState("");
-  const [scheduledDateTime, setScheduledDateTime] = useState<Dayjs | null>(null);
+  const [scheduledDateTime, setScheduledDateTime] = useState<Dayjs | null>(
+    null
+  );
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [selectedImages, setSelectedImages] = useState<ImageFile[]>([]);
+  const [
+    generateImage,
+    { data: generatedImage, isLoading: isImageGenerating, error: imageError },
+  ] = useGenerateImageMutation();
 
   const [snackbar, setSnackbar] = useState<{
     open: boolean;
@@ -67,8 +79,10 @@ const LinkedInPostForm: React.FC<LinkedInPostProps> = ({ sub }) => {
   // API hooks
   const [createPost, { isLoading, isError, error, isSuccess }] =
     useCreateLinkedInPostMutation();
-  const [schedulePost, { isLoading: isScheduling, isSuccess: scheduleSuccess }] =
-    useSchedulePostMutation();
+  const [
+    schedulePost,
+    { isLoading: isScheduling, isSuccess: scheduleSuccess },
+  ] = useSchedulePostMutation();
   const [generateIdea, { isLoading: isGenerating }] = useGenerateIdeaMutation();
 
   /** ---------------- Utilities ------------------ */
@@ -171,8 +185,14 @@ const LinkedInPostForm: React.FC<LinkedInPostProps> = ({ sub }) => {
     if (selectedImages.length > 0) {
       imagesPayload = await Promise.all(
         selectedImages.map(async (imageFile) => {
-          const base64 = await toBase64(imageFile.file);
-          return { image: base64 };
+          if (imageFile.base64) {
+            // 👈 Directly use already-stored base64 for generated images
+            return { image: imageFile.base64 };
+          } else {
+            // 👈 For uploaded images, convert File to base64
+            const base64 = await toBase64(imageFile.file);
+            return { image: base64 };
+          }
         })
       );
     }
@@ -188,6 +208,7 @@ const LinkedInPostForm: React.FC<LinkedInPostProps> = ({ sub }) => {
   const handlePost = async () => {
     try {
       const payload = await buildPayload();
+      console.log("Payload for post:", payload);
       if (!payload) return;
 
       const response = await createPost({
@@ -263,8 +284,8 @@ const LinkedInPostForm: React.FC<LinkedInPostProps> = ({ sub }) => {
         prompt: message || "Generate an engaging LinkedIn post idea",
       }).unwrap();
 
-      if (response?.groq_response) {
-        setMessage(response.groq_response);
+      if (response?.final_response) {
+        setMessage(response.final_response);
         setSnackbar({
           open: true,
           severity: "success",
@@ -282,15 +303,57 @@ const LinkedInPostForm: React.FC<LinkedInPostProps> = ({ sub }) => {
     }
   };
 
-  const handleImageGenerate = async () => {
-    // TODO: Add your image generation API call here
-    console.log("Image generation with prompt:", imagePrompt);
+ const handleImageGenerate = async () => {
+  try {
+    const token = Cookies.get("token");
+
+    if (!token) {
+      setSnackbar({
+        open: true,
+        severity: "error",
+        message: "Session expired. Please log in again.",
+      });
+      return;
+    }
+
+    const response = await generateImage({
+      session_id: token,
+      prompt: imagePrompt,
+    }).unwrap();
+
+    if (response?.image_base64) {
+      setSnackbar({
+        open: true,
+        severity: "success",
+        message: "Image generated successfully!",
+        icon: <CheckCircle />,
+      });
+
+      const cleanBase64 = response.image_base64.replace(
+        /^data:application\/octet-stream;base64,/,
+        ""
+      );
+
+      // 👇 Save just like uploaded images (both preview and base64)
+      const newImage: ImageFile = {
+        file: new File([], "generated.png"), // dummy File object
+        preview: `data:image/png;base64,${cleanBase64}`,
+        base64: cleanBase64,
+        id: generateId(),
+      };
+
+      setSelectedImages((prev) => [...prev, newImage]);
+    }
+  } catch (err) {
+    console.error("Image generation error:", err);
     setSnackbar({
       open: true,
-      severity: "success",
-      message: "Image generation API to be integrated",
+      severity: "error",
+      message: "Failed to generate image. Please try again.",
     });
-  };
+  }
+};
+
 
   const handleScheduleClick = (event: React.MouseEvent<HTMLElement>) =>
     setAnchorEl(event.currentTarget);
@@ -398,7 +461,8 @@ const LinkedInPostForm: React.FC<LinkedInPostProps> = ({ sub }) => {
               },
               "& .MuiTabs-indicator": {
                 height: 3,
-                background: "linear-gradient(90deg, #3EA3FF 0%, #9C6FDE 50%, #FF5E9D 100%)",
+                background:
+                  "linear-gradient(90deg, #3EA3FF 0%, #9C6FDE 50%, #FF5E9D 100%)",
               },
             }}
           >
@@ -462,9 +526,12 @@ const LinkedInPostForm: React.FC<LinkedInPostProps> = ({ sub }) => {
                     variant="contained"
                     onClick={handleRefine}
                     disabled={isGenerating}
-                    startIcon={isGenerating ? <CircularProgress size={14} /> : null}
+                    startIcon={
+                      isGenerating ? <CircularProgress size={14} /> : null
+                    }
                     sx={{
-                      background: "linear-gradient(90deg, #DA5B91 0%, #5D89C7 100%)",
+                      background:
+                        "linear-gradient(90deg, #DA5B91 0%, #5D89C7 100%)",
                       color: "#fff",
                       borderRadius: "25px",
                       fontSize: "13px",
@@ -475,7 +542,8 @@ const LinkedInPostForm: React.FC<LinkedInPostProps> = ({ sub }) => {
                       fontFamily: "Poppins, sans-serif",
                       boxShadow: "none",
                       "&:hover": {
-                        background: "linear-gradient(90deg, #DA5B91 0%, #5D89C7 100%)",
+                        background:
+                          "linear-gradient(90deg, #DA5B91 0%, #5D89C7 100%)",
                         opacity: 0.9,
                         boxShadow: "none",
                       },
@@ -599,7 +667,8 @@ const LinkedInPostForm: React.FC<LinkedInPostProps> = ({ sub }) => {
                     onClick={handleImageGenerate}
                     disabled={!imagePrompt.trim()}
                     sx={{
-                      background: "linear-gradient(90deg, #DA5B91 0%, #5D89C7 100%)",
+                      background:
+                        "linear-gradient(90deg, #DA5B91 0%, #5D89C7 100%)",
                       color: "#fff",
                       borderRadius: "25px",
                       fontSize: "14px",
@@ -610,7 +679,8 @@ const LinkedInPostForm: React.FC<LinkedInPostProps> = ({ sub }) => {
                       fontFamily: "Poppins, sans-serif",
                       boxShadow: "none",
                       "&:hover": {
-                        background: "linear-gradient(90deg, #DA5B91 0%, #5D89C7 100%)",
+                        background:
+                          "linear-gradient(90deg, #DA5B91 0%, #5D89C7 100%)",
                         opacity: 0.9,
                         boxShadow: "none",
                       },
@@ -620,7 +690,7 @@ const LinkedInPostForm: React.FC<LinkedInPostProps> = ({ sub }) => {
                       },
                     }}
                   >
-                    Generate
+                    {isImageGenerating ? "Generating..." : "Generate"}
                   </Button>
                 </Box>
               </>

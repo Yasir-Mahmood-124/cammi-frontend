@@ -21,6 +21,9 @@ import { linkedinLoginApi } from "./services/linkedin/linkedinLoginApi";
 import { linkedinPostApi } from "./services/linkedin/linkedinPostApi";
 import {schedulePostApi} from "./services/linkedin/schedulePostApi";
 import { viewApiSlice } from "./services/linkedin/viewApiSlice";
+import { imageGenerationApi } from "./services/linkedin/imageGeneration";
+import { getPostQuestionsApi } from "./services/linkedin/getPostQuestion";
+import { insertPostQuestionApi } from "./services/linkedin/insertPostQuestion";
 
 // Create the store
 export const store = configureStore({
@@ -46,6 +49,9 @@ export const store = configureStore({
     [linkedinPostApi.reducerPath]: linkedinPostApi.reducer,
     [schedulePostApi.reducerPath]: schedulePostApi.reducer,
     [viewApiSlice.reducerPath]: viewApiSlice.reducer,
+    [imageGenerationApi.reducerPath]: imageGenerationApi.reducer,
+    [getPostQuestionsApi.reducerPath]: getPostQuestionsApi.reducer,
+    [insertPostQuestionApi.reducerPath]: insertPostQuestionApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware()
@@ -69,6 +75,9 @@ export const store = configureStore({
       .concat(linkedinPostApi.middleware)
       .concat(schedulePostApi.middleware)
       .concat(viewApiSlice.middleware)
+      .concat(imageGenerationApi.middleware)
+      .concat(getPostQuestionsApi.middleware)
+      .concat(insertPostQuestionApi.middleware)
 });
 
 // Infer types for RootState and AppDispatch

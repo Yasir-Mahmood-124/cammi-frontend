@@ -14,17 +14,20 @@ import {
   TextField,
   IconButton,
   Button,
+  Box,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
+import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import { Stage } from '@/utils/calculations';
 
 interface StagesTableProps {
   stages: Stage[];
   setStages: (stages: Stage[]) => void;
+  onRunCalculation: () => void;
 }
 
-const StagesTable: React.FC<StagesTableProps> = ({ stages, setStages }) => {
+const StagesTable: React.FC<StagesTableProps> = ({ stages, setStages, onRunCalculation }) => {
   const addStage = () => {
     setStages([...stages, { name: 'New Stage', conversion: 50 }]);
   };
@@ -99,15 +102,28 @@ const StagesTable: React.FC<StagesTableProps> = ({ stages, setStages }) => {
             </TableBody>
           </Table>
         </TableContainer>
-        <Button
-          variant="contained"
-          color="success"
-          startIcon={<AddIcon />}
-          onClick={addStage}
-          sx={{ mt: 2 }}
-        >
-          Add Stage
-        </Button>
+        <Box sx={{ mt: 2, display: 'flex', gap: 2 }}>
+          <Button
+            variant="outlined"
+            startIcon={<AddIcon />}
+            onClick={addStage}
+          >
+            Add Stage
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<PlayArrowIcon />}
+            onClick={onRunCalculation}
+            sx={{ 
+              backgroundColor: '#1976d2',
+              '&:hover': {
+                backgroundColor: '#1565c0'
+              }
+            }}
+          >
+            Run Calculation
+          </Button>
+        </Box>
       </CardContent>
     </Card>
   );

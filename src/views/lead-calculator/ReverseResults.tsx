@@ -27,17 +27,11 @@ const ReverseResults: React.FC<ReverseResultsProps> = ({ results }) => {
         </Typography>
         <TableContainer>
           <Table size="small">
-            <TableHead>
+            <TableHead sx={{ backgroundColor: '#f5f5f5' }}>
               <TableRow>
-                <TableCell>
-                  <strong>Stage Name</strong>
-                </TableCell>
-                <TableCell align="right">
-                  <strong>Required Volume</strong>
-                </TableCell>
-                <TableCell align="right">
-                  <strong>Cumulative Conv.</strong>
-                </TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Stage Name</TableCell>
+                <TableCell align="right" sx={{ fontWeight: 600 }}>Required Volume</TableCell>
+                <TableCell align="right" sx={{ fontWeight: 600 }}>Cumulative Required Conversion</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
