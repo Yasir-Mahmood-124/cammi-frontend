@@ -1,7 +1,7 @@
 "use client";
 
-import React from 'react';
-import { Card, CardContent, Typography, Grid } from '@mui/material';
+import React from "react";
+import { Card, CardContent, Typography, Box } from "@mui/material";
 import {
   BarChart,
   Bar,
@@ -16,19 +16,19 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
-} from 'recharts';
-import { ForwardResult, ReverseResult } from '@/utils/calculations';
+} from "recharts";
+import { ForwardResult, ReverseResult } from "@/utils/calculations";
 
 interface ChartsProps {
   forwardResults: ForwardResult[];
   reverseResults: ReverseResult[];
 }
 
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D', '#FFC658'];
+const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8", "#82CA9D", "#FFC658"];
 
 const Charts: React.FC<ChartsProps> = ({ forwardResults, reverseResults }) => {
   const chartData = forwardResults.map((r) => ({
-    name: r.stageName.length > 20 ? r.stageName.substring(0, 20) + '...' : r.stageName,
+    name: r.stageName.length > 20 ? r.stageName.substring(0, 20) + "..." : r.stageName,
     volume: r.stageVolume,
   }));
 
@@ -38,7 +38,7 @@ const Charts: React.FC<ChartsProps> = ({ forwardResults, reverseResults }) => {
   }));
 
   const comparisonData = forwardResults.map((r, i) => ({
-    name: r.stageName.length > 20 ? r.stageName.substring(0, 20) + '...' : r.stageName,
+    name: r.stageName.length > 20 ? r.stageName.substring(0, 20) + "..." : r.stageName,
     forward: r.stageVolume,
     reverse: reverseResults[i].requiredVolume,
   }));
@@ -49,107 +49,103 @@ const Charts: React.FC<ChartsProps> = ({ forwardResults, reverseResults }) => {
         Visualizations
       </Typography>
 
-      <Grid container spacing={3}>
+      {/* Wrapper for responsive layout */}
+      <Box
+        display="flex"
+        flexWrap="wrap"
+        gap={3}
+        sx={{
+          "& > *": {
+            flex: { xs: "1 1 100%", md: "1 1 calc(50% - 12px)" }, // responsive 1 or 2 per row
+          },
+        }}
+      >
         {/* Forward Funnel Bar Chart */}
-        <Grid item xs={12} md={6}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Forward Funnel (Bar Chart)
-              </Typography>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Bar dataKey="volume" fill="#8884d8" name="Volume" />
-                </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-        </Grid>
+        <Card>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>
+              Forward Funnel (Bar Chart)
+            </Typography>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="volume" fill="#8884d8" name="Volume" />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
 
         {/* Conversion Drop-off Line Chart */}
-        <Grid item xs={12} md={6}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Conversion Drop-off (Line Chart)
-              </Typography>
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Line
-                    type="monotone"
-                    dataKey="volume"
-                    stroke="#8884d8"
-                    strokeWidth={2}
-                    name="Volume"
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-        </Grid>
+        <Card>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>
+              Conversion Drop-off (Line Chart)
+            </Typography>
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Line type="monotone" dataKey="volume" stroke="#8884d8" strokeWidth={2} name="Volume" />
+              </LineChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
 
         {/* Losses Pie Chart */}
-        <Grid item xs={12} md={6}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Losses by Stage (Pie Chart)
-              </Typography>
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={lossesData}
-                    dataKey="loss"
-                    nameKey="name"
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={80}
-                    label
-                  >
-                    {lossesData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-        </Grid>
+        <Card>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>
+              Losses by Stage (Pie Chart)
+            </Typography>
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={lossesData}
+                  dataKey="loss"
+                  nameKey="name"
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={80}
+                  label
+                >
+                  {lossesData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
 
         {/* Forward vs Reverse Comparison */}
-        <Grid item xs={12} md={6}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Forward vs Reverse Required
-              </Typography>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={comparisonData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Bar dataKey="forward" fill="#8884d8" name="Forward" />
-                  <Bar dataKey="reverse" fill="#82ca9d" name="Reverse Required" />
-                </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
+        <Card>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>
+              Forward vs Reverse Required
+            </Typography>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={comparisonData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="forward" fill="#8884d8" name="Forward" />
+                <Bar dataKey="reverse" fill="#82ca9d" name="Reverse Required" />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      </Box>
     </>
   );
 };
