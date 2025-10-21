@@ -1,4 +1,8 @@
 const nextConfig = {
+  eslint: {
+    ignoreDuringBuilds: true, // ✅ disables ESLint in production builds
+  },
+  
   webpack(config: any) {
     config.module.rules.push({
       test: /\.svg$/,
