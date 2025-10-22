@@ -6,6 +6,8 @@ import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import { useDownloadPdfMutation } from '@/redux/services/document/download-pdf';
 import { useSendReviewDocumentMutation } from '@/redux/services/common/send_review';
 import Cookies from 'js-cookie';
+import EditHeadingDialog from './EditHeadingDialog';
+import { useGetDocxFileMutation } from '@/redux/services/document/downloadApi';
 
 interface DocumentPreviewProps {
   docxBase64: string;
@@ -28,9 +30,12 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ docxBase64, fileName 
   const [selectedFormat, setSelectedFormat] = useState<'PDF' | 'DOCx' | null>(null);
   const open = Boolean(anchorEl);
   const contentRef = useRef<HTMLDivElement>(null);
+  const [openEditDialog, setOpenEditDialog] = useState(false);
 
   const [downloadPdf, { isLoading: isPdfLoading }] = useDownloadPdfMutation();
   const [sendReview, { isLoading: isReviewLoading }] = useSendReviewDocumentMutation();
+
+  const [getDocxFile, { isLoading: isDownloading }] = useGetDocxFileMutation();
 
   useEffect(() => {
     const parseDocx = async () => {
@@ -192,6 +197,7 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ docxBase64, fileName 
   const handleEdit = () => {
     console.log('Edit functionality to be implemented');
     // Implement edit functionality
+    setOpenEditDialog(true);
   };
 
   const handleSubmitForReview = async () => {
@@ -232,6 +238,67 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ docxBase64, fileName 
       }
     }
   };
+
+        const fetchLatestDocument = async () => {
+            try {
+                const savedToken = Cookies.get("token");
+                const project_id = JSON.parse(
+                    localStorage.getItem("currentProject") || "{}"
+                ).project_id;
+    
+                const response = await getDocxFile({
+                    session_id: savedToken || "",
+                    document_type: "kmf",
+                    project_id: project_id,
+                }).unwrap();
+    
+                setIsLoading(true);
+                setDocumentHtml("");
+                setTableOfContents([]);
+                setDocumentText("");
+    
+                // Decode DOCX base64
+                const binaryString = atob(response.docxBase64);
+                const bytes = new Uint8Array(binaryString.length);
+                for (let i = 0; i < binaryString.length; i++) {
+                    bytes[i] = binaryString.charCodeAt(i);
+                }
+    
+                // Dynamically import mammoth
+                const mammoth = await import("mammoth");
+    
+                // Convert DOCX to HTML + text
+                const result = await mammoth.convertToHtml({ arrayBuffer: bytes.buffer });
+                const textResult = await mammoth.extractRawText({ arrayBuffer: bytes.buffer });
+    
+                setDocumentText(textResult.value);
+    
+                // Parse the new HTML to extract headings
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(result.value, "text/html");
+                const headings = doc.querySelectorAll("h1, h2, h3, h4, h5, h6");
+    
+                const toc: TableOfContentsItem[] = [];
+                headings.forEach((heading, index) => {
+                    const level = parseInt(heading.tagName.substring(1));
+                    const text = heading.textContent || "";
+                    const id = `heading-${index}`;
+                    heading.id = id;
+                    toc.push({ id, text, level });
+                });
+    
+                // Update states
+                setDocumentHtml(doc.body.innerHTML);
+                setTableOfContents(toc);
+                if (toc.length > 0) setActiveSection(toc[0].id);
+    
+                console.log("✅ Document refreshed successfully");
+            } catch (error) {
+                console.error("❌ Failed to refresh document:", error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
 
   if (isLoading) {
     return (
@@ -565,6 +632,16 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ docxBase64, fileName 
         >
           Edit
         </Button>
+
+        
+        <EditHeadingDialog
+            open={openEditDialog}
+            onClose={() => {
+            setOpenEditDialog(false);
+            fetchLatestDocument(); // 👈 call the refresh when dialog closes
+            }}
+            document_type={"kmf"}
+        />
 
         {/* Submit for Review Button */}
         <Button

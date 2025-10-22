@@ -6,6 +6,7 @@ import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import { useDownloadPdfMutation } from '@/redux/services/document/download-pdf';
 import { useSendReviewDocumentMutation } from '@/redux/services/common/send_review';
 import Cookies from 'js-cookie';
+import EditHeadingDialog from './EditHeadingDialog';
 
 interface DocumentPreviewProps {
   docxBase64: string;
@@ -28,6 +29,7 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ docxBase64, fileName 
   const [selectedFormat, setSelectedFormat] = useState<'PDF' | 'DOCx' | null>(null);
   const open = Boolean(anchorEl);
   const contentRef = useRef<HTMLDivElement>(null);
+  const [openEditDialog, setOpenEditDialog] = useState(false);
 
   const [downloadPdf, { isLoading: isPdfLoading }] = useDownloadPdfMutation();
   const [sendReview, { isLoading: isReviewLoading }] = useSendReviewDocumentMutation();
@@ -192,6 +194,7 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ docxBase64, fileName 
   const handleEdit = () => {
     console.log('Edit functionality to be implemented');
     // Implement edit functionality
+    setOpenEditDialog(true);
   };
 
   const handleSubmitForReview = async () => {
@@ -565,6 +568,16 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ docxBase64, fileName 
         >
           Edit
         </Button>
+
+        <EditHeadingDialog
+          open={openEditDialog}
+          onClose={() => setOpenEditDialog(false)}
+          sessionId={Cookies.get('token') || ''}
+          projectId={JSON.parse(localStorage.getItem("currentProject") || "{}").project_id || ''}
+          documentType="gtm"
+        />
+
+
 
         {/* Submit for Review Button */}
         <Button

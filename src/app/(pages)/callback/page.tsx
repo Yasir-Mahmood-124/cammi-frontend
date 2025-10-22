@@ -14,6 +14,8 @@ const GoogleCallbackPage = () => {
     const session_id = params.get("session_id");
     const id = params.get("id");
 
+    
+
     const onboarding_status = params.get("onboarding_status") === "true";
 
     const user = {

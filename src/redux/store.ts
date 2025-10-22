@@ -27,6 +27,7 @@ import { insertPostQuestionApi } from "./services/linkedin/insertPostQuestion";
 import { userFeedbackApi } from "./services/feedback/userFeedbackApi";
 import { checkFeedbackApi } from './services/feedback/checkFeedbackApi';
 import { webscrapApi } from './services/webscrap/webscrapApi';
+import { editHeadingWebsocketApi } from "./services/common/editHeadingWebsocketApi";
 
 // Create the store
 export const store = configureStore({
@@ -58,6 +59,7 @@ export const store = configureStore({
     [userFeedbackApi.reducerPath]: userFeedbackApi.reducer,
     [checkFeedbackApi.reducerPath]: checkFeedbackApi.reducer,
     [webscrapApi.reducerPath]: webscrapApi.reducer,
+    [editHeadingWebsocketApi.reducerPath]: editHeadingWebsocketApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware()
@@ -86,7 +88,8 @@ export const store = configureStore({
       .concat(insertPostQuestionApi.middleware)
       .concat(userFeedbackApi.middleware)
       .concat(checkFeedbackApi.middleware)
-      .concat(webscrapApi.middleware),
+      .concat(webscrapApi.middleware)
+      .concat(editHeadingWebsocketApi.middleware),
 });
 
 // Infer types for RootState and AppDispatch

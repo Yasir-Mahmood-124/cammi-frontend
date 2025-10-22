@@ -21,6 +21,9 @@ import { Visibility, VisibilityOff } from "@mui/icons-material";
 import Cookies from "js-cookie";
 import { useRouter } from "next/navigation";
 import { useLazyGoogleLoginQuery } from "@/redux/services/auth/googleApi";
+import NextLink from "next/link";
+// import Link from "@mui/material/Link";
+
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -361,6 +364,7 @@ const Login = () => {
             >
               New to CAMMI?{" "}
               <Link
+                component={NextLink}
                 href="/register"
                 underline="hover"
                 sx={{ color: "secondary.main", fontWeight: 500 }}
