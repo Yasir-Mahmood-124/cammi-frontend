@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Container,
@@ -11,18 +11,19 @@ import {
   Link,
   IconButton,
   InputAdornment,
+  CircularProgress,
 } from "@mui/material";
 import { UpperWave, LowerWave, Google } from "@/assests/icons";
 import Image from "next/image";
 import Logo from "@/assests/images/Logo.png";
 import { useLoginMutation } from "@/redux/services/auth/authApi";
 import { toast } from "@/utils/toast";
-import { Visibility, VisibilityOff } from "@mui/icons-material";
+import Visibility from "@mui/icons-material/Visibility";
+import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import Cookies from "js-cookie";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useLazyGoogleLoginQuery } from "@/redux/services/auth/googleApi";
 import NextLink from "next/link";
-// import Link from "@mui/material/Link";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -30,7 +31,75 @@ const Login = () => {
   const [login, { isLoading }] = useLoginMutation();
   const [googleLogin] = useLazyGoogleLoginQuery();
   const [showPassword, setShowPassword] = useState(false);
+  const [isProcessingGoogle, setIsProcessingGoogle] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // Handle Google OAuth callback
+  useEffect(() => {
+    const handleGoogleCallback = () => {
+      try {
+        // Check if we have Google callback parameters
+        const sessionId = searchParams.get("session_id");
+        const name = searchParams.get("name");
+        const email = searchParams.get("email");
+        const picture = searchParams.get("picture");
+        const sub = searchParams.get("sub");
+        const onboardingStatus = searchParams.get("onboarding_status");
+        const locale = searchParams.get("locale");
+        const id = searchParams.get("id");
+        const error = searchParams.get("error");
+
+        // Handle error case
+        if (error) {
+          toast("Google sign-in failed", { variant: "error" });
+          setIsProcessingGoogle(false);
+          return;
+        }
+
+        // If we have session_id, process the Google login
+        if (sessionId && email) {
+          setIsProcessingGoogle(true);
+
+          // Store session_id as token in cookies (same as manual login)
+          Cookies.set("token", sessionId, { expires: 7, secure: true });
+
+          // Store user data in localStorage
+          const userData = {
+            id: id,
+            name: name,
+            email: email,
+            picture: picture,
+            sub: sub,
+            locale: locale,
+          };
+          localStorage.setItem("user", JSON.stringify(userData));
+
+          // Store onboarding status
+          localStorage.setItem(
+            "onboarding_status",
+            JSON.stringify(onboardingStatus === "true")
+          );
+
+          // Show success message
+          toast("Login successful!", { variant: "success" });
+
+          // Redirect based on onboarding status
+          if (onboardingStatus === "true") {
+            router.push("/onboarding");
+          } else {
+            router.push("/dashboard");
+          }
+        }
+      } catch (err) {
+        console.error("Error handling Google callback:", err);
+        toast("Authentication failed", { variant: "error" });
+        setIsProcessingGoogle(false);
+      }
+    };
+
+    handleGoogleCallback();
+  }, [searchParams, router]);
 
   const handleClick = async () => {
     try {
@@ -43,6 +112,7 @@ const Login = () => {
       }
     } catch (err) {
       console.error("Error calling Google login endpoint", err);
+      toast("Failed to initiate Google sign-in", { variant: "error" });
     }
   };
 
@@ -50,14 +120,14 @@ const Login = () => {
     e.preventDefault();
 
     if (!email || !password) {
-      toast(" Please enter email and password", { variant: "warning" });
+      toast("Please enter email and password", { variant: "warning" });
       return;
     }
 
     try {
       const res = await login({ email, password }).unwrap();
 
-      toast(res.message || " Login successful!", { variant: "success" });
+      toast(res.message || "Login successful!", { variant: "success" });
 
       Cookies.set("token", res.token, { expires: 7, secure: true });
 
@@ -75,13 +145,35 @@ const Login = () => {
         router.push("/dashboard");
       }
     } catch (err: any) {
-      toast(err?.data?.message || " Login failed", { variant: "error" });
+      toast(err?.data?.message || "Login failed", { variant: "error" });
     }
   };
 
   const handleTogglePassword = () => {
     setShowPassword((prev) => !prev);
   };
+
+  // Show loading state while processing Google callback
+  if (isProcessingGoogle) {
+    return (
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          minHeight: "100vh",
+          gap: 2,
+          backgroundColor: "#EFF1F5",
+        }}
+      >
+        <CircularProgress />
+        <Typography variant="h6" sx={{ color: "#666" }}>
+          Completing sign in with Google...
+        </Typography>
+      </Box>
+    );
+  }
 
   return (
     <Box
@@ -91,9 +183,8 @@ const Login = () => {
         display: "flex",
         overflow: "hidden",
         backgroundColor: "#EFF1F5",
-        zIndex: 0, // base layer
+        zIndex: 0,
 
-        // 👇 Background layer (behind everything)
         "&::before": {
           content: '""',
           position: "absolute",
@@ -103,10 +194,9 @@ const Login = () => {
           backgroundSize: "cover",
           backgroundPosition: "center",
           opacity: 0.2,
-          zIndex: -2, // make it go behind all content
+          zIndex: -2,
         },
 
-        // 👇 Overlay layer (also behind everything)
         "&::after": {
           content: '""',
           position: "absolute",
@@ -118,7 +208,7 @@ const Login = () => {
           opacity: 0.15,
           mixBlendMode: "overlay",
           pointerEvents: "none",
-          zIndex: -1, // also behind content
+          zIndex: -1,
         },
       }}
     >
@@ -138,9 +228,7 @@ const Login = () => {
           sx={{
             display: "flex",
             alignItems: "flex-start",
-            // gap: 10,
             flexWrap: "wrap",
-            // ml: "200px",
           }}
         >
           <Paper
@@ -150,8 +238,6 @@ const Login = () => {
               borderRadius: 4,
               px: 4,
               py: 4,
-              // ml: "185px",
-              // mt: "-200px",
               backgroundColor: "#fff",
               display: "flex",
               flexDirection: "column",
@@ -160,7 +246,6 @@ const Login = () => {
               boxShadow: "0px 8px 15px 2px #00000026",
             }}
           >
-            {" "}
             <Box
               sx={{
                 display: "flex",
@@ -168,7 +253,6 @@ const Login = () => {
                 alignItems: "center",
                 width: "100%",
                 height: 80,
-                // mt: 2,
               }}
             >
               <Image
@@ -187,7 +271,6 @@ const Login = () => {
               width="100%"
               sx={{ my: 0 }}
             >
-              {/* Line with dots */}
               <Box
                 sx={{
                   position: "absolute",
@@ -197,7 +280,7 @@ const Login = () => {
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "space-between",
-                  px: 1.5, // space inside for dots
+                  px: 1.5,
                 }}
               >
                 <Box
@@ -226,7 +309,7 @@ const Login = () => {
                 sx={{
                   fontFamily: "Poppins",
                   fontWeight: 600,
-                  fontStyle: "normal", // "SemiBold" isn't a CSS value, 600 covers it
+                  fontStyle: "normal",
                   fontSize: "30px",
                   lineHeight: "100%",
                   letterSpacing: "0%",
@@ -313,7 +396,7 @@ const Login = () => {
                           onClick={handleTogglePassword}
                           edge="end"
                           sx={{
-                            color: "#666", // adjust to your theme
+                            color: "#666",
                             "&:hover": { color: "#000" },
                           }}
                         >
