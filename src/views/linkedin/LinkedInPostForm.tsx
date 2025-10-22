@@ -278,30 +278,48 @@ const LinkedInPostForm: React.FC<LinkedInPostProps> = ({ sub }) => {
     }
   };
 
-  const handleRefine = async () => {
-    try {
-      const response = await generateIdea({
-        prompt: message || "Generate an engaging LinkedIn post idea",
-      }).unwrap();
+const handleRefine = async () => {
+  try {
+    // Get session_id from cookies
+    const sessionId = Cookies.get("token");
 
-      if (response?.final_response) {
-        setMessage(response.final_response);
-        setSnackbar({
-          open: true,
-          severity: "success",
-          message: "AI suggestion generated successfully!",
-          icon: <CheckCircle />,
-        });
-      }
-    } catch (err) {
-      console.error("AI Generate error:", err);
+    if (!sessionId) {
       setSnackbar({
         open: true,
         severity: "error",
-        message: "Failed to generate idea. Please try again.",
+        message: "Session expired. Please log in again.",
+      });
+      return;
+    }
+
+    // Get organization_id from localStorage
+    const currentProject = JSON.parse(localStorage.getItem("currentProject") || "{}");
+    const organizationId = currentProject.organization_id;
+
+    const response = await generateIdea({
+      prompt: message || "Generate an engaging LinkedIn post idea",
+      organization_id: organizationId || "",
+      session_id: sessionId,
+    }).unwrap();
+
+    if (response?.final_response) {
+      setMessage(response.final_response);
+      setSnackbar({
+        open: true,
+        severity: "success",
+        message: "AI suggestion generated successfully!",
+        icon: <CheckCircle />,
       });
     }
-  };
+  } catch (err) {
+    console.error("AI Generate error:", err);
+    setSnackbar({
+      open: true,
+      severity: "error",
+      message: "Failed to generate idea. Please try again.",
+    });
+  }
+};
 
  const handleImageGenerate = async () => {
   try {

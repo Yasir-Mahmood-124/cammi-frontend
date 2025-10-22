@@ -3,6 +3,8 @@ import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
 interface AIGenerateRequest {
   prompt: string;
+  organization_id: string;
+  session_id: string;
 }
 
 interface AIGenerateResponse {

@@ -83,6 +83,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
 
   // Map tool labels to routes
   const toolRoutes: Record<string, string> = {
+    "Data Upload": "/dashboard/data-upload",
     "Lead Calculator": "/dashboard/lead-calculator",
     "Scheduler": "/dashboard/scheduler",
     "LinkedIn": "/dashboard/scheduler/linkedin",
@@ -207,6 +208,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
     { label: "Brand Identity", icon: <BS /> },
   ];
   const toolItems = [
+    { label: "Data Upload", icon: <BS /> },
     { label: "Lead Calculator", icon: <LeadCalculator /> },
     { label: "Scheduler", icon: <Scheduler /> },
   ];
