@@ -29,6 +29,7 @@ import { checkFeedbackApi } from './services/feedback/checkFeedbackApi';
 import { webscrapApi } from './services/webscrap/webscrapApi';
 import { editHeadingWebsocketApi } from "./services/common/editHeadingWebsocketApi";
 import { documentsApi } from "./services/document/documentsApi";
+import { creditsApi } from "./services/credits/credits";
 
 // Create the store
 export const store = configureStore({
@@ -62,6 +63,7 @@ export const store = configureStore({
     [webscrapApi.reducerPath]: webscrapApi.reducer,
     [editHeadingWebsocketApi.reducerPath]: editHeadingWebsocketApi.reducer,
     [documentsApi.reducerPath]: documentsApi.reducer,
+    [creditsApi.reducerPath]: creditsApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware()
@@ -92,7 +94,8 @@ export const store = configureStore({
       .concat(checkFeedbackApi.middleware)
       .concat(webscrapApi.middleware)
       .concat(editHeadingWebsocketApi.middleware)
-      .concat(documentsApi.middleware),
+      .concat(documentsApi.middleware)
+      .concat(creditsApi.middleware)
 });
 
 // Infer types for RootState and AppDispatch

@@ -22,6 +22,7 @@ import {
 } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
 import { useLogoutMutation } from '@/redux/services/auth/authApi';
+import { useUpdateTotalCreditsMutation } from '@/redux/services/credits/credits'; // ✅ Import the mutation
 import Cookies from 'js-cookie';
 
 interface User {
@@ -43,17 +44,18 @@ const TopBar: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [currentProject, setCurrentProject] = useState<CurrentProject | null>(null);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [credits, setCredits] = useState<number | null>(null);
   const isDropdownOpen = Boolean(anchorEl);
 
   const [logout, { isLoading: isLoggingOut }] = useLogoutMutation();
+  const [updateTotalCredits] = useUpdateTotalCreditsMutation(); // ✅ Initialize mutation
 
-  // Function to load current project
+  // 🔹 Function to load current project
   const loadCurrentProject = () => {
     const storedProject = localStorage.getItem('currentProject');
     if (storedProject) {
       try {
-        const projectData = JSON.parse(storedProject);
-        setCurrentProject(projectData);
+        setCurrentProject(JSON.parse(storedProject));
       } catch (error) {
         console.error('Error parsing project data:', error);
         setCurrentProject(null);
@@ -63,6 +65,7 @@ const TopBar: React.FC = () => {
     }
   };
 
+  // 🔹 Load user + project
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
     if (storedUser) {
@@ -73,25 +76,17 @@ const TopBar: React.FC = () => {
       }
     }
 
-    // Load project on mount
     loadCurrentProject();
 
-    // Listen for storage changes (when project is created/updated)
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'currentProject' || e.key === null) {
-        loadCurrentProject();
-      }
+      if (e.key === 'currentProject' || e.key === null) loadCurrentProject();
     };
 
-    // Custom event listener for same-tab updates
-    const handleProjectUpdate = () => {
-      loadCurrentProject();
-    };
+    const handleProjectUpdate = () => loadCurrentProject();
 
     window.addEventListener('storage', handleStorageChange);
     window.addEventListener('projectUpdated', handleProjectUpdate);
 
-    // Poll for changes every 500ms as a fallback
     const intervalId = setInterval(() => {
       loadCurrentProject();
     }, 500);
@@ -102,6 +97,26 @@ const TopBar: React.FC = () => {
       clearInterval(intervalId);
     };
   }, []);
+
+  // 🔹 Fetch credits every 30 seconds
+  useEffect(() => {
+    const fetchCredits = async () => {
+      const session_id = Cookies.get('token'); // assuming token = session_id
+      if (!session_id) return;
+
+      try {
+        const response = await updateTotalCredits({ session_id }).unwrap();
+        setCredits(response.total_credits);
+      } catch (error) {
+        console.error('Error fetching credits:', error);
+      }
+    };
+
+    fetchCredits(); // Initial call
+
+    const interval = setInterval(fetchCredits, 30000); // Every 30s
+    return () => clearInterval(interval);
+  }, [updateTotalCredits]);
 
   const handleDropdownOpen = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -124,12 +139,11 @@ const TopBar: React.FC = () => {
   const handleLogout = async () => {
     handleDropdownClose();
 
-    const token = Cookies.get("token");
+    const token = Cookies.get('token');
 
     if (!token) {
-      console.warn('No token found for logout');
       localStorage.clear();
-      Cookies.remove("token");
+      Cookies.remove('token');
       router.push('/');
       return;
     }
@@ -137,16 +151,12 @@ const TopBar: React.FC = () => {
     try {
       const response = await logout({ token }).unwrap();
       console.log('Logout successful:', response.message);
-
-      localStorage.removeItem('user');
-      localStorage.removeItem('currentProject');
-      Cookies.remove("token");
-      router.push('/');
-    } catch (error: any) {
+    } catch (error) {
       console.error('Logout failed:', error);
+    } finally {
       localStorage.removeItem('user');
       localStorage.removeItem('currentProject');
-      Cookies.remove("token");
+      Cookies.remove('token');
       router.push('/');
     }
   };
@@ -173,13 +183,7 @@ const TopBar: React.FC = () => {
         {/* Left side - Project Name */}
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
           {currentProject?.project_name ? (
-            <Typography
-              variant="h6"
-              sx={{
-                color: '#000',
-                fontWeight: 600,
-              }}
-            >
+            <Typography variant="h6" sx={{ color: '#000', fontWeight: 600 }}>
               {currentProject.project_name}
             </Typography>
           ) : (
@@ -213,22 +217,15 @@ const TopBar: React.FC = () => {
           <Box sx={{ display: 'flex', flexDirection: 'column' }}>
             <Typography
               variant="body2"
-              sx={{
-                color: '#000',
-                fontWeight: 500,
-                lineHeight: 1.2,
-              }}
+              sx={{ color: '#000', fontWeight: 500, lineHeight: 1.2 }}
             >
               {user.name}
             </Typography>
             <Typography
               variant="caption"
-              sx={{
-                color: '#666',
-                lineHeight: 1.2,
-              }}
+              sx={{ color: '#666', lineHeight: 1.2 }}
             >
-              100 Credits
+              {credits !== null ? `${credits} Credits` : 'Loading...'}
             </Typography>
           </Box>
 
