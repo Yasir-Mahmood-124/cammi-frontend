@@ -14,17 +14,15 @@ import {
   TableHead,
   TableRow,
   Button,
+  CircularProgress,
 } from "@mui/material";
 import { FaSearch } from "react-icons/fa";
 import {
   useGetReviewsMutation,
   Review,
 } from "@/redux/services/documentReview/reviewApi";
-interface Document {
-  id: number;
-  name: string;
-  imageUrl: string;
-}
+import { useGetUserDocumentsMutation } from "@/redux/services/document/documentsApi";
+import Cookies from "js-cookie";
 
 interface Project {
   id: number;
@@ -33,28 +31,39 @@ interface Project {
 
 const DashboardPage = () => {
   const [getReviews, { data, isLoading, error }] = useGetReviewsMutation();
+  const [
+    getUserDocuments,
+    {
+      data: documentsData,
+      isLoading: documentsLoading,
+      error: documentsError,
+    },
+  ] = useGetUserDocumentsMutation();
 
   useEffect(() => {
     getReviews();
+    
+    // Get session_id from cookies
+    const sessionId = Cookies.get("token");
+    
+    if (sessionId) {
+      getUserDocuments({
+        session_id: sessionId,
+      });
+    } else {
+      console.error("Session ID not found in cookies");
+    }
   }, []);
-  // Static array data
-  const documents: Document[] = [
-    {
-      id: 1,
-      name: "Business Plan",
-      imageUrl: "/Folders/documentGenration.png",
-    },
-    { id: 2, name: "GTM Strategy", imageUrl: "/Folders/documentGenration.png" },
-    { id: 3, name: "AI Proposal", imageUrl: "/Folders/documentGenration.png" },
-  ];
 
-  const projects: Project[] = [
-    { id: 1, title: "Krados" },
-    { id: 2, title: "NovaEdge" },
-    { id: 3, title: "Cortex AI" },
-  ];
+  // Log the API response to check structure
+  useEffect(() => {
+    if (documentsData) {
+      console.log("Documents API Response:", documentsData);
+    }
+  }, [documentsData]);
 
-  
+  // Default image for documents
+  const defaultDocumentImage = "/Folders/documentGenration.png";
 
   return (
     <Box
@@ -66,7 +75,6 @@ const DashboardPage = () => {
         gap: "100px",
       }}
     >
-
       {/* Main Content */}
       <Box
         sx={{
@@ -74,7 +82,6 @@ const DashboardPage = () => {
           backgroundColor: "#EFF1F5",
           overflowY: "auto",
           py: 2,
-          // pl: 8,
         }}
       >
         <Container
@@ -155,15 +162,30 @@ const DashboardPage = () => {
               >
                 My Documents
               </Typography>
-              <Box display="flex" flexWrap="wrap" gap={2}>
-                {documents.length > 0 ? (
-                  documents.map((doc) => (
+
+              {documentsLoading ? (
+                <Box display="flex" justifyContent="center" py={4}>
+                  <CircularProgress />
+                </Box>
+              ) : documentsError ? (
+                <Typography color="error">
+                  Error loading documents. Please try again.
+                </Typography>
+              ) : documentsData?.documents &&
+                documentsData.documents.length > 0 ? (
+                <Box display="flex" flexWrap="wrap" gap={2}>
+                  {documentsData.documents.map((doc, index) => (
                     <Box
-                      key={doc.id}
+                      key={(doc as any).document_id || index}
                       sx={{
                         display: "flex",
                         flexDirection: "column",
                         alignItems: "center",
+                        cursor: "pointer",
+                        transition: "transform 0.2s",
+                        "&:hover": {
+                          transform: "translateY(-4px)",
+                        },
                       }}
                     >
                       {/* Card */}
@@ -179,11 +201,16 @@ const DashboardPage = () => {
                           alignItems: "center",
                           justifyContent: "center",
                           overflow: "hidden",
+                          transition: "all 0.2s",
+                          "&:hover": {
+                            backgroundColor: "#D5D7DB",
+                            borderColor: "#C5C7CB",
+                          },
                         }}
                       >
                         <img
-                          src={doc.imageUrl} // replace with demo image if needed
-                          alt={doc.name}
+                          src={defaultDocumentImage}
+                          alt={(doc as any).document_name || "Document"}
                           style={{
                             width: "80%",
                             height: "80%",
@@ -192,55 +219,73 @@ const DashboardPage = () => {
                         />
                       </Box>
 
-                      {/* Document Name */}
-                      <Box display={"flex"}>
-                        <Box>
-                          <Typography
-                            sx={{
-                              color: "#000000",
-                              fontFamily: "Poppins",
-                              fontSize: "10px",
-                              fontStyle: "normal",
-                              fontWeight: 400,
-                              lineHeight: "14px",
-                              mt: 1, // spacing between card and text
-                              textAlign: "center",
-                            }}
-                          >
-                            {doc.name}
-                          </Typography>
-                          <Typography
-                            sx={{
-                              color: "#949494",
-                              fontFamily: "Poppins",
-                              fontSize: "8px",
-                              fontStyle: "normal",
-                              fontWeight: 400,
-                              lineHeight: "11.2px",
-                              textAlign: "center",
-                            }}
-                          >
-                            {doc.name}
-                          </Typography>
-                        </Box>
-                        <Box
+                      {/* Document Name and Date */}
+                      <Box sx={{ mt: 1, textAlign: "center", width: "130px" }}>
+                        <Typography
                           sx={{
-                            width: "17.131px",
-                            height: "18.272px",
-                            flexShrink: 0, // prevents shrinking
-                            display: "flex", // ensures img can align properly if needed
-                            alignItems: "center",
-                            justifyContent: "center",
+                            color: "#000000",
+                            fontFamily: "Poppins",
+                            fontSize: "10px",
+                            fontStyle: "normal",
+                            fontWeight: 500,
+                            lineHeight: "14px",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                            px: 0.5,
                           }}
-                        ></Box>
+                          title={(doc as any).document_name || "Unnamed Document"}
+                        >
+                          {(doc as any).document_name || "Unnamed Document"}
+                        </Typography>
+                        <Typography
+                          sx={{
+                            color: "#949494",
+                            fontFamily: "Poppins",
+                            fontSize: "8px",
+                            fontStyle: "normal",
+                            fontWeight: 400,
+                            lineHeight: "11.2px",
+                            mt: 0.5,
+                          }}
+                        >
+                          {((doc as any).createdAt ?? (doc as any).created_at)
+                            ? new Date(
+                                (doc as any).createdAt ?? (doc as any).created_at
+                              ).toLocaleDateString("en-US", {
+                                month: "short",
+                                day: "numeric",
+                                year: "numeric",
+                              })
+                            : "No date"}
+                        </Typography>
                       </Box>
                     </Box>
-                  ))
-                ) : (
-                  <Typography>No documents found.</Typography>
-                )}
-              </Box>
+                  ))}
+                </Box>
+              ) : (
+                <Box
+                  sx={{
+                    textAlign: "center",
+                    py: 8,
+                    backgroundColor: "#FFF",
+                    borderRadius: "12px",
+                  }}
+                >
+                  <Typography
+                    sx={{
+                      color: "#949494",
+                      fontFamily: "Poppins",
+                      fontSize: "14px",
+                    }}
+                  >
+                    No documents found. Start by creating your first document!
+                  </Typography>
+                </Box>
+              )}
             </Box>
+
+            {/* CAMMI Expert Review Table */}
             <Box sx={{ width: "100%" }}>
               <Typography
                 variant="h6"
