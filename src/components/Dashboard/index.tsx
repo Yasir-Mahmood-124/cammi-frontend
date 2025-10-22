@@ -54,6 +54,8 @@ const DashboardPage = () => {
     { id: 3, title: "Cortex AI" },
   ];
 
+  
+
   return (
     <Box
       sx={{
@@ -64,10 +66,6 @@ const DashboardPage = () => {
         gap: "100px",
       }}
     >
-      {/* Sidebar */}
-      {/* <Box sx={{ width: 150, flexShrink: 0 }}>
-        <Sidebar />
-      </Box> */}
 
       {/* Main Content */}
       <Box
