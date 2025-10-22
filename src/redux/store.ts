@@ -24,6 +24,7 @@ import { viewApiSlice } from "./services/linkedin/viewApiSlice";
 import { imageGenerationApi } from "./services/linkedin/imageGeneration";
 import { getPostQuestionsApi } from "./services/linkedin/getPostQuestion";
 import { insertPostQuestionApi } from "./services/linkedin/insertPostQuestion";
+import { userFeedbackApi } from "./services/feedback/userFeedbackApi";
 
 // Create the store
 export const store = configureStore({
@@ -52,6 +53,7 @@ export const store = configureStore({
     [imageGenerationApi.reducerPath]: imageGenerationApi.reducer,
     [getPostQuestionsApi.reducerPath]: getPostQuestionsApi.reducer,
     [insertPostQuestionApi.reducerPath]: insertPostQuestionApi.reducer,
+    [userFeedbackApi.reducerPath]: userFeedbackApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware()
@@ -78,6 +80,7 @@ export const store = configureStore({
       .concat(imageGenerationApi.middleware)
       .concat(getPostQuestionsApi.middleware)
       .concat(insertPostQuestionApi.middleware)
+      .concat(userFeedbackApi.middleware)
 });
 
 // Infer types for RootState and AppDispatch

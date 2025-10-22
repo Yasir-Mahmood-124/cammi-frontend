@@ -34,6 +34,7 @@ import {
   LeadCalculator,
   Scheduler,
   SR,
+  FeedbackIcon
 } from "@/assests/icons";
 import CreateProject from "./CreateProject";
 import DocumentGenerationModal from "./DocumentGenerationModal";
@@ -86,6 +87,11 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
     "Scheduler": "/dashboard/scheduler",
     "LinkedIn": "/dashboard/scheduler/linkedin",
     "Calendar": "/dashboard/scheduler/calendar",
+  };
+
+  //Map Feedback labels to routes
+  const feedbackRoutes: Record<string, string> = {
+    "Feedback": "/dashboard/feedback",
   };
 
   // Check if project exists in localStorage
@@ -204,6 +210,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
     { label: "Lead Calculator", icon: <LeadCalculator /> },
     { label: "Scheduler", icon: <Scheduler /> },
   ];
+  const feedbackItems = [ { label: "Feedback", icon: <FeedbackIcon /> } ];
 
   const getIconFilter = (label: string, isSelected: boolean) => {
     const reverseIcons = ["Dashboard"];
@@ -345,8 +352,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
                     minWidth: isCollapsed ? "unset" : "32px",
                     justifyContent: "center",
                     "& svg": {
-                      width: 20,
-                      height: 20,
+                      width: 21,
+                      height: 21,
                       transition: "filter 0.2s ease",
                       filter: getIconFilter(item.label, isSelected),
                     },
@@ -371,7 +378,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
 
         {!isCollapsed && (
           <>
-            <Divider sx={{ my: 1, mx: "-16px", borderColor: "#E0E0E0", flexShrink: 0 }} />
+            <Divider sx={{ my: 0, mx: "-16px", borderColor: "#E0E0E0", flexShrink: 0 }} />
 
             {/* Document Generation */}
             <Box sx={{ flexShrink: 0 }}>
@@ -411,7 +418,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
               {/* Scrollable Document List */}
               <Box
                 sx={{
-                  maxHeight: "180px",
+                  maxHeight: "112px",
                   overflowY: "auto",
                   mb: 1,
                   pr: "8px",
@@ -496,10 +503,10 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
               </Box>
             </Box>
 
-            <Divider sx={{ my: 1, mx: "-16px", borderColor: "#E0E0E0", flexShrink: 0 }} />
+            <Divider sx={{ my: 0, mx: "-16px", borderColor: "#E0E0E0", flexShrink: 0 }} />
 
             {/* Tools */}
-            <Box sx={{ flexShrink: 0 }}>
+            <Box sx={{ flexShrink: 0, position: "relative", zIndex: 10 }}>
               {/* Fixed Header */}
               <Typography
                 sx={{
@@ -622,6 +629,54 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
           </>
         )}
 
+        {/* feedback section */}
+        {!isCollapsed && (
+          <>
+            <Divider sx={{ my: 0, mx: "-16px", borderColor: "#E0E0E0", flexShrink: 0 }} />
+            <Box sx={{ flexShrink: 0, position: "relative", zIndex: 10, mt: 1 }}>
+              <List sx={{ py: 0 }}>
+                {feedbackItems.map((item) => {
+                  const isSelected = selected === item.label;
+                  return (
+                    <ListItemButton
+                      key={item.label}
+                      onClick={() => {
+                        setSelected(item.label);
+                        const route = feedbackRoutes[item.label];
+                        if (route) {
+                          router.push(route);
+                        }
+                      }}
+                      sx={getButtonStyles(isSelected)}
+                    >
+                      <ListItemIcon
+                        sx={{ 
+                          minWidth: "32px",
+                          "& svg": {
+                            width: 22,
+                            height: 22,
+                            filter: getIconFilter(item.label, isSelected),
+                          },
+                        }}
+                      >
+                        {item.icon}
+                      </ListItemIcon>
+                      <ListItemText
+                        primary={item.label}  
+                        primaryTypographyProps={{
+                          fontSize: "14px",
+                          color: isSelected ? "#FFF" : "#000",  
+                        }}
+                      />
+                    </ListItemButton>
+                  );
+                })}
+              </List>
+            </Box>
+          </>
+        )}
+
+
         {/* Collapsed view - only icons */}
         {isCollapsed && (
           <Box sx={{ display: "flex", flexDirection: "column", gap: 1, mt: 2 }}>
@@ -655,8 +710,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
                   <Box
                     sx={{
                       "& svg": {
-                        width: 20,
-                        height: 20,
+                        width: 21,
+                        height: 21,
                         filter: getIconFilter(item.label, isSelected),
                       },
                     }}
@@ -679,6 +734,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
             alignItems: "center",
             borderTop: "1px solid #E0E0E0",
             flexShrink: 0,
+            position: "relative",
+            zIndex: 1,
           }}
         >
           <Avatar 
@@ -707,7 +764,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
             }}
           >
             <Typography sx={{ fontSize: "14px", fontWeight: 500, color: "#000", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-              {currentProject?.organization_name || "Kavtech Solution"}
+              {currentProject?.organization_name || "Your Organization"}
             </Typography>
             <Typography sx={{ fontSize: "12px", color: "#555", opacity: 0.7 }}>
               Basic Plan
