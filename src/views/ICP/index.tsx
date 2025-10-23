@@ -315,6 +315,8 @@ const ICPPage: React.FC = () => {
         document_type: "icp",
       };
 
+      console.log("File Content  :" , base64Content);
+
       const uploadResponse = await uploadTextFile(payload).unwrap();
       console.log('FILE UPLOADED SUCCESSFULLY!', uploadResponse);
 
