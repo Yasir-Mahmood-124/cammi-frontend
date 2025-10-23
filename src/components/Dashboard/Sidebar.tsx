@@ -766,7 +766,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
             }}
           >
             <Typography sx={{ fontSize: "14px", fontWeight: 500, color: "#000", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-              {currentProject?.organization_name || "Your Organization"}
+              {currentProject?.organization_name || "Create Project"}
             </Typography>
             <Typography sx={{ fontSize: "12px", color: "#555", opacity: 0.7 }}>
               Basic Plan

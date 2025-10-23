@@ -20,7 +20,7 @@ import Logo from "@/assests/images/Logo.png";
 import { Google } from "@/assests/icons";
 import { toast } from "@/utils/toast";
 import { getErrorMessage } from "@/utils/handleApiError";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   useRegisterMutation,
   useVerifyEmailMutation,
@@ -29,6 +29,8 @@ import { useAppDispatch } from "@/redux/hooks";
 import { validatePassword } from "@/utils/validators";
 import { useLazyGoogleLoginQuery } from "@/redux/services/auth/googleApi";
 import NextLink from "next/link";
+import Cookies from "js-cookie";
+
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -49,6 +51,75 @@ const Register = () => {
   const [googleLogin] = useLazyGoogleLoginQuery();
   const router = useRouter();
   const inputsRef = React.useRef<Array<HTMLInputElement | null>>([]);
+
+  const [isProcessingGoogle, setIsProcessingGoogle] = useState(false);
+  const searchParams = useSearchParams();
+
+    // Handle Google OAuth callback
+    useEffect(() => {
+      const handleGoogleCallback = () => {
+        try {
+          // Check if we have Google callback parameters
+          const sessionId = searchParams.get("session_id");
+          const name = searchParams.get("name");
+          const email = searchParams.get("email");
+          const picture = searchParams.get("picture");
+          const sub = searchParams.get("sub");
+          const onboardingStatus = searchParams.get("onboarding_status");
+          const locale = searchParams.get("locale");
+          const id = searchParams.get("id");
+          const error = searchParams.get("error");
+  
+          // Handle error case
+          if (error) {
+            toast("Google sign-in failed", { variant: "error" });
+            setIsProcessingGoogle(false);
+            return;
+          }
+  
+          // If we have session_id, process the Google login
+          if (sessionId && email) {
+            setIsProcessingGoogle(true);
+  
+            // Store session_id as token in cookies (same as manual login)
+            Cookies.set("token", sessionId, { expires: 7, secure: true });
+  
+            // Store user data in localStorage
+            const userData = {
+              id: id,
+              name: name,
+              email: email,
+              picture: picture,
+              sub: sub,
+              locale: locale,
+            };
+            localStorage.setItem("user", JSON.stringify(userData));
+  
+            // Store onboarding status
+            localStorage.setItem(
+              "onboarding_status",
+              JSON.stringify(onboardingStatus === "true")
+            );
+  
+            // Show success message
+            toast("Login successful!", { variant: "success" });
+  
+            // Redirect based on onboarding status
+            if (onboardingStatus === "true") {
+              router.push("/onboarding");
+            } else {
+              router.push("/dashboard");
+            }
+          }
+        } catch (err) {
+          console.error("Error handling Google callback:", err);
+          toast("Authentication failed", { variant: "error" });
+          setIsProcessingGoogle(false);
+        }
+      };
+  
+      handleGoogleCallback();
+    }, [searchParams, router]);
 
   const handleClickShowPassword = () => setShowPassword((prev) => !prev);
 
