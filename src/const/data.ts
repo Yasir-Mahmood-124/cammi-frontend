@@ -38,8 +38,6 @@ export const onboardingData: OnboardingQuestion[] = [
       "E-commerce / Retail",
       "Logistics / Transportation",
       "Healthcare / Medical",
-      "Education / Training",
-      "Professional Services",
       "Other"
     ],
   },
