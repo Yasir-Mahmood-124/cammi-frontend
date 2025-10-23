@@ -36,13 +36,13 @@ const Linkedin = () => {
       console.log("🔑 URL sub parameter:", urlSub);
 
       if (urlSub) {
-        console.log("✅ Found sub in URL:", urlSub);
+        // console.log("✅ Found sub in URL:", urlSub);
         localStorage.setItem("linkedin_sub", urlSub);
         setSub(urlSub);
         window.history.replaceState({}, document.title, window.location.pathname);
       } else {
         const storedSub = localStorage.getItem("linkedin_sub");
-        console.log("💾 Stored sub from localStorage:", storedSub);
+        // console.log("💾 Stored sub from localStorage:", storedSub);
         setSub(storedSub || null);
       }
 
@@ -52,7 +52,7 @@ const Linkedin = () => {
         try {
           const parsed = JSON.parse(currentProject);
           if (parsed.organization_id) {
-            console.log("✅ Found organization_id:", parsed.organization_id);
+            // console.log("✅ Found organization_id:", parsed.organization_id);
             setHasOrgId(true);
           } else {
             console.warn("⚠️ No organization_id in currentProject");
