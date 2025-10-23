@@ -1,408 +1,511 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import {
-    Box,
-    Typography,
-    TextField,
-    Button,
-    InputAdornment,
-    IconButton,
-    Paper,
-    Chip,
-    Divider,
-    Alert,
+  Box,
+  Typography,
+  TextField,
+  Button,
+  InputAdornment,
+  Paper,
+  Divider,
+  CircularProgress,
+  Stack,
 } from "@mui/material";
 import AttachFileIcon from "@mui/icons-material/AttachFile";
 import LanguageIcon from "@mui/icons-material/Language";
 import DescriptionIcon from "@mui/icons-material/Description";
-import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
-import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import { usePostWebScrapMutation } from "@/redux/services/webscrap/webscrapApi";
+import { useGetUploadUrlMutation } from "@/redux/services/webscrap/documentParcing";
+import toast, { Toaster } from "react-hot-toast";
 import Cookies from "js-cookie";
 
+interface CurrentProject {
+  organization_id: string;
+  organization_name: string;
+  project_id: string;
+  project_name: string;
+}
+
 const DataUploadPage = () => {
-    const [websiteUrl, setWebsiteUrl] = useState("");
-    const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [websiteUrl, setWebsiteUrl] = useState("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
 
-    const [postWebScrap, { isLoading, error, data }] = usePostWebScrapMutation();
+  const [postWebScrap, { isLoading }] = usePostWebScrapMutation();
+  const [getUploadUrl] = useGetUploadUrlMutation();
 
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files.length > 0) {
-            setSelectedFile(e.target.files[0]);
+  // -------------------------------
+  // ✅ Helper: Validate Project & Organization
+  // -------------------------------
+  const validateProjectAndOrganization =
+    useCallback((): CurrentProject | null => {
+      try {
+        const currentProject = localStorage.getItem("currentProject");
+        if (!currentProject) {
+          toast.error("Project not found. Please select a project first.");
+          return null;
         }
-    };
 
-    const handleWebsiteSubmit = async () => {
-        if (!websiteUrl) {
-            alert("Please enter a website URL.");
-            return;
+        const projectData: CurrentProject = JSON.parse(currentProject);
+
+        if (!projectData.organization_id || !projectData.project_id) {
+          toast.error(
+            "Invalid project configuration. Please select a valid project."
+          );
+          return null;
         }
 
-        try {
-            const session_id = Cookies.get("token");
-            if (!session_id) {
-                alert("Session expired. Please login again.");
-                return;
-            }
+        return projectData;
+      } catch (error) {
+        toast.error("Failed to load project information.");
+        return null;
+      }
+    }, []);
 
-            const currentProject = localStorage.getItem("currentProject");
-            if (!currentProject) {
-                alert("Project not found. Please select a project.");
-                return;
-            }
+  // -------------------------------
+  // ✅ Helper: Validate Session
+  // -------------------------------
+  const validateSession = useCallback((): string | null => {
+    const session_id = Cookies.get("token");
+    if (!session_id) {
+      toast.error("Session expired. Please login again.");
+      return null;
+    }
+    return session_id;
+  }, []);
 
-            const project_id = JSON.parse(currentProject).project_id;
+  // -------------------------------
+  // 📌 Handle File Select
+  // -------------------------------
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const file = e.target.files[0];
 
-            const payload = {
-                session_id,
-                project_id,
-                website: websiteUrl,
-            };
+      if (file.type !== "application/pdf") {
+        toast.error("Please upload a PDF file only.");
+        return;
+      }
 
-            const response = await postWebScrap(payload).unwrap();
-            console.log("API Response:", response);
-            alert("Website data submitted successfully!");
-            setWebsiteUrl(""); // Clear after success
-        } catch (err) {
-            console.error("API Error:", err);
-            alert("Failed to submit website data.");
-        }
-    };
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error("File size exceeds 10MB limit.");
+        return;
+      }
 
-    const handleFileSubmit = () => {
-        if (!selectedFile) {
-            alert("Please upload a PDF file.");
-            return;
-        }
-        console.log("PDF file submitted:", selectedFile);
-        // Handle PDF processing logic here
-    };
+      setSelectedFile(file);
+      toast.success(`File selected: ${file.name}`);
+    }
+  };
 
-    return (
-        <Box
+  // -------------------------------
+  // 🌐 Handle Website Submission
+  // -------------------------------
+  const handleWebsiteSubmit = async () => {
+    if (!websiteUrl.trim()) {
+      toast.error("Please enter a website URL.");
+      return;
+    }
+
+    // Validate session and project
+    const session_id = validateSession();
+    if (!session_id) return;
+
+    const projectData = validateProjectAndOrganization();
+    if (!projectData) return;
+
+    try {
+      const payload = {
+        session_id,
+        project_id: projectData.project_id,
+        organization_id: projectData.organization_id,
+        website: websiteUrl,
+      };
+
+      await postWebScrap(payload).unwrap();
+      toast.success("Website data submitted successfully!");
+      setWebsiteUrl("");
+    } catch (err) {
+      console.error("API Error:", err);
+      toast.error("Failed to submit website data. Please try again.");
+    }
+  };
+
+  // -------------------------------
+  // 📄 Handle PDF Upload
+  // -------------------------------
+  const handleFileSubmit = async () => {
+    if (!selectedFile) {
+      toast.error("Please select a PDF file first.");
+      return;
+    }
+
+    // Validate session and project
+    const session_id = validateSession();
+    if (!session_id) return;
+
+    const projectData = validateProjectAndOrganization();
+    if (!projectData) return;
+
+    try {
+      setUploading(true);
+
+      // Step 1: Get pre-signed URL
+      const res = await getUploadUrl({
+        session_id,
+        filename: selectedFile.name,
+        project_id: projectData.project_id,
+      }).unwrap();
+
+      console.log("Presigned URL Response:", res);
+
+      // Step 2: Upload file to S3
+      const uploadResponse = await fetch(res.upload_url, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/pdf",
+        },
+        body: selectedFile,
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error("Failed to upload file to S3");
+      }
+
+      console.log("✅ File uploaded successfully to:", res.s3_path);
+      toast.success("Document uploaded successfully!");
+      setSelectedFile(null);
+    } catch (error) {
+      console.error("❌ Upload Error:", error);
+      toast.error("Failed to upload document. Please try again.");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  // Clear selected file
+  const handleClearFile = () => {
+    setSelectedFile(null);
+  };
+
+  // -------------------------------
+  // 🖼️ UI
+  // -------------------------------
+  return (
+    <Box
+      sx={{
+        minHeight: "100vh",
+        background: "linear-gradient(135deg, #f5f7fa 0%, #e8eef5 100%)",
+        px: 3,
+        py: 6,
+      }}
+    >
+      <Box sx={{ maxWidth: "900px", mx: "auto" }}>
+        {/* Header */}
+        <Box sx={{ textAlign: "center", mb: 8 }}>
+          <Typography
             sx={{
-                minHeight: "100vh",
-                background: "linear-gradient(135deg, #f5f7fa 0%, #e8eef5 100%)",
-                px: 3,
-                py: 8,
+              fontFamily: "Poppins, sans-serif",
+              fontWeight: 600,
+              fontSize: { xs: "24px", md: "32px" },
+              color: "#1a1a1a",
+              mb: 1.5,
+              lineHeight: 1.3,
             }}
-        >
-            <Box sx={{ maxWidth: "1000px", mx: "auto" }}>
-                {/* Header Section */}
-                <Box sx={{ textAlign: "center", mb: 6 }}>
-                    {/* <Box sx={{ display: "flex", justifyContent: "center", mb: 2 }}>
-                        <AutoAwesomeIcon
-                            sx={{ fontSize: 48, color: "#1976d2", opacity: 0.9 }}
-                        />
-                    </Box> */}
-                    <Typography
-                        sx={{
-                            fontFamily: "Poppins, sans-serif",
-                            fontWeight: 700,
-                            fontSize: { xs: "28px", md: "36px" },
-                            color: "#1a1a1a",
-                            mb: 2,
-                        }}
-                    >
-                       Build Data-Driven Marketing Strategies in Minutes
-                    </Typography>
-                </Box>
-
-
-                {/* Website URL Section */}
-                <Paper
-                    elevation={2}
-                    sx={{
-                        p: 4,
-                        mb: 3,
-                        borderRadius: 3,
-                        transition: "all 0.3s ease",
-                        "&:hover": {
-                            boxShadow: "0px 8px 32px rgba(0,0,0,0.1)",
-                        },
-                    }}
-                >
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 2 }}>
-                        <LanguageIcon sx={{ fontSize: 28, color: "#1976d2" }} />
-                        <Typography
-                            sx={{
-                                fontFamily: "Poppins, sans-serif",
-                                fontWeight: 600,
-                                fontSize: "22px",
-                                color: "#1a1a1a",
-                            }}
-                        >
-                            Your Website URL
-                        </Typography>
-                    </Box>
-
-                    <Typography
-                        sx={{
-                            fontFamily: "Poppins, sans-serif",
-                            fontSize: "14px",
-                            color: "#666",
-                            mb: 3,
-                            lineHeight: 1.6,
-                        }}
-                    >
-                        Provide your company website so our AI can analyze your products,
-                        services, value propositions, and brand voice. This helps create
-                        highly accurate and personalized marketing content.
-                    </Typography>
-
-                    <Box sx={{ display: "flex", gap: 2, flexDirection: { xs: "column", sm: "row" } }}>
-                        <TextField
-                            placeholder="https://yourcompany.com"
-                            variant="outlined"
-                            fullWidth
-                            value={websiteUrl}
-                            onChange={(e) => setWebsiteUrl(e.target.value)}
-                            sx={{
-                                "& .MuiOutlinedInput-root": {
-                                    fontFamily: "Poppins, sans-serif",
-                                    backgroundColor: "#fafafa",
-                                },
-                            }}
-                            InputProps={{
-                                startAdornment: (
-                                    <InputAdornment position="start">
-                                        <LanguageIcon sx={{ color: "#999" }} />
-                                    </InputAdornment>
-                                ),
-                            }}
-                        />
-                        <Button
-                            variant="contained"
-                            onClick={handleWebsiteSubmit}
-                            disabled={isLoading}
-                            sx={{
-                                fontFamily: "Poppins, sans-serif",
-                                fontSize: "15px",
-                                textTransform: "none",
-                                px: 4,
-                                py: 1.5,
-                                borderRadius: "8px",
-                                minWidth: { xs: "100%", sm: "140px" },
-                                boxShadow: "0px 4px 12px rgba(25, 118, 210, 0.3)",
-                                "&:hover": {
-                                    boxShadow: "0px 6px 16px rgba(25, 118, 210, 0.4)",
-                                },
-                            }}
-                        >
-                            {isLoading ? "Analyzing..." : "Submit"}
-                        </Button>
-                    </Box>
-
-                    {error && (
-                        <Alert severity="error" sx={{ mt: 2, fontFamily: "Poppins, sans-serif" }}>
-                            Failed to submit. Please check the URL and try again.
-                        </Alert>
-                    )}
-
-                    <Box
-                        sx={{
-                            mt: 2,
-                            p: 2,
-                            backgroundColor: "#f9f9f9",
-                            borderRadius: 2,
-                            border: "1px dashed #ddd",
-                        }}
-                    >
-                        <Typography
-                            sx={{
-                                fontFamily: "Poppins, sans-serif",
-                                fontSize: "12px",
-                                color: "#777",
-                                fontStyle: "italic",
-                            }}
-                        >
-                            💡 <strong>Example:</strong> https://slack.com,
-                            https://notion.so, https://stripe.com
-                        </Typography>
-                    </Box>
-                </Paper>
-
-                {/* Divider with OR */}
-                <Box sx={{ display: "flex", alignItems: "center", my: 4 }}>
-                    <Divider sx={{ flex: 1 }} />
-                    <Typography
-                        sx={{
-                            px: 3,
-                            fontFamily: "Poppins, sans-serif",
-                            fontSize: "14px",
-                            fontWeight: 600,
-                            color: "#999",
-                        }}
-                    >
-                        OR
-                    </Typography>
-                    <Divider sx={{ flex: 1 }} />
-                </Box>
-
-                {/* PDF Upload Section */}
-                <Paper
-                    elevation={2}
-                    sx={{
-                        p: 4,
-                        borderRadius: 3,
-                        transition: "all 0.3s ease",
-                        "&:hover": {
-                            boxShadow: "0px 8px 32px rgba(0,0,0,0.1)",
-                        },
-                    }}
-                >
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 2 }}>
-                        <DescriptionIcon sx={{ fontSize: 28, color: "#1976d2" }} />
-                        <Typography
-                            sx={{
-                                fontFamily: "Poppins, sans-serif",
-                                fontWeight: 600,
-                                fontSize: "22px",
-                                color: "#1a1a1a",
-                            }}
-                        >
-                            Upload Business Documents
-                        </Typography>
-                    </Box>
-
-                    <Typography
-                        sx={{
-                            fontFamily: "Poppins, sans-serif",
-                            fontSize: "14px",
-                            color: "#666",
-                            mb: 3,
-                            lineHeight: 1.6,
-                        }}
-                    >
-                        Share existing marketing materials, product specs, pitch decks, or
-                        strategic documents. Our AI will extract key insights to create
-                        content that aligns perfectly with your business goals.
-                    </Typography>
-
-                    <Box
-                        sx={{
-                            border: "2px dashed #bdbdbd",
-                            borderRadius: 2,
-                            p: 4,
-                            textAlign: "center",
-                            cursor: "pointer",
-                            backgroundColor: "#fafafa",
-                            transition: "all 0.3s ease",
-                            "&:hover": {
-                                backgroundColor: "#f0f0f0",
-                                borderColor: "#1976d2",
-                                borderStyle: "solid",
-                            },
-                        }}
-                        component="label"
-                    >
-                        <AttachFileIcon
-                            sx={{ fontSize: 20, color: "#1976d2", mb: 1.5 }}
-                        />
-                        <Typography
-                            sx={{
-                                fontFamily: "Poppins, sans-serif",
-                                fontSize: "16px",
-                                color: selectedFile ? "#1976d2" : "#555",
-                                fontWeight: selectedFile ? 600 : 400,
-                                mb: 1,
-                            }}
-                        >
-                            {selectedFile
-                                ? `✓ ${selectedFile.name}`
-                                : "Click to Upload or Drag & Drop"}
-                        </Typography>
-                        <Typography
-                            sx={{
-                                fontFamily: "Poppins, sans-serif",
-                                fontSize: "13px",
-                                color: "#999",
-                            }}
-                        >
-                            PDF format • Max size 10MB
-                        </Typography>
-                        <input
-                            type="file"
-                            hidden
-                            accept=".pdf"
-                            onChange={handleFileChange}
-                        />
-                    </Box>
-
-                    <Box sx={{ textAlign: "center", mt: 3 }}>
-                        <Button
-                            variant="contained"
-                            onClick={handleFileSubmit}
-                            disabled={!selectedFile}
-                            sx={{
-                                fontFamily: "Poppins, sans-serif",
-                                fontSize: "15px",
-                                textTransform: "none",
-                                px: 5,
-                                py: 1.5,
-                                borderRadius: "8px",
-                                boxShadow: "0px 4px 12px rgba(25, 118, 210, 0.3)",
-                                "&:hover": {
-                                    boxShadow: "0px 6px 16px rgba(25, 118, 210, 0.4)",
-                                },
-                            }}
-                        >
-                            {selectedFile ? "Upload Document" : "Choose File First"}
-                        </Button>
-                    </Box>
-
-                    <Box
-                        sx={{
-                            mt: 3,
-                            p: 2,
-                            backgroundColor: "#f9f9f9",
-                            borderRadius: 2,
-                            border: "1px dashed #ddd",
-                        }}
-                    >
-                        <Typography
-                            sx={{
-                                fontFamily: "Poppins, sans-serif",
-                                fontSize: "12px",
-                                color: "#777",
-                                fontStyle: "italic",
-                            }}
-                        >
-                            📄 <strong>What to upload:</strong> Company overviews, product
-                            documentation, marketing briefs, competitive analysis, brand
-                            guidelines, or pitch decks
-                        </Typography>
-                    </Box>
-                </Paper>
-
-                {/* Bottom Info Section */}
-                <Paper
-                    elevation={0}
-                    sx={{
-                        mt: 4,
-                        p: 3,
-                        borderRadius: 3,
-                        background: "rgba(76, 175, 80, 0.05)",
-                        border: "1px solid rgba(76, 175, 80, 0.2)",
-                    }}
-                >
-                    <Typography
-                        sx={{
-                            fontFamily: "Poppins, sans-serif",
-                            fontSize: "13px",
-                            color: "#2e7d32",
-                            textAlign: "center",
-                            lineHeight: 1.6,
-                        }}
-                    >
-                        🔒 <strong>Your data is secure:</strong> All information is
-                        encrypted and used solely to generate your personalized marketing
-                        content. We never share your data with third parties.
-                    </Typography>
-                </Paper>
-            </Box>
+          >
+            Build Data-Driven Marketing Strategies
+          </Typography>
+          <Typography
+            sx={{
+              fontFamily: "Poppins, sans-serif",
+              fontWeight: 400,
+              fontSize: { xs: "14px", md: "16px" },
+              color: "#666",
+            }}
+          >
+            Import your website or documents to get started
+          </Typography>
         </Box>
-    );
+
+        {/* Website URL Section */}
+        <Paper
+          elevation={1}
+          sx={{
+            p: { xs: 3, md: 4 },
+            mb: 4,
+            borderRadius: 2,
+            border: "1px solid #e0e0e0",
+            backgroundColor: "#fff",
+          }}
+        >
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 3 }}>
+            <LanguageIcon sx={{ fontSize: 24, color: "#1976d2" }} />
+            <Typography
+              sx={{
+                fontFamily: "Poppins, sans-serif",
+                fontWeight: 500,
+                fontSize: "18px",
+                color: "#1a1a1a",
+              }}
+            >
+              Website URL
+            </Typography>
+          </Box>
+
+          <Box
+            sx={{
+              display: "flex",
+              gap: 2,
+              flexDirection: { xs: "column", sm: "row" },
+            }}
+          >
+            <TextField
+              placeholder="https://yourcompany.com"
+              variant="outlined"
+              fullWidth
+              value={websiteUrl}
+              onChange={(e) => setWebsiteUrl(e.target.value)}
+              disabled={isLoading}
+              size="small"
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <LanguageIcon sx={{ color: "#999", fontSize: 20 }} />
+                  </InputAdornment>
+                ),
+              }}
+              sx={{
+                "& .MuiOutlinedInput-root": {
+                  borderRadius: 1.5,
+                  backgroundColor: "#fafafa",
+                  fontSize: "14px",
+                },
+              }}
+            />
+            <Button
+              variant="contained"
+              onClick={handleWebsiteSubmit}
+              disabled={isLoading || !websiteUrl.trim()}
+              sx={{
+                fontFamily: "Poppins, sans-serif",
+                fontSize: "14px",
+                fontWeight: 500,
+                textTransform: "none",
+                px: 3,
+                py: 1,
+                borderRadius: 1.5,
+                minWidth: "120px",
+                display: "flex",
+                alignItems: "center",
+                gap: 1,
+              }}
+            >
+              {isLoading ? (
+                <>
+                  <CircularProgress size={16} sx={{ color: "white" }} />
+                  Analyzing...
+                </>
+              ) : (
+                "Submit"
+              )}
+            </Button>
+          </Box>
+        </Paper>
+
+        {/* Divider */}
+        <Box sx={{ display: "flex", alignItems: "center", my: 5 }}>
+          <Divider sx={{ flex: 1 }} />
+          <Typography
+            sx={{
+              px: 3,
+              fontFamily: "Poppins, sans-serif",
+              fontSize: "12px",
+              fontWeight: 500,
+              color: "#999",
+              textTransform: "uppercase",
+              letterSpacing: 0.5,
+            }}
+          >
+            Or
+          </Typography>
+          <Divider sx={{ flex: 1 }} />
+        </Box>
+
+        {/* PDF Upload Section */}
+        <Paper
+          elevation={1}
+          sx={{
+            p: { xs: 3, md: 4 },
+            borderRadius: 2,
+            border: "1px solid #e0e0e0",
+            backgroundColor: "#fff",
+          }}
+        >
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 3 }}>
+            <DescriptionIcon sx={{ fontSize: 24, color: "#1976d2" }} />
+            <Typography
+              sx={{
+                fontFamily: "Poppins, sans-serif",
+                fontWeight: 500,
+                fontSize: "18px",
+                color: "#1a1a1a",
+              }}
+            >
+              Upload Business Documents
+            </Typography>
+          </Box>
+
+          {/* Upload Area */}
+          <Box
+            component="label"
+            sx={{
+              border: "2px dashed #e0e0e0",
+              borderRadius: 2,
+              p: 4,
+              textAlign: "center",
+              cursor: uploading ? "not-allowed" : "pointer",
+              backgroundColor: selectedFile ? "#f0f7ff" : "#fafafa",
+              transition: "all 0.2s ease",
+              opacity: uploading ? 0.6 : 1,
+              "&:hover": {
+                borderColor: "#1976d2",
+                backgroundColor: selectedFile ? "#f0f7ff" : "#f5f5f5",
+              },
+            }}
+          >
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+              }}
+            >
+              {selectedFile ? (
+                <>
+                  <CheckCircleIcon
+                    sx={{ fontSize: 40, color: "#4caf50", mb: 1.5 }}
+                  />
+                  <Typography
+                    sx={{
+                      fontFamily: "Poppins, sans-serif",
+                      fontSize: "15px",
+                      color: "#1a1a1a",
+                      fontWeight: 500,
+                      mb: 0.5,
+                    }}
+                  >
+                    {selectedFile.name}
+                  </Typography>
+                  <Typography
+                    sx={{
+                      fontFamily: "Poppins, sans-serif",
+                      fontSize: "12px",
+                      color: "#999",
+                    }}
+                  >
+                    {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                  </Typography>
+                </>
+              ) : (
+                <>
+                  <CloudUploadIcon
+                    sx={{ fontSize: 40, color: "#1976d2", mb: 1.5 }}
+                  />
+                  <Typography
+                    sx={{
+                      fontFamily: "Poppins, sans-serif",
+                      fontSize: "15px",
+                      color: "#555",
+                      fontWeight: 500,
+                      mb: 0.5,
+                    }}
+                  >
+                    Click to upload or drag and drop
+                  </Typography>
+                  <Typography
+                    sx={{
+                      fontFamily: "Poppins, sans-serif",
+                      fontSize: "12px",
+                      color: "#999",
+                    }}
+                  >
+                    PDF format • Maximum 10MB
+                  </Typography>
+                </>
+              )}
+            </Box>
+            <input
+              type="file"
+              hidden
+              accept=".pdf"
+              onChange={handleFileChange}
+              disabled={uploading}
+            />
+          </Box>
+
+          {/* Action Buttons */}
+          <Stack
+            direction={{ xs: "column", sm: "row" }}
+            spacing={2}
+            sx={{ mt: 3, justifyContent: "center" }}
+          >
+            <Button
+              variant="contained"
+              onClick={handleFileSubmit}
+              disabled={!selectedFile || uploading}
+              sx={{
+                fontFamily: "Poppins, sans-serif",
+                fontSize: "14px",
+                fontWeight: 500,
+                textTransform: "none",
+                px: 4,
+                py: 1,
+                borderRadius: 1.5,
+                minWidth: "140px",
+                display: "flex",
+                alignItems: "center",
+                gap: 1,
+              }}
+            >
+              {uploading ? (
+                <>
+                  <CircularProgress size={16} sx={{ color: "white" }} />
+                  Uploading...
+                </>
+              ) : (
+                <>
+                  <CloudUploadIcon sx={{ fontSize: 18 }} />
+                  Upload Document
+                </>
+              )}
+            </Button>
+
+            {selectedFile && (
+              <Button
+                variant="outlined"
+                onClick={handleClearFile}
+                disabled={uploading}
+                sx={{
+                  fontFamily: "Poppins, sans-serif",
+                  fontSize: "14px",
+                  fontWeight: 500,
+                  textTransform: "none",
+                  px: 4,
+                  py: 1,
+                  borderRadius: 1.5,
+                  minWidth: "140px",
+                }}
+              >
+                Clear Selection
+              </Button>
+            )}
+          </Stack>
+        </Paper>
+      </Box>
+
+      <Toaster position="top-right" reverseOrder={false} />
+    </Box>
+  );
 };
 
 export default DataUploadPage;

@@ -383,7 +383,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
             <Divider sx={{ my: 0, mx: "-16px", borderColor: "#E0E0E0", flexShrink: 0 }} />
 
             {/* Document Generation */}
-            <Box sx={{ flexShrink: 0 }}>
+            <Box sx={{ flexShrink: 0, flexGrow: 0 }}>
               {/* Fixed Header */}
               <Box
                 display="flex"
@@ -508,7 +508,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
             <Divider sx={{ my: 0, marginTop:"-15px" ,mx: "-16px", borderColor: "#E0E0E0", flexShrink: 0 }} />
 
             {/* Tools */}
-            <Box sx={{ flexShrink: 0, position: "relative", zIndex: 10 }}>
+            <Box sx={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0, position: "relative", zIndex: 10 }}>
               {/* Fixed Header */}
               <Typography
                 sx={{
@@ -519,13 +519,26 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
                   mb: 1,
                   backgroundColor: "#FFF",
                   zIndex: 1,
+                  flexShrink: 0,
                 }}
               >
                 Tools
               </Typography>
 
               {/* Tools List */}
-              <Box>
+              <Box sx={{ 
+                flex: 1, 
+                overflowY: "auto", 
+                pr: "8px",
+                mr: "-16px",
+                minHeight: 0,
+                "&::-webkit-scrollbar": { width: "6px" },
+                "&::-webkit-scrollbar-thumb": {
+                  backgroundColor: "#3EA3FF",
+                  borderRadius: "3px",
+                },
+                "&::-webkit-scrollbar-track": { backgroundColor: "transparent" },
+              }}>
                 <List sx={{ py: 0 }}>
                   {toolItems.map((item) => {
                     const isSelected = selected === item.label;
@@ -731,7 +744,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
       {!isCollapsed && (
         <Box
           sx={{
-            p: 2,
+            // p: 2,
+            marginLeft: "30px",
             display: "flex",
             alignItems: "center",
             borderTop: "1px solid #E0E0E0",

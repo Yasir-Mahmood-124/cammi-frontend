@@ -24,6 +24,7 @@ import { useRouter } from 'next/navigation';
 import { useLogoutMutation } from '@/redux/services/auth/authApi';
 import { useUpdateTotalCreditsMutation } from '@/redux/services/credits/credits'; // ✅ Import the mutation
 import Cookies from 'js-cookie';
+import { ProfileSettingsModal } from './ProfileSettingsModal';
 
 interface User {
   email: string;
@@ -45,6 +46,7 @@ const TopBar: React.FC = () => {
   const [currentProject, setCurrentProject] = useState<CurrentProject | null>(null);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [credits, setCredits] = useState<number | null>(null);
+  const [profileSettingsOpen, setProfileSettingsOpen] = useState(false);
   const isDropdownOpen = Boolean(anchorEl);
 
   const [logout, { isLoading: isLoggingOut }] = useLogoutMutation();
@@ -133,7 +135,20 @@ const TopBar: React.FC = () => {
 
   const handleSettings = () => {
     handleDropdownClose();
-    router.push('/settings');
+    setProfileSettingsOpen(true);
+  };
+
+  const handleProfileSettingsClose = () => {
+    setProfileSettingsOpen(false);
+    // Refresh user data after modal closes
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      try {
+        setUser(JSON.parse(storedUser));
+      } catch (error) {
+        console.error('Error parsing user data:', error);
+      }
+    }
   };
 
   const handleLogout = async () => {
@@ -171,132 +186,141 @@ const TopBar: React.FC = () => {
   if (!user) return null;
 
   return (
-    <AppBar
-      position="static"
-      elevation={0}
-      sx={{
-        backgroundColor: '#FFF',
-        borderBottom: '1px solid #D2D2D2',
-      }}
-    >
-      <Toolbar sx={{ justifyContent: 'space-between', px: 3 }}>
-        {/* Left side - Project Name */}
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          {currentProject?.project_name ? (
-            <Typography variant="h6" sx={{ color: '#000', fontWeight: 600 }}>
-              {currentProject.project_name}
-            </Typography>
-          ) : (
-            <Typography
-              variant="h6"
-              sx={{
-                color: '#999',
-                fontWeight: 500,
-                fontStyle: 'italic',
-              }}
-            >
-              No project selected
-            </Typography>
-          )}
-        </Box>
-
-        {/* Right side - User Info and Dropdown */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          <Avatar
-            sx={{
-              width: 40,
-              height: 40,
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              fontSize: '0.875rem',
-              fontWeight: 600,
-            }}
-          >
-            {getInitials(user.name)}
-          </Avatar>
-
-          <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-            <Typography
-              variant="body2"
-              sx={{ color: '#000', fontWeight: 500, lineHeight: 1.2 }}
-            >
-              {user.name}
-            </Typography>
-            <Typography
-              variant="caption"
-              sx={{ color: '#666', lineHeight: 1.2 }}
-            >
-              {credits !== null ? `${credits} Credits` : 'Loading...'}
-            </Typography>
+    <>
+      <AppBar
+        position="static"
+        elevation={0}
+        sx={{
+          backgroundColor: '#FFF',
+          borderBottom: '1px solid #D2D2D2',
+        }}
+      >
+        <Toolbar sx={{ justifyContent: 'space-between', px: 3 }}>
+          {/* Left side - Project Name */}
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            {currentProject?.project_name ? (
+              <Typography variant="h6" sx={{ color: '#000', fontWeight: 600 }}>
+                {currentProject.project_name}
+              </Typography>
+            ) : (
+              <Typography
+                variant="h6"
+                sx={{
+                  color: '#999',
+                  fontWeight: 500,
+                  fontStyle: 'italic',
+                }}
+              >
+                No project selected
+              </Typography>
+            )}
           </Box>
 
-          <IconButton
-            onClick={handleDropdownOpen}
-            size="small"
-            sx={{
-              transition: 'all 0.2s',
-              '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.04)' },
-            }}
-          >
-            <KeyboardArrowDownIcon
+          {/* Right side - User Info and Dropdown */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            <Avatar
               sx={{
-                color: '#666',
-                transform: isDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-                transition: 'transform 0.2s',
+                width: 40,
+                height: 40,
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                fontSize: '0.875rem',
+                fontWeight: 600,
               }}
-            />
-          </IconButton>
+            >
+              {getInitials(user.name)}
+            </Avatar>
 
-          <Menu
-            anchorEl={anchorEl}
-            open={isDropdownOpen}
-            onClose={handleDropdownClose}
-            anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-            transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-            PaperProps={{
-              elevation: 0,
-              sx: {
-                mt: 1.5,
-                minWidth: 180,
-                borderRadius: 2,
-                border: '1px solid #D2D2D2',
-                boxShadow: '0 3px 6px rgba(0, 0, 0, 0.25)',
-              },
-            }}
-          >
-            <MenuItem onClick={handleChoosePlan}>
-              <ListItemIcon>
-                <CreditCardIcon fontSize="small" />
-              </ListItemIcon>
-              <ListItemText>Choose plan</ListItemText>
-            </MenuItem>
-            <MenuItem onClick={handleSettings}>
-              <ListItemIcon>
-                <SettingsIcon fontSize="small" />
-              </ListItemIcon>
-              <ListItemText>Settings</ListItemText>
-            </MenuItem>
-            <Divider />
-            <MenuItem
-              onClick={handleLogout}
-              disabled={isLoggingOut}
+            <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+              <Typography
+                variant="body2"
+                sx={{ color: '#000', fontWeight: 500, lineHeight: 1.2 }}
+              >
+                {user.name}
+              </Typography>
+              <Typography
+                variant="caption"
+                sx={{ color: '#666', lineHeight: 1.2 }}
+              >
+                {credits !== null ? `${credits} Credits` : 'Loading...'}
+              </Typography>
+            </Box>
+
+            <IconButton
+              onClick={handleDropdownOpen}
+              size="small"
               sx={{
-                color: '#d32f2f',
-                '& .MuiListItemIcon-root': {
-                  color: '#d32f2f',
+                transition: 'all 0.2s',
+                '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.04)' },
+              }}
+            >
+              <KeyboardArrowDownIcon
+                sx={{
+                  color: '#666',
+                  transform: isDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                  transition: 'transform 0.2s',
+                }}
+              />
+            </IconButton>
+
+            <Menu
+              anchorEl={anchorEl}
+              open={isDropdownOpen}
+              onClose={handleDropdownClose}
+              anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+              transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+              PaperProps={{
+                elevation: 0,
+                sx: {
+                  mt: 1.5,
+                  minWidth: 180,
+                  borderRadius: 2,
+                  border: '1px solid #D2D2D2',
+                  boxShadow: '0 3px 6px rgba(0, 0, 0, 0.25)',
                 },
               }}
             >
-              <ListItemIcon>
-                <LogoutIcon fontSize="small" />
-              </ListItemIcon>
-              <ListItemText>
-                {isLoggingOut ? 'Logging out...' : 'Logout'}
-              </ListItemText>
-            </MenuItem>
-          </Menu>
-        </Box>
-      </Toolbar>
-    </AppBar>
+              <MenuItem onClick={handleChoosePlan}>
+                <ListItemIcon>
+                  <CreditCardIcon fontSize="small" />
+                </ListItemIcon>
+                <ListItemText>Choose plan</ListItemText>
+              </MenuItem>
+              <MenuItem onClick={handleSettings}>
+                <ListItemIcon>
+                  <SettingsIcon fontSize="small" />
+                </ListItemIcon>
+                <ListItemText>Settings</ListItemText>
+              </MenuItem>
+              <Divider />
+              <MenuItem
+                onClick={handleLogout}
+                disabled={isLoggingOut}
+                sx={{
+                  color: '#d32f2f',
+                  '& .MuiListItemIcon-root': {
+                    color: '#d32f2f',
+                  },
+                }}
+              >
+                <ListItemIcon>
+                  <LogoutIcon fontSize="small" />
+                </ListItemIcon>
+                <ListItemText>
+                  {isLoggingOut ? 'Logging out...' : 'Logout'}
+                </ListItemText>
+              </MenuItem>
+            </Menu>
+          </Box>
+        </Toolbar>
+      </AppBar>
+
+      {/* Profile Settings Modal */}
+      <ProfileSettingsModal
+        open={profileSettingsOpen}
+        onClose={handleProfileSettingsClose}
+        // user={user}
+      />
+    </>
   );
 };
 

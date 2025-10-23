@@ -9,6 +9,7 @@ import InputTakerUpdated from "./InputTakerUpdated";
 import { useGetPostQuestionsQuery } from "@/redux/services/linkedin/getPostQuestion";
 import { useInsertPostQuestionMutation } from "@/redux/services/linkedin/insertPostQuestion";
 
+
 interface InputItem {
   id: number;
   question: string;

@@ -653,7 +653,7 @@ const handleRefine = async () => {
                   fullWidth
                   multiline
                   rows={12}
-                  placeholder="Generate an image by entering a prompt"
+                  placeholder="💡 Pro Tip: Write a smart prompt that clearly explains your Goal, Target audience, and Creative intent. The more context you give, the more precise and impactful your image will be..."
                   value={imagePrompt}
                   onChange={(e) => setImagePrompt(e.target.value)}
                   sx={{

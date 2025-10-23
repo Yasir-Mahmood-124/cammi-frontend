@@ -30,6 +30,8 @@ import { webscrapApi } from './services/webscrap/webscrapApi';
 import { editHeadingWebsocketApi } from "./services/common/editHeadingWebsocketApi";
 import { documentsApi } from "./services/document/documentsApi";
 import { creditsApi } from "./services/credits/credits";
+import { documentParsingApi } from "./services/webscrap/documentParcing";
+import { profileSettingsApi } from "./services/settings/profileSettings";
 
 // Create the store
 export const store = configureStore({
@@ -64,6 +66,8 @@ export const store = configureStore({
     [editHeadingWebsocketApi.reducerPath]: editHeadingWebsocketApi.reducer,
     [documentsApi.reducerPath]: documentsApi.reducer,
     [creditsApi.reducerPath]: creditsApi.reducer,
+    [documentParsingApi.reducerPath]: documentParsingApi.reducer,
+    [profileSettingsApi.reducerPath]: profileSettingsApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware()
@@ -96,6 +100,8 @@ export const store = configureStore({
       .concat(editHeadingWebsocketApi.middleware)
       .concat(documentsApi.middleware)
       .concat(creditsApi.middleware)
+      .concat(documentParsingApi.middleware)
+      .concat(profileSettingsApi.middleware)
 });
 
 // Infer types for RootState and AppDispatch
