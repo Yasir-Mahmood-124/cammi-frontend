@@ -338,7 +338,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
       </Box>
 
       {/* Middle Section */}
-      <Box sx={{ flexGrow: 1, px: 2, overflow: "hidden", display: "flex", flexDirection: "column" }}>
+      <Box sx={{ flexGrow: 1, px: 2, overflow: "hidden", display: "flex", flexDirection: "column", marginTop: "-20px" }}>
         {/* Main Menu */}
         <List sx={{ flexShrink: 0 }}>
           {menuItems.map((item) => {
@@ -505,7 +505,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
               </Box>
             </Box>
 
-            <Divider sx={{ my: 0, mx: "-16px", borderColor: "#E0E0E0", flexShrink: 0 }} />
+            <Divider sx={{ my: 0, marginTop:"-15px" ,mx: "-16px", borderColor: "#E0E0E0", flexShrink: 0 }} />
 
             {/* Tools */}
             <Box sx={{ flexShrink: 0, position: "relative", zIndex: 10 }}>
