@@ -8,7 +8,8 @@ import UserInput from "./UserInput";
 import InputTakerUpdated from "./InputTakerUpdated";
 import { useGetPostQuestionsQuery } from "@/redux/services/linkedin/getPostQuestion";
 import { useInsertPostQuestionMutation } from "@/redux/services/linkedin/insertPostQuestion";
-
+import { useRefineMutation } from "@/redux/services/common/refineApi";
+import Cookies from "js-cookie";
 
 interface InputItem {
   id: number;
@@ -25,22 +26,27 @@ const Linkedin = () => {
   const [answeredIds, setAnsweredIds] = useState<number[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [allAnswered, setAllAnswered] = useState(false);
+  const [refine, { isLoading: isRefining }] = useRefineMutation();
 
   // ✅ Retrieve LinkedIn sub from URL or localStorage FIRST
   useEffect(() => {
     console.log("🔍 Checking for sub...");
-    
+
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       const urlSub = params.get("sub");
-      
+
       console.log("🔑 URL sub parameter:", urlSub);
 
       if (urlSub) {
         // console.log("✅ Found sub in URL:", urlSub);
         localStorage.setItem("linkedin_sub", urlSub);
         setSub(urlSub);
-        window.history.replaceState({}, document.title, window.location.pathname);
+        window.history.replaceState(
+          {},
+          document.title,
+          window.location.pathname
+        );
       } else {
         const storedSub = localStorage.getItem("linkedin_sub");
         // console.log("💾 Stored sub from localStorage:", storedSub);
@@ -64,17 +70,21 @@ const Linkedin = () => {
       } else {
         console.warn("⚠️ No currentProject in localStorage");
       }
-      
+
       setIsCheckingSub(false);
     }
   }, []);
 
   // ✅ Only call API when BOTH sub and organization_id exist
-  const { data, isLoading, isError, error } = useGetPostQuestionsQuery(undefined, {
-    skip: !sub || !hasOrgId, // Skip if either is missing
-  });
+  const { data, isLoading, isError, error } = useGetPostQuestionsQuery(
+    undefined,
+    {
+      skip: !sub || !hasOrgId, // Skip if either is missing
+    }
+  );
 
-  const [insertPostQuestion, { isLoading: isInserting }] = useInsertPostQuestionMutation();
+  const [insertPostQuestion, { isLoading: isInserting }] =
+    useInsertPostQuestionMutation();
 
   // ✅ Console the API response
   useEffect(() => {
@@ -112,17 +122,47 @@ const Linkedin = () => {
 
   const currentQuestion = items.find((q) => q.id === currentQuestionId);
 
-  const handleGenerate = (input: string) => {
+  const handleGenerate = async (input: string) => {
+    if (!currentQuestion) return;
     setIsGenerating(true);
-    setTimeout(() => {
+
+    try {
+      // ✅ Get session_id from cookies (stored as JSON)
+      const tokenData = Cookies.get("token");
+      let session_id: string | undefined;
+
+      if (tokenData) {
+        try {
+          const parsed = JSON.parse(tokenData);
+          session_id = parsed.session_id || parsed; // Handle if stored as plain string
+        } catch {
+          session_id = tokenData; // Fallback if not JSON
+        }
+      }
+
+      // ✅ Concatenate question and answer
+      const prompt = `${currentQuestion.question}\n${input}`;
+
+      // ✅ Call refine API
+      const response = await refine({ prompt, session_id }).unwrap();
+
+      console.log("✅ Refine API Response:", response);
+
+      // ✅ Update the item with refined (AI-generated) response
       const updated = items.map((q) =>
         q.id === currentQuestionId
-          ? { ...q, answer: `Generated answer for: "${input}"` }
+          ? {
+              ...q,
+              answer: response.groq_response || "No response from model.",
+            }
           : q
       );
       setItems(updated);
+    } catch (error) {
+      console.error("❌ Error during refinement:", error);
+    } finally {
       setIsGenerating(false);
-    }, 1000);
+    }
   };
 
   const handleConfirm = async () => {
@@ -134,7 +174,9 @@ const Linkedin = () => {
       const organization_id = parsedProject?.organization_id;
 
       if (!organization_id) {
-        console.error("❌ organization_id not found in localStorage.currentProject");
+        console.error(
+          "❌ organization_id not found in localStorage.currentProject"
+        );
         return;
       }
 
@@ -168,7 +210,14 @@ const Linkedin = () => {
     setCurrentQuestionId(id);
   };
 
-  console.log("🎬 Render state:", { isCheckingSub, sub, hasOrgId, isLoading, isError, hasData: !!data });
+  console.log("🎬 Render state:", {
+    isCheckingSub,
+    sub,
+    hasOrgId,
+    isLoading,
+    isError,
+    hasData: !!data,
+  });
 
   // ✅ Wait for initial sub check to complete
   if (isCheckingSub) {
@@ -215,7 +264,12 @@ const Linkedin = () => {
     "message" in data &&
     (data as any).message === "Not found";
 
-  console.log("📊 Data state:", { hasQuestions, isNotFound, allAnswered, isError });
+  console.log("📊 Data state:", {
+    hasQuestions,
+    isNotFound,
+    allAnswered,
+    isError,
+  });
 
   // ✅ If API error OR "Not found" OR all answered → show LinkedInPostForm
   if (isError || isNotFound || allAnswered) {

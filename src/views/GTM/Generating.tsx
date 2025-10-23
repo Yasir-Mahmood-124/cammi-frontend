@@ -58,7 +58,7 @@ const Generating: React.FC<GeneratingProps> = ({ wsUrl, onComplete }) => {
       if (onComplete) {
         setTimeout(() => {
           onComplete();
-        }, 800);
+        }, 9000);
       }
     }
   };

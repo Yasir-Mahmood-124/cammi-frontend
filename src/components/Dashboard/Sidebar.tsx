@@ -34,7 +34,7 @@ import {
   LeadCalculator,
   Scheduler,
   SR,
-  FeedbackIcon
+  FeedbackIcon,
 } from "@/assests/icons";
 import CreateProject from "./CreateProject";
 import DocumentGenerationModal from "./DocumentGenerationModal";
@@ -57,7 +57,9 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
   const [open, setOpen] = useState(false);
   const [openDocument, setOpenDocument] = useState(false);
   const [schedulerOpen, setSchedulerOpen] = useState(false);
-  const [currentProject, setCurrentProject] = useState<CurrentProject | null>(null);
+  const [currentProject, setCurrentProject] = useState<CurrentProject | null>(
+    null
+  );
 
   const router = useRouter();
   const pathname = usePathname();
@@ -85,14 +87,14 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
   const toolRoutes: Record<string, string> = {
     "Data Upload": "/dashboard/data-upload",
     "Lead Calculator": "/dashboard/lead-calculator",
-    "Scheduler": "/dashboard/scheduler",
-    "LinkedIn": "/dashboard/scheduler/linkedin",
-    "Calendar": "/dashboard/scheduler/calendar",
+    Scheduler: "/dashboard/scheduler",
+    LinkedIn: "/dashboard/scheduler/linkedin",
+    Calendar: "/dashboard/scheduler/calendar",
   };
 
   //Map Feedback labels to routes
   const feedbackRoutes: Record<string, string> = {
-    "Feedback": "/dashboard/feedback",
+    Feedback: "/dashboard/feedback",
   };
 
   // Check if project exists in localStorage
@@ -101,7 +103,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
     if (!currentProject) {
       return false;
     }
-    
+
     try {
       const projectData = JSON.parse(currentProject);
       return !!(projectData.organization_id && projectData.project_id);
@@ -148,7 +150,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
         setSelected(matchedDoc[0]);
         return;
       }
-      
+
       // Find which tool matches the current path
       const matchedTool = Object.entries(toolRoutes).find(
         ([_, route]) => pathname === route
@@ -187,7 +189,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
 
     window.addEventListener("storage", handleStorageChange);
     window.addEventListener("projectUpdated", handleProjectUpdate);
-    
+
     return () => {
       window.removeEventListener("storage", handleStorageChange);
       window.removeEventListener("projectUpdated", handleProjectUpdate);
@@ -212,7 +214,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
     { label: "Lead Calculator", icon: <LeadCalculator /> },
     { label: "Scheduler", icon: <Scheduler /> },
   ];
-  const feedbackItems = [ { label: "Feedback", icon: <FeedbackIcon /> } ];
+  const feedbackItems = [{ label: "Feedback", icon: <FeedbackIcon /> }];
 
   const getIconFilter = (label: string, isSelected: boolean) => {
     const reverseIcons = ["Dashboard"];
@@ -338,7 +340,16 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
       </Box>
 
       {/* Middle Section */}
-      <Box sx={{ flexGrow: 1, px: 2, overflow: "hidden", display: "flex", flexDirection: "column", marginTop: "-20px" }}>
+      <Box
+        sx={{
+          flexGrow: 1,
+          px: 2,
+          overflow: "hidden",
+          display: "flex",
+          flexDirection: "column",
+          marginTop: "-20px",
+        }}
+      >
         {/* Main Menu */}
         <List sx={{ flexShrink: 0 }}>
           {menuItems.map((item) => {
@@ -380,7 +391,9 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
 
         {!isCollapsed && (
           <>
-            <Divider sx={{ my: 0, mx: "-16px", borderColor: "#E0E0E0", flexShrink: 0 }} />
+            <Divider
+              sx={{ my: 0, mx: "-16px", borderColor: "#E0E0E0", flexShrink: 0 }}
+            />
 
             {/* Document Generation */}
             <Box sx={{ flexShrink: 0, flexGrow: 0 }}>
@@ -430,14 +443,17 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
                     backgroundColor: "#3EA3FF",
                     borderRadius: "3px",
                   },
-                  "&::-webkit-scrollbar-track": { backgroundColor: "transparent" },
+                  "&::-webkit-scrollbar-track": {
+                    backgroundColor: "transparent",
+                  },
                 }}
               >
                 <List sx={{ py: 0 }}>
                   {/* Static documents always visible */}
                   {staticDocs.map((label) => {
-                    const icon = documentItems.find((doc) => doc.label === label)
-                      ?.icon || <GTM />;
+                    const icon = documentItems.find(
+                      (doc) => doc.label === label
+                    )?.icon || <GTM />;
                     const isSelected = selected === label;
                     return (
                       <ListItemButton
@@ -470,8 +486,9 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
 
                   {/* Dynamic documents */}
                   {selectedDocs.map((label) => {
-                    const icon = documentItems.find((doc) => doc.label === label)
-                      ?.icon || <GTM />;
+                    const icon = documentItems.find(
+                      (doc) => doc.label === label
+                    )?.icon || <GTM />;
                     const isSelected = selected === label;
                     return (
                       <ListItemButton
@@ -505,10 +522,27 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
               </Box>
             </Box>
 
-            <Divider sx={{ my: 0, marginTop:"-15px" ,mx: "-16px", borderColor: "#E0E0E0", flexShrink: 0 }} />
+            <Divider
+              sx={{
+                my: 0,
+                marginTop: "-15px",
+                mx: "-16px",
+                borderColor: "#E0E0E0",
+                flexShrink: 0,
+              }}
+            />
 
             {/* Tools */}
-            <Box sx={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0, position: "relative", zIndex: 10 }}>
+            <Box
+              sx={{
+                flex: 1,
+                display: "flex",
+                flexDirection: "column",
+                minHeight: 0,
+                position: "relative",
+                zIndex: 10,
+              }}
+            >
               {/* Fixed Header */}
               <Typography
                 sx={{
@@ -526,19 +560,23 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
               </Typography>
 
               {/* Tools List */}
-              <Box sx={{ 
-                flex: 1, 
-                overflowY: "auto", 
-                pr: "8px",
-                mr: "-16px",
-                minHeight: 0,
-                "&::-webkit-scrollbar": { width: "6px" },
-                "&::-webkit-scrollbar-thumb": {
-                  backgroundColor: "#3EA3FF",
-                  borderRadius: "3px",
-                },
-                "&::-webkit-scrollbar-track": { backgroundColor: "transparent" },
-              }}>
+              <Box
+                sx={{
+                  flex: 1,
+                  overflowY: "auto",
+                  pr: "8px",
+                  mr: "-16px",
+                  minHeight: 0,
+                  "&::-webkit-scrollbar": { width: "6px" },
+                  "&::-webkit-scrollbar-thumb": {
+                    backgroundColor: "#3EA3FF",
+                    borderRadius: "3px",
+                  },
+                  "&::-webkit-scrollbar-track": {
+                    backgroundColor: "transparent",
+                  },
+                }}
+              >
                 <List sx={{ py: 0 }}>
                   {toolItems.map((item) => {
                     const isSelected = selected === item.label;
@@ -577,16 +615,30 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
                           {item.label === "Scheduler" && (
                             <Box sx={{ ml: "auto" }}>
                               {schedulerOpen ? (
-                                <ExpandLessIcon sx={{ fontSize: "18px", color: isSelected ? "#FFF" : "#000" }} />
+                                <ExpandLessIcon
+                                  sx={{
+                                    fontSize: "18px",
+                                    color: isSelected ? "#FFF" : "#000",
+                                  }}
+                                />
                               ) : (
-                                <ExpandMoreIcon sx={{ fontSize: "18px", color: isSelected ? "#FFF" : "#000" }} />
+                                <ExpandMoreIcon
+                                  sx={{
+                                    fontSize: "18px",
+                                    color: isSelected ? "#FFF" : "#000",
+                                  }}
+                                />
                               )}
                             </Box>
                           )}
                         </ListItemButton>
 
                         {item.label === "Scheduler" && (
-                          <Collapse in={schedulerOpen} timeout="auto" unmountOnExit>
+                          <Collapse
+                            in={schedulerOpen}
+                            timeout="auto"
+                            unmountOnExit
+                          >
                             <List sx={{ pl: 4, py: 0 }}>
                               <ListItemButton
                                 onClick={() => {
@@ -595,9 +647,15 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
                                 sx={{
                                   borderRadius: "8px",
                                   mb: 0.5,
-                                  backgroundColor: selected === "LinkedIn" ? "#E3F2FD" : "transparent",
+                                  backgroundColor:
+                                    selected === "LinkedIn"
+                                      ? "#E3F2FD"
+                                      : "transparent",
                                   "&:hover": {
-                                    backgroundColor: selected === "LinkedIn" ? "#E3F2FD" : "rgba(62,163,255,0.1)",
+                                    backgroundColor:
+                                      selected === "LinkedIn"
+                                        ? "#E3F2FD"
+                                        : "rgba(62,163,255,0.1)",
                                   },
                                 }}
                               >
@@ -605,8 +663,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
                                   primary="LinkedIn"
                                   primaryTypographyProps={{
                                     fontSize: "14px",
-                                    color: selected === "LinkedIn" ? "#3EA3FF" : "#000",
-                                    fontWeight: selected === "LinkedIn" ? 500 : 400,
+                                    color:
+                                      selected === "LinkedIn"
+                                        ? "#3EA3FF"
+                                        : "#000",
+                                    fontWeight:
+                                      selected === "LinkedIn" ? 500 : 400,
                                   }}
                                 />
                               </ListItemButton>
@@ -617,9 +679,15 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
                                 sx={{
                                   borderRadius: "8px",
                                   mb: 0.5,
-                                  backgroundColor: selected === "Calendar" ? "#E3F2FD" : "transparent",
+                                  backgroundColor:
+                                    selected === "Calendar"
+                                      ? "#E3F2FD"
+                                      : "transparent",
                                   "&:hover": {
-                                    backgroundColor: selected === "Calendar" ? "#E3F2FD" : "rgba(62,163,255,0.1)",
+                                    backgroundColor:
+                                      selected === "Calendar"
+                                        ? "#E3F2FD"
+                                        : "rgba(62,163,255,0.1)",
                                   },
                                 }}
                               >
@@ -627,8 +695,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
                                   primary="Calendar"
                                   primaryTypographyProps={{
                                     fontSize: "14px",
-                                    color: selected === "Calendar" ? "#3EA3FF" : "#000",
-                                    fontWeight: selected === "Calendar" ? 500 : 400,
+                                    color:
+                                      selected === "Calendar"
+                                        ? "#3EA3FF"
+                                        : "#000",
+                                    fontWeight:
+                                      selected === "Calendar" ? 500 : 400,
                                   }}
                                 />
                               </ListItemButton>
@@ -647,8 +719,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
         {/* feedback section */}
         {!isCollapsed && (
           <>
-            <Divider sx={{ my: 0, mx: "-16px", borderColor: "#E0E0E0", flexShrink: 0 }} />
-            <Box sx={{ flexShrink: 0, position: "relative", zIndex: 10, mt: 1 }}>
+            <Divider
+              sx={{ my: 0, mx: "-16px", borderColor: "#E0E0E0", flexShrink: 0 }}
+            />
+            <Box
+              sx={{ flexShrink: 0, position: "relative", zIndex: 10, mt: 1 }}
+            >
               <List sx={{ py: 0 }}>
                 {feedbackItems.map((item) => {
                   const isSelected = selected === item.label;
@@ -665,7 +741,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
                       sx={getButtonStyles(isSelected)}
                     >
                       <ListItemIcon
-                        sx={{ 
+                        sx={{
                           minWidth: "32px",
                           "& svg": {
                             width: 22,
@@ -677,10 +753,10 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
                         {item.icon}
                       </ListItemIcon>
                       <ListItemText
-                        primary={item.label}  
+                        primary={item.label}
                         primaryTypographyProps={{
                           fontSize: "14px",
-                          color: isSelected ? "#FFF" : "#000",  
+                          color: isSelected ? "#FFF" : "#000",
                         }}
                       />
                     </ListItemButton>
@@ -690,7 +766,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
             </Box>
           </>
         )}
-
 
         {/* Collapsed view - only icons */}
         {isCollapsed && (
@@ -754,20 +829,19 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
             zIndex: 1,
           }}
         >
-          <Avatar 
-            sx={{ 
-              width: 36, 
-              height: 36, 
+          <Avatar
+            sx={{
+              width: 36,
+              height: 36,
               mr: 1.5,
               background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
               fontSize: "0.875rem",
               fontWeight: 600,
             }}
           >
-            {currentProject?.organization_name 
+            {currentProject?.organization_name
               ? getOrganizationInitials(currentProject.organization_name)
-              : "KS"
-            }
+              : "KS"}
           </Avatar>
           <Box
             onClick={handleOpen}
@@ -779,7 +853,16 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
               "&:hover": { backgroundColor: "#f5f5f5" },
             }}
           >
-            <Typography sx={{ fontSize: "14px", fontWeight: 500, color: "#000", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+            <Typography
+              sx={{
+                fontSize: "14px",
+                fontWeight: 500,
+                color: "#000",
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
               {currentProject?.organization_name || "Create Project"}
             </Typography>
             <Typography sx={{ fontSize: "12px", color: "#555", opacity: 0.7 }}>
@@ -814,19 +897,18 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
             flexShrink: 0,
           }}
         >
-          <Avatar 
-            sx={{ 
-              width: 36, 
+          <Avatar
+            sx={{
+              width: 36,
               height: 36,
               background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
               fontSize: "0.875rem",
               fontWeight: 600,
             }}
           >
-            {currentProject?.organization_name 
+            {currentProject?.organization_name
               ? getOrganizationInitials(currentProject.organization_name)
-              : "KS"
-            }
+              : "KS"}
           </Avatar>
         </Box>
       )}

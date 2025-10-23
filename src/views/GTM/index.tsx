@@ -53,14 +53,14 @@ const GTMPage: React.FC = () => {
     const initialQuestions: Question[] = [
         { id: 1, question: "What do you want to accomplish in one year?", answer: "", isAnswered: false },
         { id: 2, question: "Where do you want to be in three years?", answer: "", isAnswered: false },
-        { id: 3, question: "Where is your short term focus?", answer: "", isAnswered: false },
-        { id: 4, question: "Tell us about your business?", answer: "", isAnswered: false },
-        { id: 5, question: "Tell us about who you sell to? Where are they located?", answer: "", isAnswered: false },
-        { id: 6, question: "What is unique about your business?", answer: "", isAnswered: false },
-        { id: 7, question: "What marketing tools do you have available to you?", answer: "", isAnswered: false },
-        { id: 8, question: "Who do you think are your biggest competitors?", answer: "", isAnswered: false },
-        { id: 9, question: "What are your strengths, weaknesses, opps and threats?", answer: "", isAnswered: false },
-        { id: 10, question: "Tell us about your product/solution/service?", answer: "", isAnswered: false },
+        // { id: 3, question: "Where is your short term focus?", answer: "", isAnswered: false },
+        // { id: 4, question: "Tell us about your business?", answer: "", isAnswered: false },
+        // { id: 5, question: "Tell us about who you sell to? Where are they located?", answer: "", isAnswered: false },
+        // { id: 6, question: "What is unique about your business?", answer: "", isAnswered: false },
+        // { id: 7, question: "What marketing tools do you have available to you?", answer: "", isAnswered: false },
+        // { id: 8, question: "Who do you think are your biggest competitors?", answer: "", isAnswered: false },
+        // { id: 9, question: "What are your strengths, weaknesses, opps and threats?", answer: "", isAnswered: false },
+        // { id: 10, question: "Tell us about your product/solution/service?", answer: "", isAnswered: false },
     ];
 
     const [questions, setQuestions] = useState<Question[]>(initialQuestions);

@@ -223,7 +223,7 @@ const DataUploadPage = () => {
               color: "#666",
             }}
           >
-            Import your website or documents to get started
+           Import your website or documents to help us better tailor your experience and create results aligned with your business.
           </Typography>
         </Box>
 
