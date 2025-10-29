@@ -65,7 +65,7 @@ const ICPPage: React.FC = () => {
         const currentProject: CurrentProject = JSON.parse(currentProjectStr);
         setProjectId(currentProject.project_id);
       } catch (error) {
-        console.error('Error parsing currentProject from localStorage:', error);
+        // console.error('Error parsing currentProject from localStorage:', error);
       }
     }
   }, []);
@@ -75,7 +75,7 @@ const ICPPage: React.FC = () => {
     // Use the WebSocket URL from your working project
     const websocketUrl = "wss://91vm5ilj37.execute-api.us-east-1.amazonaws.com/dev";
     setWsUrl(websocketUrl);
-    console.log('🔌 WebSocket URL set for upload:', websocketUrl);
+    // console.log('🔌 WebSocket URL set for upload:', websocketUrl);
   }, []);
 
   // RTK Query for unanswered questions
@@ -111,10 +111,10 @@ const ICPPage: React.FC = () => {
   // Handle unanswered questions response (NO flow)
   useEffect(() => {
     if (unansweredData) {
-      console.log(' Unanswered questions data received:', unansweredData);
+      // console.log(' Unanswered questions data received:', unansweredData);
       
       if (unansweredData.missing_questions && unansweredData.missing_questions.length > 0) {
-        console.log(' Has unanswered questions:', unansweredData.missing_questions.length);
+        // console.log(' Has unanswered questions:', unansweredData.missing_questions.length);
         
         const formattedQuestions: Question[] = unansweredData.missing_questions.map((q, index) => ({
           id: index + 1,
@@ -125,7 +125,7 @@ const ICPPage: React.FC = () => {
         setView('questions');
         setShouldFetchUnanswered(false);
       } else {
-        console.log(' No unanswered questions - fetching all answered questions');
+        // console.log(' No unanswered questions - fetching all answered questions');
         setShouldFetchUnanswered(false);
         setShouldFetchAll(true);
       }
@@ -135,7 +135,7 @@ const ICPPage: React.FC = () => {
   // Handle all questions (answered) response
   useEffect(() => {
     if (allQuestionsData && allQuestionsData.questions) {
-      console.log('All questions data received:', allQuestionsData.questions.length, 'questions');
+      // console.log('All questions data received:', allQuestionsData.questions.length, 'questions');
       
       const formattedQuestions: Question[] = allQuestionsData.questions.map((q, index) => ({
         id: index + 1,
@@ -163,26 +163,26 @@ const ICPPage: React.FC = () => {
   const handleUploadComplete = (data: any) => {
     // Handle processing_started
     if (data.status === "processing_started") {
-      console.log('Processing started:', data.message);
+      // console.log('Processing started:', data.message);
       return;
     }
 
     // Handle analyzing_document
     if (data.status === "analyzing_document") {
-      console.log('🔍 Analyzing document:', data.message);
+      // console.log('🔍 Analyzing document:', data.message);
       return;
     }
 
     // Handle questions_need_answers - MAIN CASE
     if (data.status === 'questions_need_answers' && data.not_found_questions) {
-      console.log(' Questions need answers - Count:', data.not_found_questions.length);
-      console.log('Questions array:', data.not_found_questions);
+      // console.log(' Questions need answers - Count:', data.not_found_questions.length);
+      // console.log('Questions array:', data.not_found_questions);
       
       // Extract questions from the objects
       const formattedQuestions: Question[] = data.not_found_questions.map((item: any, index: number) => {
         // The question might be in item.question or item.question_text
         const questionText = item.question || item.question_text || item;
-        console.log(`Question ${index + 1}:`, questionText);
+        // console.log(`Question ${index + 1}:`, questionText);
         
         return {
           id: index + 1,
@@ -193,13 +193,13 @@ const ICPPage: React.FC = () => {
       setQuestions(formattedQuestions);
       setView('questions');
       
-      console.log(' Switched to questions view');
+      // console.log(' Switched to questions view');
       return;
     }
 
     // Handle processing_complete
     if (data.status === "processing_complete") {
-      console.log(' Processing complete!');
+      // console.log(' Processing complete!');
       
       // Check if there are any results with "Not Found" 
       if (data.results) {
@@ -212,16 +212,16 @@ const ICPPage: React.FC = () => {
           }));
 
         if (notFoundQuestions.length > 0) {
-          console.log(' Found "Not Found" questions:', notFoundQuestions.length);
+          // console.log(' Found "Not Found" questions:', notFoundQuestions.length);
           setQuestions(notFoundQuestions);
           setView('questions');
         } else {
-          console.log('No missing questions - Going to preview');
+          // console.log('No missing questions - Going to preview');
           setShouldFetchAll(true);
         }
       } else {
         // No results, go to preview
-        console.log(' No results field - Going to preview');
+        // console.log(' No results field - Going to preview');
         setShouldFetchAll(true);
       }
       return;
@@ -229,7 +229,7 @@ const ICPPage: React.FC = () => {
 
     // Handle errors
     if (data.message === "Forbidden" || data.status === "error") {
-      console.error(' WebSocket Error:', data.message || data.status);
+      // console.error(' WebSocket Error:', data.message || data.status);
       return;
     }
   };
@@ -241,7 +241,7 @@ const ICPPage: React.FC = () => {
   };
 
   const handleRegenerate = () => {
-    console.log('Regenerate answer');
+    // console.log('Regenerate answer');
   };
 
   const handleConfirm = () => {
@@ -251,7 +251,7 @@ const ICPPage: React.FC = () => {
       if (currentQuestionIndex < questions.length - 1) {
         setCurrentQuestionIndex(currentQuestionIndex + 1);
       } else {
-        console.log('All questions answered!');
+        // console.log('All questions answered!');
         setView('preview');
       }
     }
@@ -315,10 +315,10 @@ const ICPPage: React.FC = () => {
         document_type: "icp",
       };
 
-      console.log("File Content  :" , base64Content);
+      // console.log("File Content  :" , base64Content);
 
       const uploadResponse = await uploadTextFile(payload).unwrap();
-      console.log('FILE UPLOADED SUCCESSFULLY!', uploadResponse);
+      // console.log('FILE UPLOADED SUCCESSFULLY!', uploadResponse);
 
       const websocketUrl = `wss://4iqvtvmxle.execute-api.us-east-1.amazonaws.com/prod/?session_id=${savedToken}`;
       
@@ -326,13 +326,13 @@ const ICPPage: React.FC = () => {
       setIsGenerating(true);
       
     } catch (err: any) {
-      console.error(" UPLOAD FAILED!", err);
+      // console.error(" UPLOAD FAILED!", err);
       alert('Upload failed. Please try again.');
     }
   };
 
   const handleGenerationComplete = async () => {
-    console.log(" Document generation completed! Fetching document...");
+    // console.log(" Document generation completed! Fetching document...");
     
     try {
       const savedToken = Cookies.get("token");
@@ -352,9 +352,9 @@ const ICPPage: React.FC = () => {
       setIsGenerating(false);
       setShowDocumentPreview(true);
       
-      console.log("Document fetched successfully");
+      // console.log("Document fetched successfully");
     } catch (error) {
-      console.error(" Failed to fetch document:", error);
+      // console.error(" Failed to fetch document:", error);
       setIsGenerating(false);
       alert('Failed to download document. Please try again.');
     }

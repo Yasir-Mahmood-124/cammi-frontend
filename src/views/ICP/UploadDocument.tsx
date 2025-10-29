@@ -33,15 +33,15 @@ const UploadDocument: React.FC<UploadDocumentProps> = ({
 
   // Connect to WebSocket on mount
   useEffect(() => {
-    console.log('🔌 Connecting to WebSocket:', wsUrl);
+    // console.log('🔌 Connecting to WebSocket:', wsUrl);
     wsClient.connect(wsUrl);
 
     wsClient.onMessage((data: any) => {
-      console.log('═══════════════════════════════════════════════════════');
-      console.log('📨 WebSocket response received in UploadDocument:');
-      console.log('═══════════════════════════════════════════════════════');
-      console.log('Response:', data);
-      console.log('───────────────────────────────────────────────────────');
+      // console.log('═══════════════════════════════════════════════════════');
+      // console.log('📨 WebSocket response received in UploadDocument:');
+      // console.log('═══════════════════════════════════════════════════════');
+      // console.log('Response:', data);
+      // console.log('───────────────────────────────────────────────────────');
 
       if (onUploadComplete) {
         onUploadComplete(data);
@@ -49,33 +49,33 @@ const UploadDocument: React.FC<UploadDocumentProps> = ({
 
       if (data.status === "processing_complete") {
         setIsUploading(false);
-        console.log('✅ Upload processing complete');
-        console.log('═══════════════════════════════════════════════════════');
+        // console.log('✅ Upload processing complete');
+        // console.log('═══════════════════════════════════════════════════════');
       }
     });
   }, [wsUrl, onUploadComplete]);
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    console.log('📁 File selection started...');
+    // console.log('📁 File selection started...');
     
     if (!event.target.files || event.target.files.length === 0) {
-      console.log('❌ No file selected');
+      // console.log('❌ No file selected');
       return;
     }
 
     const file = event.target.files[0];
     const ext = file.name.split(".").pop()?.toLowerCase();
 
-    console.log('📄 File selected:', file.name);
-    console.log('📄 File extension:', ext);
-    console.log('📄 File size:', file.size, 'bytes');
+    // console.log('📄 File selected:', file.name);
+    // console.log('📄 File extension:', ext);
+    // console.log('📄 File size:', file.size, 'bytes');
 
     if (!["txt", "docx"].includes(ext || "")) {
       const errorMsg = "Only .txt and .docx files are allowed.";
       setError(errorMsg);
       setFileName(null);
       setFileText("");
-      console.error('❌', errorMsg);
+      // console.error('❌', errorMsg);
       return;
     }
 
@@ -86,35 +86,35 @@ const UploadDocument: React.FC<UploadDocumentProps> = ({
       let text = "";
 
       if (ext === "txt") {
-        console.log('📖 Reading .txt file...');
+        // console.log('📖 Reading .txt file...');
         text = await file.text();
-        console.log('✅ Text file read successfully. Length:', text.length);
+        // console.log('✅ Text file read successfully. Length:', text.length);
       } else if (ext === "docx") {
-        console.log('📖 Reading .docx file...');
+        // console.log('📖 Reading .docx file...');
         const arrayBuffer = await file.arrayBuffer();
         const result = await mammoth.extractRawText({ arrayBuffer });
         text = result.value;
-        console.log('✅ DOCX file read successfully. Length:', text.length);
+        // console.log('✅ DOCX file read successfully. Length:', text.length);
       }
 
       setFileText(text);
-      console.log('📄 First 200 characters:', text.substring(0, 200) + '...');
+      // console.log('📄 First 200 characters:', text.substring(0, 200) + '...');
     } catch (err) {
-      console.error("❌ Error extracting text:", err);
+      // console.error("❌ Error extracting text:", err);
       setError("Failed to extract text from file.");
     }
   };
 
   const handleUpload = () => {
     if (!fileText) {
-      console.log('❌ No file text to upload');
+      // console.log('❌ No file text to upload');
       setError("Please select a file first");
       return;
     }
 
-    console.log('═══════════════════════════════════════════════════════');
-    console.log('🚀 STARTING WEBSOCKET UPLOAD');
-    console.log('═══════════════════════════════════════════════════════');
+    // console.log('═══════════════════════════════════════════════════════');
+    // console.log('🚀 STARTING WEBSOCKET UPLOAD');
+    // console.log('═══════════════════════════════════════════════════════');
 
     const session_id = Cookies.get("token");
     const storedProject = typeof window !== "undefined" 
@@ -123,19 +123,19 @@ const UploadDocument: React.FC<UploadDocumentProps> = ({
     const project = storedProject ? JSON.parse(storedProject) : null;
     const project_id = project?.project_id;
 
-    console.log('📋 Configuration:');
-    console.log('   - Session ID:', session_id ? `${session_id.substring(0, 20)}...` : 'MISSING!');
-    console.log('   - Full Session ID Length:', session_id?.length);
-    console.log('   - Project ID:', project_id);
-    console.log('   - Document Type:', document_type);
-    console.log('   - File Name:', fileName);
-    console.log('   - WebSocket URL:', wsUrl);
-    console.log('───────────────────────────────────────────────────────');
+    // console.log('📋 Configuration:');
+    // console.log('   - Session ID:', session_id ? `${session_id.substring(0, 20)}...` : 'MISSING!');
+    // console.log('   - Full Session ID Length:', session_id?.length);
+    // console.log('   - Project ID:', project_id);
+    // console.log('   - Document Type:', document_type);
+    // console.log('   - File Name:', fileName);
+    // console.log('   - WebSocket URL:', wsUrl);
+    // console.log('───────────────────────────────────────────────────────');
 
     if (!session_id || !project_id) {
       const errorMsg = "Missing session_id or project_id";
       setError(errorMsg);
-      console.error('❌', errorMsg);
+      // console.error('❌', errorMsg);
       alert(errorMsg + '\nPlease ensure you are logged in and a project is selected.');
       return;
     }
@@ -147,22 +147,22 @@ const UploadDocument: React.FC<UploadDocumentProps> = ({
     const MAX_SIZE = 90 * 1024; // 90KB safe margin
     let safeText = fileText;
 
-    console.log('📦 File Processing:');
-    console.log('   - Original size:', encoded.length, 'bytes');
-    console.log('   - Max allowed:', MAX_SIZE, 'bytes');
+    // console.log('📦 File Processing:');
+    // console.log('   - Original size:', encoded.length, 'bytes');
+    // console.log('   - Max allowed:', MAX_SIZE, 'bytes');
 
     // Truncate if necessary
     if (encoded.length > MAX_SIZE) {
-      console.warn(`⚠️  File too large (${encoded.length} bytes). Truncating to ${MAX_SIZE} bytes.`);
+      // console.warn(`⚠️  File too large (${encoded.length} bytes). Truncating to ${MAX_SIZE} bytes.`);
 
       let sliceLength = fileText.length;
       while (encoder.encode(fileText.slice(0, sliceLength)).length > MAX_SIZE) {
         sliceLength -= 1000;
       }
       safeText = fileText.slice(0, sliceLength);
-      console.log('   - Truncated to:', encoder.encode(safeText).length, 'bytes');
+      // console.log('   - Truncated to:', encoder.encode(safeText).length, 'bytes');
     } else {
-      console.log('   - Size OK, no truncation needed');
+      // console.log('   - Size OK, no truncation needed');
     }
 
     const payload = {
@@ -173,31 +173,31 @@ const UploadDocument: React.FC<UploadDocumentProps> = ({
       text: safeText,
     };
 
-    console.log('───────────────────────────────────────────────────────');
-    console.log('📤 Sending payload via WebSocket:');
-    console.log('   - Action:', payload.action);
-    console.log('   - Session ID present:', !!payload.session_id);
-    console.log('   - Project ID present:', !!payload.project_id);
-    console.log('   - Document Type:', payload.document_type);
-    console.log('   - Text length:', safeText.length, 'characters');
-    console.log('   - Payload size:', encoder.encode(safeText).length, 'bytes');
-    console.log('   - Full Payload (without text):', {
-      action: payload.action,
-      session_id: payload.session_id?.substring(0, 20) + '...',
-      project_id: payload.project_id,
-      document_type: payload.document_type,
-      text_length: safeText.length
-    });
-    console.log('═══════════════════════════════════════════════════════');
+    // console.log('───────────────────────────────────────────────────────');
+    // console.log('📤 Sending payload via WebSocket:');
+    // console.log('   - Action:', payload.action);
+    // console.log('   - Session ID present:', !!payload.session_id);
+    // console.log('   - Project ID present:', !!payload.project_id);
+    // console.log('   - Document Type:', payload.document_type);
+    // console.log('   - Text length:', safeText.length, 'characters');
+    // console.log('   - Payload size:', encoder.encode(safeText).length, 'bytes');
+    // console.log('   - Full Payload (without text):', {
+    //   action: payload.action,
+    //   session_id: payload.session_id?.substring(0, 20) + '...',
+    //   project_id: payload.project_id,
+    //   document_type: payload.document_type,
+    //   text_length: safeText.length
+    // });
+    // console.log('═══════════════════════════════════════════════════════');
 
     setIsUploading(true);
     setError("");
     
     try {
       wsClient.send(payload);
-      console.log('✅ Payload sent successfully. Waiting for response...');
+      // console.log('✅ Payload sent successfully. Waiting for response...');
     } catch (err) {
-      console.error('❌ Error sending WebSocket message:', err);
+      // console.error('❌ Error sending WebSocket message:', err);
       setError('Failed to send message. Please try again.');
       setIsUploading(false);
     }

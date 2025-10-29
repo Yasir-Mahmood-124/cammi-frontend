@@ -21,7 +21,7 @@ const LinkedInLogin: React.FC = () => {
         window.location.href = result.login_url;
       }
     } catch (error) {
-      console.error("Login failed", error);
+      // console.error("Login failed", error);
     }
   };
 

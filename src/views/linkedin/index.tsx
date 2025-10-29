@@ -30,13 +30,13 @@ const Linkedin = () => {
 
   // ✅ Retrieve LinkedIn sub from URL or localStorage FIRST
   useEffect(() => {
-    console.log("🔍 Checking for sub...");
+    // console.log("🔍 Checking for sub...");
 
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       const urlSub = params.get("sub");
 
-      console.log("🔑 URL sub parameter:", urlSub);
+      // console.log("🔑 URL sub parameter:", urlSub);
 
       if (urlSub) {
         // console.log("✅ Found sub in URL:", urlSub);
@@ -62,13 +62,13 @@ const Linkedin = () => {
             // console.log("✅ Found organization_id:", parsed.organization_id);
             setHasOrgId(true);
           } else {
-            console.warn("⚠️ No organization_id in currentProject");
+            // console.warn("⚠️ No organization_id in currentProject");
           }
         } catch (err) {
-          console.error("❌ Error parsing currentProject:", err);
+          // console.error("❌ Error parsing currentProject:", err);
         }
       } else {
-        console.warn("⚠️ No currentProject in localStorage");
+        // console.warn("⚠️ No currentProject in localStorage");
       }
 
       setIsCheckingSub(false);
@@ -89,11 +89,11 @@ const Linkedin = () => {
   // ✅ Console the API response
   useEffect(() => {
     if (sub && hasOrgId) {
-      console.log("📡 API Response:", data);
-      console.log("⏳ Loading:", isLoading);
-      console.log("❌ Error:", isError);
+      // console.log("📡 API Response:", data);
+      // console.log("⏳ Loading:", isLoading);
+      // console.log("❌ Error:", isError);
       if (isError) {
-        console.log("🔴 Error details:", error);
+        // console.log("🔴 Error details:", error);
       }
     }
   }, [data, isLoading, isError, error, sub, hasOrgId]);
@@ -107,7 +107,7 @@ const Linkedin = () => {
       Array.isArray(data.questions) &&
       data.questions.length > 0
     ) {
-      console.log("✅ Setting up questions:", data.questions);
+      // console.log("✅ Setting up questions:", data.questions);
       const formatted = data.questions.map((q: string, i: number) => ({
         id: i + 1,
         question: q,
@@ -146,7 +146,7 @@ const Linkedin = () => {
       // ✅ Call refine API
       const response = await refine({ prompt, session_id }).unwrap();
 
-      console.log("✅ Refine API Response:", response);
+      // console.log("✅ Refine API Response:", response);
 
       // ✅ Update the item with refined (AI-generated) response
       const updated = items.map((q) =>
@@ -159,7 +159,7 @@ const Linkedin = () => {
       );
       setItems(updated);
     } catch (error) {
-      console.error("❌ Error during refinement:", error);
+      // console.error("❌ Error during refinement:", error);
     } finally {
       setIsGenerating(false);
     }
@@ -174,9 +174,9 @@ const Linkedin = () => {
       const organization_id = parsedProject?.organization_id;
 
       if (!organization_id) {
-        console.error(
-          "❌ organization_id not found in localStorage.currentProject"
-        );
+        // console.error(
+        //   "❌ organization_id not found in localStorage.currentProject"
+        // );
         return;
       }
 
@@ -186,7 +186,7 @@ const Linkedin = () => {
         post_answer: currentQuestion.answer,
       }).unwrap();
 
-      console.log("✅ Insert API Response:", response);
+      // console.log("✅ Insert API Response:", response);
 
       if (!answeredIds.includes(currentQuestionId)) {
         setAnsweredIds([...answeredIds, currentQuestionId]);
@@ -198,7 +198,7 @@ const Linkedin = () => {
         setAllAnswered(true);
       }
     } catch (error) {
-      console.error("❌ Error inserting post question:", error);
+      // console.error("❌ Error inserting post question:", error);
     }
   };
 
@@ -210,14 +210,14 @@ const Linkedin = () => {
     setCurrentQuestionId(id);
   };
 
-  console.log("🎬 Render state:", {
-    isCheckingSub,
-    sub,
-    hasOrgId,
-    isLoading,
-    isError,
-    hasData: !!data,
-  });
+  // console.log("🎬 Render state:", {
+  //   isCheckingSub,
+  //   sub,
+  //   hasOrgId,
+  //   isLoading,
+  //   isError,
+  //   hasData: !!data,
+  // });
 
   // ✅ Wait for initial sub check to complete
   if (isCheckingSub) {
@@ -230,19 +230,19 @@ const Linkedin = () => {
 
   // ✅ If no sub, show login immediately (no API call happens)
   if (!sub) {
-    console.log("🚪 Showing LinkedInLogin (no sub)");
+    // console.log("🚪 Showing LinkedInLogin (no sub)");
     return <LinkedInLogin />;
   }
 
   // ✅ If no organization_id, show error or post form
   if (!hasOrgId) {
-    console.log("⚠️ No organization_id, showing LinkedInPostForm");
+    // console.log("⚠️ No organization_id, showing LinkedInPostForm");
     return <LinkedInPostForm sub={sub} />;
   }
 
   // ✅ Loading state (only shown when sub exists and API is loading)
   if (isLoading) {
-    console.log("⏳ Showing loading (API call in progress)");
+    // console.log("⏳ Showing loading (API call in progress)");
     return (
       <Container maxWidth="md" sx={{ mt: 8, textAlign: "center" }}>
         <Typography>Loading questions...</Typography>
@@ -264,27 +264,27 @@ const Linkedin = () => {
     "message" in data &&
     (data as any).message === "Not found";
 
-  console.log("📊 Data state:", {
-    hasQuestions,
-    isNotFound,
-    allAnswered,
-    isError,
-  });
+  // console.log("📊 Data state:", {
+  //   hasQuestions,
+  //   isNotFound,
+  //   allAnswered,
+  //   isError,
+  // });
 
   // ✅ If API error OR "Not found" OR all answered → show LinkedInPostForm
   if (isError || isNotFound || allAnswered) {
-    console.log("📝 Showing LinkedInPostForm (error/not found/completed)");
+    // console.log("📝 Showing LinkedInPostForm (error/not found/completed)");
     return <LinkedInPostForm sub={sub} />;
   }
 
   // ✅ If no questions and no error → show post form
   if (!hasQuestions) {
-    console.log("📝 Showing LinkedInPostForm (no questions)");
+    // console.log("📝 Showing LinkedInPostForm (no questions)");
     return <LinkedInPostForm sub={sub} />;
   }
 
   // ✅ Otherwise, show Q&A UI
-  console.log("❓ Showing Q&A UI");
+  // console.log("❓ Showing Q&A UI");
   return (
     <Container
       maxWidth="lg"

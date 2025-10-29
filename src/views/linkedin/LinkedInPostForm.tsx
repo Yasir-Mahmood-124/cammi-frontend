@@ -208,7 +208,7 @@ const LinkedInPostForm: React.FC<LinkedInPostProps> = ({ sub }) => {
   const handlePost = async () => {
     try {
       const payload = await buildPayload();
-      console.log("Payload for post:", payload);
+      // console.log("Payload for post:", payload);
       if (!payload) return;
 
       const response = await createPost({
@@ -312,7 +312,7 @@ const handleRefine = async () => {
       });
     }
   } catch (err) {
-    console.error("AI Generate error:", err);
+    // console.error("AI Generate error:", err);
     setSnackbar({
       open: true,
       severity: "error",
@@ -363,7 +363,7 @@ const handleRefine = async () => {
       setSelectedImages((prev) => [...prev, newImage]);
     }
   } catch (err) {
-    console.error("Image generation error:", err);
+    // console.error("Image generation error:", err);
     setSnackbar({
       open: true,
       severity: "error",

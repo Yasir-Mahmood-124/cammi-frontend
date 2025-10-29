@@ -69,7 +69,7 @@ useEffect(() => {
 
         try {
             const response = await checkFeedback().unwrap(); // call without arguments
-            console.log("Full response from API:", response);
+            // console.log("Full response from API:", response);
 
             // adjust according to your API response
             // Example if API returns { data: { status: "Pending" } }
@@ -77,7 +77,7 @@ useEffect(() => {
             const status = response?.message === "Done" ? "Done" : "Pending";
             setFeedbackStatus(status);
         } catch (err) {
-            console.error("Failed to check feedback status:", err);
+            // console.error("Failed to check feedback status:", err);
         }
     };
 
@@ -115,7 +115,7 @@ useEffect(() => {
             toast.success("Feedback submitted successfully!");
             setFeedbackStatus("Done"); // update status so form disappears
         } catch (err) {
-            console.error("Failed to send feedback:", err);
+            // console.error("Failed to send feedback:", err);
             toast.error("Failed to send feedback. Please try again.");
         }
     };

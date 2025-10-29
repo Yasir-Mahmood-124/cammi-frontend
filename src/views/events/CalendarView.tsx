@@ -123,7 +123,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ posts }) => {
 
     const sub = localStorage.getItem("linkedin_sub");
     if (!sub) {
-      console.error("No linkedin_sub found in localStorage");
+      // console.error("No linkedin_sub found in localStorage");
       return;
     }
 

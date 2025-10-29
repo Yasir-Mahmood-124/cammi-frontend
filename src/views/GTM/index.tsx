@@ -112,19 +112,19 @@ const GTMPage: React.FC = () => {
             };
 
             await uploadTextFile(payload).unwrap();
-            console.log("✅ File uploaded successfully");
+            // console.log("✅ File uploaded successfully");
 
             // Set WebSocket URL and show Generating component
             const websocketUrl = `wss://4iqvtvmxle.execute-api.us-east-1.amazonaws.com/prod/?session_id=${savedToken}`;
             setWsUrl(websocketUrl);
             setIsGenerating(true);
         } catch (err) {
-            console.error("❌ Upload failed", err);
+            // console.error("❌ Upload failed", err);
         }
     };
 
     const handleGenerationComplete = async () => {
-        console.log("Document generation completed! Fetching document...");
+        // console.log("Document generation completed! Fetching document...");
 
         try {
             const savedToken = Cookies.get("token");
@@ -147,9 +147,9 @@ const GTMPage: React.FC = () => {
             setIsGenerating(false);
             setShowDocumentPreview(true);
 
-            console.log("✅ Document fetched successfully");
+            // console.log("✅ Document fetched successfully");
         } catch (error) {
-            console.error("❌ Failed to fetch document:", error);
+            // console.error("❌ Failed to fetch document:", error);
             setIsGenerating(false);
         }
     };
@@ -165,7 +165,7 @@ const GTMPage: React.FC = () => {
                 session_id: sessionId,
             }).unwrap();
 
-            console.log(fullPrompt);
+            // console.log(fullPrompt);
 
             // Store session ID for conversation continuity
             if (response.session_id) {
@@ -175,7 +175,7 @@ const GTMPage: React.FC = () => {
             // Set the generated answer
             setCurrentAnswer(response.groq_response);
         } catch (error) {
-            console.error('Failed to generate answer:', error);
+            // console.error('Failed to generate answer:', error);
         }
     };
 
@@ -202,7 +202,7 @@ const GTMPage: React.FC = () => {
             setCurrentAnswer("");
         } else {
             // All questions answered - show final preview
-            console.log('All questions completed!');
+            // console.log('All questions completed!');
             setShowFinalPreview(true);
         }
     };

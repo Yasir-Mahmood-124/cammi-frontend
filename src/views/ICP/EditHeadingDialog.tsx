@@ -58,7 +58,7 @@ const EditHeadingDialog: React.FC<EditHeadingDialogProps> = ({
   // ✅ Listen for backend messages — only after socket is connected
   const attachMessageListener = (socket: WebSocket) => {
     socket.onmessage = (event: MessageEvent) => {
-      console.log("📩 Received from backend:", event.data);
+      // console.log("📩 Received from backend:", event.data);
 
       try {
         const msg = JSON.parse(event.data);
@@ -66,7 +66,7 @@ const EditHeadingDialog: React.FC<EditHeadingDialogProps> = ({
           msg.action === "sendMessage" &&
           msg.body === "Document generated successfully!"
         ) {
-          console.log("✅ Document generation complete!");
+          // console.log("✅ Document generation complete!");
           setLoading(false);
           setSnackbarMsg("✅ Your document is ready!");
           setSnackbarSeverity("success");
@@ -75,12 +75,12 @@ const EditHeadingDialog: React.FC<EditHeadingDialogProps> = ({
           socket.close();
         }
       } catch (err) {
-        console.error("❌ Error parsing message:", err);
+        // console.error("❌ Error parsing message:", err);
       }
     };
 
     socket.onerror = (err) => {
-      console.error("❌ WebSocket error:", err);
+      // console.error("❌ WebSocket error:", err);
       setSnackbarMsg("⚠️ WebSocket connection failed");
       setSnackbarSeverity("error");
       setSnackbarOpen(true);
@@ -88,7 +88,7 @@ const EditHeadingDialog: React.FC<EditHeadingDialogProps> = ({
     };
 
     socket.onclose = () => {
-      console.log("🔌 WebSocket disconnected");
+      // console.log("🔌 WebSocket disconnected");
       setLoading(false);
     };
   };
@@ -116,7 +116,7 @@ const handleSubmit = async () => {
     socketRef.current = ws;
 
     ws.onopen = () => {
-      console.log("✅ WebSocket connected successfully");
+      // console.log("✅ WebSocket connected successfully");
 
       const message = {
         action: "editHeading",
@@ -129,11 +129,11 @@ const handleSubmit = async () => {
       };
 
       ws.send(JSON.stringify(message));
-      console.log("📤 Sent editHeading message:", message);
+      // console.log("📤 Sent editHeading message:", message);
     };
 
     ws.onmessage = (event) => {
-      console.log("📩 Received from backend:", event.data);
+      // console.log("📩 Received from backend:", event.data);
       try {
         const msg = JSON.parse(event.data);
         if (
@@ -148,12 +148,12 @@ const handleSubmit = async () => {
           ws.close();
         }
       } catch (err) {
-        console.error("❌ Error parsing message:", err);
+        // console.error("❌ Error parsing message:", err);
       }
     };
 
     ws.onerror = (err) => {
-      console.error("❌ WebSocket error:", err);
+      // console.error("❌ WebSocket error:", err);
       setSnackbarMsg("⚠️ WebSocket connection failed");
       setSnackbarSeverity("error");
       setSnackbarOpen(true);
@@ -161,11 +161,11 @@ const handleSubmit = async () => {
     };
 
     ws.onclose = () => {
-      console.log("🔌 WebSocket disconnected");
+      // console.log("🔌 WebSocket disconnected");
       setLoading(false);
     };
   } catch (error) {
-    console.error("❌ Error:", error);
+    // console.error("❌ Error:", error);
     setSnackbarMsg("❌ Failed to send edit request");
     setSnackbarSeverity("error");
     setSnackbarOpen(true);

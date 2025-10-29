@@ -9,7 +9,6 @@ const GoogleCallbackPage = () => {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    console.log("Callback params:", params.toString());
     const token = params.get("token");
     const session_id = params.get("session_id");
     const id = params.get("id");
@@ -33,7 +32,6 @@ const GoogleCallbackPage = () => {
 
     if (token && user.email) {
       Cookies.set("token", session_id ?? "", { expires: 7 });
-      console.log("Google token", token);
 
       localStorage.setItem("user", JSON.stringify(user));
       localStorage.setItem("id", id ?? "");

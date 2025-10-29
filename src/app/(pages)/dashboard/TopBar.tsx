@@ -59,7 +59,6 @@ const TopBar: React.FC = () => {
       try {
         setCurrentProject(JSON.parse(storedProject));
       } catch (error) {
-        console.error('Error parsing project data:', error);
         setCurrentProject(null);
       }
     } else {

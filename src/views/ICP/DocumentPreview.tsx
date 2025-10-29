@@ -82,7 +82,7 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ docxBase64, fileName 
 
                 setIsLoading(false);
             } catch (error) {
-                console.error('Error parsing DOCX:', error);
+                // console.error('Error parsing DOCX:', error);
                 setIsLoading(false);
             }
         };
@@ -166,7 +166,7 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ docxBase64, fileName 
                 document_type: 'icp',
             }).unwrap();
 
-            console.log("📄 PDF Response:", response);
+            // console.log("📄 PDF Response:", response);
 
             // Optimized base64 to blob conversion
             const byteCharacters = atob(response.base64_pdf);
@@ -188,14 +188,14 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ docxBase64, fileName 
             document.body.removeChild(link);
             URL.revokeObjectURL(url);
 
-            console.log('✅ PDF downloaded successfully');
+            // console.log('✅ PDF downloaded successfully');
         } catch (error) {
-            console.error('❌ Failed to download PDF:', error);
+            // console.error('❌ Failed to download PDF:', error);
         }
     };
 
     const handleEdit = () => {
-        console.log('Edit functionality to be implemented');
+        // console.log('Edit functionality to be implemented');
         // Implement edit functionality
         setOpenEditDialog(true);
     };
@@ -214,10 +214,10 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ docxBase64, fileName 
                 document_text: documentText,
             }).unwrap();
 
-            console.log('✅ Document submitted for review:', response);
+            // console.log('✅ Document submitted for review:', response);
             // You can add a success notification here
         } catch (error) {
-            console.error('❌ Failed to submit for review:', error);
+            // console.error('❌ Failed to submit for review:', error);
             // You can add an error notification here
         }
     };
@@ -292,9 +292,9 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ docxBase64, fileName 
             setTableOfContents(toc);
             if (toc.length > 0) setActiveSection(toc[0].id);
 
-            console.log("✅ Document refreshed successfully");
+            // console.log("✅ Document refreshed successfully");
         } catch (error) {
-            console.error("❌ Failed to refresh document:", error);
+            // console.error("❌ Failed to refresh document:", error);
         } finally {
             setIsLoading(false);
         }

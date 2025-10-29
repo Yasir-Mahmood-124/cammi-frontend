@@ -26,7 +26,7 @@ const Events = () => {
 
         setPosts(mappedPosts);
       } catch (err) {
-        console.error("Failed to fetch posts:", err);
+        // console.error("Failed to fetch posts:", err);
       }
     };
 

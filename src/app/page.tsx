@@ -1,13 +1,13 @@
 "use client";
 import LoginPage from "./(pages)/sign-in/page";
-import LeadCalculator from "./(pages)/dashboard/lead-calculator/page";
+import Sidebar from "@/components/Sidebar";
+
 
 export default function Home() {
   return (
     <div>
-      {/* <RegisterPage /> */}
-      <LoginPage />
-      {/* <LeadCalculator /> */}
+      {/* <LoginPage /> */}
+      <Sidebar/>
     </div>
   );
 }

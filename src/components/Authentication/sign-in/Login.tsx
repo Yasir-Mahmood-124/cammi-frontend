@@ -92,7 +92,6 @@ const Login = () => {
           }
         }
       } catch (err) {
-        console.error("Error handling Google callback:", err);
         toast("Authentication failed", { variant: "error" });
         setIsProcessingGoogle(false);
       }
@@ -111,7 +110,6 @@ const Login = () => {
         console.error("No login_url in response", res);
       }
     } catch (err) {
-      console.error("Error calling Google login endpoint", err);
       toast("Failed to initiate Google sign-in", { variant: "error" });
     }
   };
@@ -137,7 +135,6 @@ const Login = () => {
       );
       localStorage.setItem("user", JSON.stringify(res.user));
 
-      console.log("User:", res.user, "Token:", res.token);
 
       if (res.onboarding_status === true) {
         router.push("/onboarding");

@@ -126,7 +126,7 @@ const DataUploadPage = () => {
       toast.success("Website data submitted successfully!");
       setWebsiteUrl("");
     } catch (err) {
-      console.error("API Error:", err);
+      // console.error("API Error:", err);
       toast.error("Failed to submit website data. Please try again.");
     }
   };
@@ -157,7 +157,7 @@ const DataUploadPage = () => {
         project_id: projectData.project_id,
       }).unwrap();
 
-      console.log("Presigned URL Response:", res);
+      // console.log("Presigned URL Response:", res);
 
       // Step 2: Upload file to S3
       const uploadResponse = await fetch(res.upload_url, {
@@ -172,11 +172,11 @@ const DataUploadPage = () => {
         throw new Error("Failed to upload file to S3");
       }
 
-      console.log("✅ File uploaded successfully to:", res.s3_path);
+      // console.log("✅ File uploaded successfully to:", res.s3_path);
       toast.success("Document uploaded successfully!");
       setSelectedFile(null);
     } catch (error) {
-      console.error("❌ Upload Error:", error);
+      // console.error("❌ Upload Error:", error);
       toast.error("Failed to upload document. Please try again.");
     } finally {
       setUploading(false);

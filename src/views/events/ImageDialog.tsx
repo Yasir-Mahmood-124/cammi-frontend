@@ -91,7 +91,7 @@ const ImageDialog: React.FC<ImageDialogProps> = ({ open, onClose, data }) => {
         : null;
 
     if (!sub) {
-      console.error("linkedin_sub not found in localStorage");
+      // console.error("linkedin_sub not found in localStorage");
       return;
     }
 
@@ -120,23 +120,23 @@ const ImageDialog: React.FC<ImageDialogProps> = ({ open, onClose, data }) => {
         new_values: newValues,
       }).unwrap();
 
-      console.log("Payload sent:", {
-        sub,
-        post_time: originalPostTime,
-        action: "edit",
-        new_values: newValues,
-      });
+      // console.log("Payload sent:", {
+      //   sub,
+      //   post_time: originalPostTime,
+      //   action: "edit",
+      //   new_values: newValues,
+      // });
 
-      console.log("Edit response:", response);
+      // console.log("Edit response:", response);
 
       if (response.success) {
         onClose();
         window.location.reload();
       } else {
-        console.error("Edit failed:", response.error);
+        // console.error("Edit failed:", response.error);
       }
     } catch (error) {
-      console.error("API Error editing post:", error);
+      // console.error("API Error editing post:", error);
     }
   };
 
@@ -149,7 +149,7 @@ const ImageDialog: React.FC<ImageDialogProps> = ({ open, onClose, data }) => {
         : null;
 
     if (!sub) {
-      console.error("linkedin_sub not found in localStorage");
+      // console.error("linkedin_sub not found in localStorage");
       return;
     }
 
@@ -160,7 +160,7 @@ const ImageDialog: React.FC<ImageDialogProps> = ({ open, onClose, data }) => {
         action: "delete",
       }).unwrap();
 
-      console.log("Delete response:", response);
+      // console.log("Delete response:", response);
 
       if (response.success) {
         setMessage("");
@@ -169,10 +169,10 @@ const ImageDialog: React.FC<ImageDialogProps> = ({ open, onClose, data }) => {
         onClose();
         window.location.reload();
       } else {
-        console.error("Delete failed:", response.error);
+        // console.error("Delete failed:", response.error);
       }
     } catch (error) {
-      console.error("API Error deleting post:", error);
+      // console.error("API Error deleting post:", error);
     }
   };
 

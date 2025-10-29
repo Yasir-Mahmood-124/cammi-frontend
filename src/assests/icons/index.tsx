@@ -16,6 +16,13 @@ export {default as SR} from "./SR.svg";
 export {default as Cammi} from "./Cammi.svg";
 export {default as ArrowAbove} from "./ArrowAbove.svg";
 export {default as FeedbackIcon} from "./Feedback.svg";
+export {default as Clarify} from "./Clarify.svg";
+export {default as Align} from "./Align.svg";
+export {default as Mobilize} from "./Mobilize.svg";
+export {default as Moniter} from "./Moniter.svg";
+export {default as Iterate} from "./Iterate.svg";
+export {default as BrandSetup} from "./BrandSetup.svg";
+export {default as Logo} from "./Logo.svg";
 // 👆 Add more icons like this if needed
 // export { default as Facebook } from "./Facebook.svg";
 // export { default as Twitter } from "./Twitter.svg";

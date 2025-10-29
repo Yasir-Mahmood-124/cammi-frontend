@@ -42,7 +42,6 @@ const Onboarding = () => {
         router.push("/dashboard");
       }
     } catch (error) {
-      console.error(error);
       toast.error("Failed to submit answer. Please try again.");
     }
   };

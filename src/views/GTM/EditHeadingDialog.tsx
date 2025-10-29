@@ -106,7 +106,7 @@ const EditHeadingDialog: React.FC<EditHeadingDialogProps> = ({
       socketRef.current = ws;
 
       ws.onopen = () => {
-        console.log("✅ WebSocket connected successfully");
+        // console.log("✅ WebSocket connected successfully");
 
         const message = {
           action: "editHeading",
@@ -119,40 +119,40 @@ const EditHeadingDialog: React.FC<EditHeadingDialogProps> = ({
         };
 
         ws.send(JSON.stringify(message));
-        console.log("📤 Sent editHeading message:", message);
+        // console.log("📤 Sent editHeading message:", message);
       };
 
       // ✅ Attach listener here, not in useEffect
       ws.onmessage = (event) => {
-        console.log("📩 Received from backend:", event.data);
+        // console.log("📩 Received from backend:", event.data);
         try {
           const msg = JSON.parse(event.data);
           if (
             msg.action === "sendMessage" &&
             msg.body.trim() === "Document generated successfully!"
           ) {
-            console.log("✅ Document generation complete!");
+            // console.log("✅ Document generation complete!");
             setLoading(false);
             setSnackbarOpen(true);
             onClose();
             ws.close();
           }
         } catch (err) {
-          console.error("❌ Error parsing message:", err);
+          // console.error("❌ Error parsing message:", err);
         }
       };
 
       ws.onerror = (err) => {
-        console.error("❌ WebSocket error:", err);
+        // console.error("❌ WebSocket error:", err);
         setLoading(false);
       };
 
       ws.onclose = () => {
-        console.log("🔌 WebSocket disconnected");
+        // console.log("🔌 WebSocket disconnected");
         setLoading(false);
       };
     } catch (error) {
-      console.error("❌ Error:", error);
+      // console.error("❌ Error:", error);
       setLoading(false);
     }
   };

@@ -45,7 +45,7 @@ const Generating: React.FC<GeneratingProps> = ({ wsUrl, onComplete }) => {
   const triggerCompletion = () => {
     if (!hasCalledComplete.current) {
       hasCalledComplete.current = true;
-      console.log("✅ Document generation completed! Triggering onComplete callback...");
+      // console.log("✅ Document generation completed! Triggering onComplete callback...");
       setIsComplete(true);
       setProgress(100);
       
@@ -108,17 +108,17 @@ const Generating: React.FC<GeneratingProps> = ({ wsUrl, onComplete }) => {
           triggerCompletion();
         }
       } catch (err) {
-        console.error("❌ Failed parsing WS message", err);
+        // console.error("❌ Failed parsing WS message", err);
       }
     };
 
     ws.onerror = (err) => {
-      console.error("❌ WebSocket error:", err);
+      // console.error("❌ WebSocket error:", err);
       setDisplayedContent("WebSocket connection error.");
     };
 
     ws.onclose = (event) => {
-      console.log("🔗 WebSocket closed:", event.code, event.reason);
+      // console.log("🔗 WebSocket closed:", event.code, event.reason);
       
       // If connection closed and progress is 100%, ensure completion is triggered
       if (progress >= 100 || isComplete) {

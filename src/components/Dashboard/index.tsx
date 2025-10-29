@@ -56,11 +56,11 @@ const DashboardPage = () => {
   }, []);
 
   // Log the API response to check structure
-  useEffect(() => {
-    if (documentsData) {
-      console.log("Documents API Response:", documentsData);
-    }
-  }, [documentsData]);
+  // useEffect(() => {
+  //   if (documentsData) {
+  //     console.log("Documents API Response:", documentsData);
+  //   }
+  // }, [documentsData]);
 
   // Default image for documents
   const defaultDocumentImage = "/Folders/documentGenration.png";

@@ -112,7 +112,6 @@ const Register = () => {
             }
           }
         } catch (err) {
-          console.error("Error handling Google callback:", err);
           toast("Authentication failed", { variant: "error" });
           setIsProcessingGoogle(false);
         }
