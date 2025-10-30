@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -20,7 +19,6 @@ import {
   ExpandMore as ExpandMoreIcon,
   MenuOpen as MenuOpenIcon,
   Menu as MenuIcon,
-  Add as AddIcon,
 } from "@mui/icons-material";
 import { useRouter, usePathname } from "next/navigation";
 import toast from "react-hot-toast";
@@ -44,7 +42,6 @@ import {
   BS,
 } from "@/assests/icons";
 import CreateProject from "./CreateProject";
-import DocumentGenerationModal from "./DocumentGenerationModal";
 
 interface CurrentProject {
   organization_id: string;
@@ -58,9 +55,7 @@ const Sidebar: React.FC = () => {
   const [selectedItem, setSelectedItem] = useState<string>("Dashboard");
   const [selectedParent, setSelectedParent] = useState<string>("");
   const [isCollapsed, setIsCollapsed] = useState<boolean>(false);
-  const [selectedDocs, setSelectedDocs] = useState<string[]>([]);
   const [open, setOpen] = useState(false);
-  const [openDocument, setOpenDocument] = useState(false);
   const [currentProject, setCurrentProject] = useState<CurrentProject | null>(
     null
   );
@@ -195,14 +190,6 @@ const Sidebar: React.FC = () => {
     }
   }, [pathname]);
 
-  // Load saved docs from localStorage
-  useEffect(() => {
-    const storedDocs = localStorage.getItem("sidebarDocs");
-    if (storedDocs) {
-      setSelectedDocs(JSON.parse(storedDocs));
-    }
-  }, []);
-
   // Load current project on mount
   useEffect(() => {
     loadCurrentProject();
@@ -225,11 +212,6 @@ const Sidebar: React.FC = () => {
       window.removeEventListener("projectUpdated", handleProjectUpdate);
     };
   }, []);
-
-  // Save docs to localStorage whenever selectedDocs changes
-  useEffect(() => {
-    localStorage.setItem("sidebarDocs", JSON.stringify(selectedDocs));
-  }, [selectedDocs]);
 
   const handleMenuClick = (itemName: string, hasSubItems: boolean = true) => {
     if (isCollapsed && hasSubItems) {
@@ -288,8 +270,6 @@ const Sidebar: React.FC = () => {
     setOpen(false);
     loadCurrentProject();
   };
-  const handleOpenDocument = () => setOpenDocument(true);
-  const handleCloseDocument = () => setOpenDocument(false);
 
   const documentGenerationItems = [
     {
@@ -553,43 +533,22 @@ const Sidebar: React.FC = () => {
           {/* Document Generation Section */}
           <Box sx={{ px: isCollapsed ? 1 : 2, mt: 0.3 }}>
             {!isCollapsed && (
-              <Box
+              <Typography
+                variant="caption"
                 sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
                   px: 2,
+                  color: "#9E9E9E",
+                  fontSize: "11px",
+                  fontWeight: 500,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.5px",
                   mb: 0.5,
+                  display: "block",
                 }}
               >
-                <Typography
-                  variant="caption"
-                  sx={{
-                    color: "#9E9E9E",
-                    fontSize: "11px",
-                    fontWeight: 500,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.5px",
-                  }}
-                >
-                  Document Generation
-                </Typography>
-                <IconButton
-                  size="small"
-                  sx={{ color: "#9E9E9E", p: 0 }}
-                  onClick={handleOpenDocument}
-                >
-                  <AddIcon sx={{ fontSize: "16px" }} />
-                </IconButton>
-              </Box>
+                Document Generation
+              </Typography>
             )}
-
-            {/* <DocumentGenerationModal
-              open={openDocument}
-              onClose={handleCloseDocument}
-              selected={selectedDocs}
-              setSelected={setSelectedDocs}
-            /> */}
 
             <List sx={{ mt: 0.2, pb: 0 }}>
               {documentGenerationItems.map((item) => (
