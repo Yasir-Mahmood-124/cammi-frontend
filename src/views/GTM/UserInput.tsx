@@ -15,6 +15,7 @@ interface UserInputProps {
   onGenerate?: (prompt: string) => void;
   onRegenerate?: () => void;
   onConfirm?: () => void;
+  onAnswerEdit?: (editedAnswer: string) => void;
 }
 
 const UserInput: React.FC<UserInputProps> = ({ 
@@ -24,11 +25,13 @@ const UserInput: React.FC<UserInputProps> = ({
   isLoading = false,
   onGenerate,
   onRegenerate, 
-  onConfirm
+  onConfirm,
+  onAnswerEdit
 }) => {
   const [inputValue, setInputValue] = useState('');
   const [displayedAnswer, setDisplayedAnswer] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const answerFieldRef = React.useRef<HTMLInputElement>(null);
 
   // Typing animation effect
   useEffect(() => {
@@ -54,6 +57,20 @@ const UserInput: React.FC<UserInputProps> = ({
     return () => clearInterval(typingInterval);
   }, [answer]);
 
+  // Auto-focus and position cursor at end when typing completes
+  useEffect(() => {
+    if (!isTyping && displayedAnswer && answerFieldRef.current) {
+      const textField = answerFieldRef.current;
+      // Small delay to ensure the field is ready
+      setTimeout(() => {
+        textField.focus();
+        // Set cursor position to the end
+        const length = displayedAnswer.length;
+        textField.setSelectionRange(length, length);
+      }, 100);
+    }
+  }, [isTyping, displayedAnswer]);
+
   const handleSendClick = () => {
     if (inputValue.trim() && onGenerate) {
       onGenerate(inputValue.trim());
@@ -65,6 +82,13 @@ const UserInput: React.FC<UserInputProps> = ({
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSendClick();
+    }
+  };
+
+  const handleAnswerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setDisplayedAnswer(e.target.value);
+    if (onAnswerEdit) {
+      onAnswerEdit(e.target.value);
     }
   };
 
@@ -80,6 +104,7 @@ const UserInput: React.FC<UserInputProps> = ({
           height: "100%",
           maxHeight: '483px',
           overflowY: 'auto',
+          overflowX: 'hidden',
           '&::-webkit-scrollbar': {
             width: '5px',
           },
@@ -102,6 +127,7 @@ const UserInput: React.FC<UserInputProps> = ({
             border: '2px solid transparent',
             borderRadius: '8px',
             padding: '13px',
+            overflowX: 'hidden',
           }}
         >
           <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: '8px', marginBottom: '8px' }}>
@@ -143,10 +169,60 @@ const UserInput: React.FC<UserInputProps> = ({
             }}>
               <CircularProgress size={30} sx={{ color: '#3EA3FF' }} />
             </Box>
+          ) : displayedAnswer || isTyping ? (
+            <Box sx={{ marginBottom: '11px', marginLeft: '32px', width: 'calc(100% - 32px)' }}>
+              <TextField
+                fullWidth
+                multiline
+                value={displayedAnswer}
+                onChange={handleAnswerChange}
+                disabled={isTyping}
+                placeholder="Your answer will appear here..."
+                inputRef={answerFieldRef}
+                InputProps={{
+                  sx: {
+                    color: '#000',
+                    fontFamily: 'Poppins',
+                    fontSize: '9px',
+                    fontWeight: 400,
+                    lineHeight: '1.6',
+                    padding: 0,
+                    width: '100%',
+                    '& .MuiOutlinedInput-notchedOutline': {
+                      border: 'none',
+                    },
+                    '&:hover .MuiOutlinedInput-notchedOutline': {
+                      border: 'none',
+                    },
+                    '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                      border: 'none',
+                    },
+                    '& .MuiInputBase-input': {
+                      padding: 0,
+                      cursor: isTyping ? 'default' : 'text',
+                      wordWrap: 'break-word',
+                      overflowWrap: 'break-word',
+                      whiteSpace: 'pre-wrap',
+                    },
+                  },
+                }}
+                sx={{
+                  width: '100%',
+                  '& .MuiInputBase-input::placeholder': {
+                    color: '#999',
+                    opacity: 1,
+                    fontFamily: 'Poppins',
+                  },
+                  '& .MuiInputBase-root': {
+                    width: '100%',
+                  },
+                }}
+              />
+            </Box>
           ) : (
             <Typography
               sx={{
-                color: '#000',
+                color: '#999',
                 fontFamily: 'Poppins',
                 fontSize: '9px',
                 fontWeight: 400,
@@ -155,8 +231,7 @@ const UserInput: React.FC<UserInputProps> = ({
                 marginLeft: '32px',
               }}
             >
-              {displayedAnswer || 'Your answer will appear here...'}
-              {isTyping && <span style={{ opacity: 0.5 }}>▊</span>}
+              Your answer will appear here...
             </Typography>
           )}
 
