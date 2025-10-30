@@ -1,9 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Box, Button, Menu, MenuItem, Typography } from '@mui/material';
+import { Box, Button, Typography } from '@mui/material';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
-import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import UserInput from './UserInput';
 import InputTaker from './InputTaker';
 import FinalPreview from './FinalPreview';
@@ -28,10 +27,6 @@ interface InputItem {
 }
 
 const GTMPage: React.FC = () => {
-    const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-    const [selectedOption, setSelectedOption] = useState<'text' | 'infographic'>('text');
-    const open = Boolean(anchorEl);
-
     // Redux mutation hooks
     const [refine, { isLoading }] = useRefineMutation();
     const [uploadTextFile, { isLoading: isUploading }] = useUploadTextFileMutation();
@@ -69,23 +64,6 @@ const GTMPage: React.FC = () => {
     const [showFinalPreview, setShowFinalPreview] = useState(false);
 
     const allQuestionsAnswered = questions.every(q => q.isAnswered);
-
-    const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
-        setAnchorEl(event.currentTarget);
-    };
-
-    const handleClose = () => {
-        setAnchorEl(null);
-    };
-
-    const handleOptionSelect = async (option: 'text' | 'infographic') => {
-        setSelectedOption(option);
-        handleClose();
-
-        if (option === 'text') {
-            await handleGenerateDocument();
-        }
-    };
 
     // Handle document generation
     const handleGenerateDocument = async () => {
@@ -298,7 +276,7 @@ const GTMPage: React.FC = () => {
                         <Button
                             variant="contained"
                             endIcon={<ArrowForwardIcon sx={{ fontSize: '14px' }} />}
-                            onClick={handleClick}
+                            onClick={handleGenerateDocument}
                             disabled={!allQuestionsAnswered || isUploading}
                             sx={{
                                 background: 'linear-gradient(135deg, #3EA3FF, #FF3C80)',
@@ -322,79 +300,6 @@ const GTMPage: React.FC = () => {
                         >
                             {isUploading ? 'Uploading...' : 'Generate Document'}
                         </Button>
-
-                        <Menu
-                            anchorEl={anchorEl}
-                            open={open}
-                            onClose={handleClose}
-                            anchorOrigin={{
-                                vertical: 'top',
-                                horizontal: 'center',
-                            }}
-                            transformOrigin={{
-                                vertical: 'bottom',
-                                horizontal: 'center',
-                            }}
-                            PaperProps={{
-                                sx: {
-                                    borderRadius: '10px',
-                                    border: '1px solid #D2D2D2',
-                                    backgroundColor: '#FFF',
-                                    minWidth: '180px',
-                                    marginTop: '-8px',
-                                },
-                            }}
-                        >
-                            <MenuItem
-                                onClick={() => handleOptionSelect('text')}
-                                sx={{
-                                    fontFamily: 'Poppins',
-                                    fontSize: '11px',
-                                    padding: '10px 14px',
-                                    backgroundColor: selectedOption === 'text' ? '#D9D9D980' : 'transparent',
-                                    '&:hover': {
-                                        backgroundColor: '#D9D9D980',
-                                    },
-                                }}
-                            >
-                                <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
-                                    <Typography sx={{ fontFamily: 'Poppins', fontSize: '11px' }}>
-                                        Text Base
-                                    </Typography>
-                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: '4px', marginLeft: '16px' }}>
-                                        <Typography sx={{ fontFamily: 'Poppins', fontSize: '11px', color: '#3EA3FF' }}>
-                                            25
-                                        </Typography>
-                                        <AccountBalanceWalletIcon sx={{ fontSize: '13px', color: '#3EA3FF' }} />
-                                    </Box>
-                                </Box>
-                            </MenuItem>
-
-                            <MenuItem
-                                onClick={() => handleOptionSelect('infographic')}
-                                sx={{
-                                    fontFamily: 'Poppins',
-                                    fontSize: '11px',
-                                    padding: '10px 14px',
-                                    backgroundColor: selectedOption === 'infographic' ? '#D9D9D980' : 'transparent',
-                                    '&:hover': {
-                                        backgroundColor: '#D9D9D980',
-                                    },
-                                }}
-                            >
-                                <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
-                                    <Typography sx={{ fontFamily: 'Poppins', fontSize: '11px' }}>
-                                        Infographic Base
-                                    </Typography>
-                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: '4px', marginLeft: '16px' }}>
-                                        <Typography sx={{ fontFamily: 'Poppins', fontSize: '11px', color: '#3EA3FF' }}>
-                                            50
-                                        </Typography>
-                                        <AccountBalanceWalletIcon sx={{ fontSize: '13px', color: '#3EA3FF' }} />
-                                    </Box>
-                                </Box>
-                            </MenuItem>
-                        </Menu>
                     </Box>
                 </>
             )}
