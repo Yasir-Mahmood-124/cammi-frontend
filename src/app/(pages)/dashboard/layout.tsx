@@ -27,7 +27,6 @@ export default function DashboardLayout({
       {/* Main content area with TopBar */}
       <Box
         sx={{
-          marginLeft: isCollapsed ? "70px" : "270px",
           flexGrow: 1,
           display: "flex",
           flexDirection: "column",
