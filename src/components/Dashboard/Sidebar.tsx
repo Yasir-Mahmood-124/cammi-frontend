@@ -35,11 +35,6 @@ import {
   Scheduler,
   FeedbackIcon,
   Logo,
-  GTM,
-  ICP,
-  SR,
-  KMF,
-  BS,
 } from "@/assests/icons";
 import CreateProject from "./CreateProject";
 
@@ -50,11 +45,16 @@ interface CurrentProject {
   project_name: string;
 }
 
-const Sidebar: React.FC = () => {
+interface SidebarProps {
+  isCollapsed: boolean;
+  setIsCollapsed: (collapsed: boolean) => void;
+}
+
+const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
   const [openMenus, setOpenMenus] = useState<{ [key: string]: boolean }>({});
   const [selectedItem, setSelectedItem] = useState<string>("Dashboard");
   const [selectedParent, setSelectedParent] = useState<string>("");
-  const [isCollapsed, setIsCollapsed] = useState<boolean>(false);
+  // const [isCollapsed, setIsCollapsed] = useState<boolean>(false);
   const [open, setOpen] = useState(false);
   const [currentProject, setCurrentProject] = useState<CurrentProject | null>(
     null
