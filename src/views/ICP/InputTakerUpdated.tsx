@@ -1,6 +1,6 @@
 "use client";
 
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 
 interface InputItem {
   id: number;
@@ -23,6 +23,32 @@ const InputTakerUpdated: React.FC<InputTakerProps> = ({
   onItemClick,
   isClickable = true // Default to clickable
 }) => {
+  const itemRefs = useRef<{ [key: number]: HTMLDivElement | null }>({});
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to current question with more context (showing ~4 questions)
+  useEffect(() => {
+    const currentItemRef = itemRefs.current[currentQuestionId];
+    if (currentItemRef && containerRef.current) {
+      const container = containerRef.current;
+      const itemRect = currentItemRef.getBoundingClientRect();
+      const containerRect = container.getBoundingClientRect();
+      
+      // Calculate the scroll position to center the current item with more context
+      // Each item is ~55px height + 12px gap = 67px per item
+      // To show 4 items, we need about 268px visible area
+      const itemHeight = 67; // 55px height + 12px gap
+      const scrollOffset = itemHeight * 1.5; // Offset to show more context above
+      
+      const scrollTop = currentItemRef.offsetTop - container.offsetTop - scrollOffset;
+      
+      container.scrollTo({
+        top: scrollTop,
+        behavior: 'smooth',
+      });
+    }
+  }, [currentQuestionId]);
+
   const truncateText = (text: string, maxLength: number = 30) => {
     return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
   };
@@ -38,13 +64,16 @@ const InputTakerUpdated: React.FC<InputTakerProps> = ({
         Document Generation
       </h2>
 
-      <div style={{
-        maxHeight: '400px',
-        overflowY: 'auto',
-        paddingRight: '8px',
-        scrollbarWidth: 'thin',
-        scrollbarColor: '#888 #f1f1f1'
-      }}>
+      <div 
+        ref={containerRef}
+        style={{
+          maxHeight: '400px',
+          overflowY: 'auto',
+          paddingRight: '8px',
+          scrollbarWidth: 'thin',
+          scrollbarColor: '#888 #f1f1f1'
+        }}
+      >
         <style>{`
           div::-webkit-scrollbar {
             width: 6px;
@@ -71,6 +100,9 @@ const InputTakerUpdated: React.FC<InputTakerProps> = ({
             return (
               <div
                 key={item.id}
+                ref={(el) => {
+                  itemRefs.current[item.id] = el;
+                }}
                 onClick={() => isClickable && onItemClick?.(item.id)}
                 style={{
                   width: '247px',
