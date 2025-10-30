@@ -2,9 +2,8 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Box, Button, Menu, MenuItem, Typography } from '@mui/material';
+import { Box, Button, Typography } from '@mui/material';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
-import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import DocumentQuestion from './DocumentQuestion';
 import UploadDocument from './UploadDocument';
 import UserInput from './UserInput';
@@ -39,8 +38,6 @@ const ICPPage: React.FC = () => {
   const [shouldFetchUnanswered, setShouldFetchUnanswered] = useState(false);
   const [shouldFetchAll, setShouldFetchAll] = useState(false);
   const [projectId, setProjectId] = useState<string>('');
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [selectedOption, setSelectedOption] = useState<'text' | 'infographic'>('text');
 
   // Document generation states
   const [isGenerating, setIsGenerating] = useState(false);
@@ -50,8 +47,6 @@ const ICPPage: React.FC = () => {
   const [showDocumentPreview, setShowDocumentPreview] = useState(false);
   const [docxBase64, setDocxBase64] = useState<string>('');
   const [fileName, setFileName] = useState<string>('');
-
-  const open = Boolean(anchorEl);
 
   // Redux mutation hooks
   const [uploadTextFile, { isLoading: isUploading }] = useUploadTextFileMutation();
@@ -275,23 +270,6 @@ const ICPPage: React.FC = () => {
     setQuestions(updatedQuestions);
   };
 
-  const handleClick = (event: React.MouseEvent<HTMLElement>) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleClose = () => {
-    setAnchorEl(null);
-  };
-
-  const handleOptionSelect = async (option: 'text' | 'infographic') => {
-    setSelectedOption(option);
-    handleClose();
-
-    if (option === 'text') {
-      await handleGenerateDocument();
-    }
-  };
-
   // Handle document generation from Q&A
   const handleGenerateDocument = async () => {
     try {
@@ -494,7 +472,7 @@ const ICPPage: React.FC = () => {
               <Button
                 variant="contained"
                 endIcon={<ArrowForwardIcon sx={{ fontSize: '14px' }} />}
-                onClick={handleClick}
+                onClick={handleGenerateDocument}
                 disabled={view !== 'preview' || !allQuestionsAnswered || isUploading}
                 sx={{
                   background: 'linear-gradient(135deg, #3EA3FF, #FF3C80)',
@@ -517,42 +495,6 @@ const ICPPage: React.FC = () => {
               >
                 {isUploading ? 'Uploading...' : 'Generate Document'}
               </Button>
-
-              <Menu
-                anchorEl={anchorEl}
-                open={open}
-                onClose={handleClose}
-                anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-                transformOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-                PaperProps={{
-                  sx: {
-                    borderRadius: '10px',
-                    border: '1px solid #D2D2D2',
-                    backgroundColor: '#FFF',
-                    minWidth: '180px',
-                    marginTop: '-8px',
-                  },
-                }}
-              >
-                <MenuItem onClick={() => handleOptionSelect('text')} sx={{ fontFamily: 'Poppins', fontSize: '11px', padding: '10px 14px', backgroundColor: selectedOption === 'text' ? '#D9D9D980' : 'transparent', '&:hover': { backgroundColor: '#D9D9D980' } }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
-                    <Typography sx={{ fontFamily: 'Poppins', fontSize: '11px' }}>Text Base</Typography>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: '4px', marginLeft: '16px' }}>
-                      <Typography sx={{ fontFamily: 'Poppins', fontSize: '11px', color: '#3EA3FF' }}>25</Typography>
-                      <AccountBalanceWalletIcon sx={{ fontSize: '13px', color: '#3EA3FF' }} />
-                    </Box>
-                  </Box>
-                </MenuItem>
-                <MenuItem onClick={() => handleOptionSelect('infographic')} sx={{ fontFamily: 'Poppins', fontSize: '11px', padding: '10px 14px', backgroundColor: selectedOption === 'infographic' ? '#D9D9D980' : 'transparent', '&:hover': { backgroundColor: '#D9D9D980' } }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
-                    <Typography sx={{ fontFamily: 'Poppins', fontSize: '11px' }}>Infographic Base</Typography>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: '4px', marginLeft: '16px' }}>
-                      <Typography sx={{ fontFamily: 'Poppins', fontSize: '11px', color: '#3EA3FF' }}>50</Typography>
-                      <AccountBalanceWalletIcon sx={{ fontSize: '13px', color: '#3EA3FF' }} />
-                    </Box>
-                  </Box>
-                </MenuItem>
-              </Menu>
             </Box>
           )}
         </>
