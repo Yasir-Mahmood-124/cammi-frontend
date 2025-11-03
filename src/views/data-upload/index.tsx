@@ -32,6 +32,7 @@ const DataUploadPage = () => {
   const [websiteUrl, setWebsiteUrl] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
 
   const [postWebScrap, { isLoading }] = usePostWebScrapMutation();
   const [getUploadUrl] = useGetUploadUrlMutation();
@@ -77,24 +78,72 @@ const DataUploadPage = () => {
   }, []);
 
   // -------------------------------
+  // ✅ Helper: Validate File
+  // -------------------------------
+  const validateFile = (file: File): boolean => {
+    if (file.type !== "application/pdf") {
+      toast.error("Please upload a PDF file only.");
+      return false;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("File size exceeds 10MB limit.");
+      return false;
+    }
+
+    return true;
+  };
+
+  // -------------------------------
   // 📌 Handle File Select
   // -------------------------------
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const file = e.target.files[0];
-
-      if (file.type !== "application/pdf") {
-        toast.error("Please upload a PDF file only.");
-        return;
+      
+      if (validateFile(file)) {
+        setSelectedFile(file);
+        toast.success(`File selected: ${file.name}`);
       }
+    }
+  };
 
-      if (file.size > 10 * 1024 * 1024) {
-        toast.error("File size exceeds 10MB limit.");
-        return;
+  // -------------------------------
+  // 📌 Handle Drag Events
+  // -------------------------------
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Check if we're leaving the actual drop zone, not just hovering over a child element
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX;
+    const y = e.clientY;
+    
+    if (x <= rect.left || x >= rect.right || y <= rect.top || y >= rect.bottom) {
+      setIsDragging(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      const file = files[0];
+      
+      if (validateFile(file)) {
+        setSelectedFile(file);
+        toast.success(`File selected: ${file.name}`);
       }
-
-      setSelectedFile(file);
-      toast.success(`File selected: ${file.name}`);
     }
   };
 
@@ -126,7 +175,6 @@ const DataUploadPage = () => {
       toast.success("Website data submitted successfully!");
       setWebsiteUrl("");
     } catch (err) {
-      // console.error("API Error:", err);
       toast.error("Failed to submit website data. Please try again.");
     }
   };
@@ -157,8 +205,6 @@ const DataUploadPage = () => {
         project_id: projectData.project_id,
       }).unwrap();
 
-      // console.log("Presigned URL Response:", res);
-
       // Step 2: Upload file to S3
       const uploadResponse = await fetch(res.upload_url, {
         method: "PUT",
@@ -172,11 +218,9 @@ const DataUploadPage = () => {
         throw new Error("Failed to upload file to S3");
       }
 
-      // console.log("✅ File uploaded successfully to:", res.s3_path);
       toast.success("Document uploaded successfully!");
       setSelectedFile(null);
     } catch (error) {
-      // console.error("❌ Upload Error:", error);
       toast.error("Failed to upload document. Please try again.");
     } finally {
       setUploading(false);
@@ -223,7 +267,7 @@ const DataUploadPage = () => {
               color: "#666",
             }}
           >
-           Import your website or documents to help us better tailor your experience and create results aligned with your business.
+            Import your website or documents to help us better tailor your experience and create results aligned with your business.
           </Typography>
         </Box>
 
@@ -339,6 +383,7 @@ const DataUploadPage = () => {
             borderRadius: 2,
             border: "1px solid #e0e0e0",
             backgroundColor: "#fff",
+            overflow: "hidden", // Prevent overflow issues
           }}
         >
           <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 3 }}>
@@ -355,16 +400,26 @@ const DataUploadPage = () => {
             </Typography>
           </Box>
 
-          {/* Upload Area */}
+          {/* Upload Area with Drag & Drop */}
           <Box
             component="label"
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
             sx={{
-              border: "2px dashed #e0e0e0",
+              position: "relative",
+              display: "block",
+              border: isDragging ? "2px solid #1976d2" : "2px solid #e0e0e0",
+              borderStyle: isDragging ? "solid" : "dashed",
               borderRadius: 2,
               p: 4,
               textAlign: "center",
               cursor: uploading ? "not-allowed" : "pointer",
-              backgroundColor: selectedFile ? "#f0f7ff" : "#fafafa",
+              backgroundColor: isDragging 
+                ? "#e3f2fd" 
+                : selectedFile 
+                ? "#f0f7ff" 
+                : "#fafafa",
               transition: "all 0.2s ease",
               opacity: uploading ? 0.6 : 1,
               "&:hover": {
@@ -378,6 +433,7 @@ const DataUploadPage = () => {
                 display: "flex",
                 flexDirection: "column",
                 alignItems: "center",
+                pointerEvents: "none", // Prevent inner elements from interfering with drag events
               }}
             >
               {selectedFile ? (
@@ -440,6 +496,7 @@ const DataUploadPage = () => {
               accept=".pdf"
               onChange={handleFileChange}
               disabled={uploading}
+              style={{ display: "none" }}
             />
           </Box>
 
