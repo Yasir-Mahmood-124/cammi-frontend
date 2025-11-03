@@ -12,6 +12,7 @@ import { useRefineMutation } from '@/redux/services/common/refineApi';
 import { useUploadTextFileMutation } from '@/redux/services/common/uploadApiSlice';
 import { useGetDocxFileMutation } from '@/redux/services/document/downloadApi';
 import Cookies from 'js-cookie';
+import toast, { Toaster } from "react-hot-toast";
 
 interface Question {
     id: number;
@@ -47,15 +48,15 @@ const GTMPage: React.FC = () => {
     // All questions
     const initialQuestions: Question[] = [
         { id: 1, question: "What do you want to accomplish in one year?", answer: "", isAnswered: false },
-        // { id: 2, question: "Where do you want to be in three years?", answer: "", isAnswered: false },
-        // { id: 3, question: "Where is your short term focus?", answer: "", isAnswered: false },
-        // { id: 4, question: "Tell us about your business?", answer: "", isAnswered: false },
-        // { id: 5, question: "Tell us about who you sell to? Where are they located?", answer: "", isAnswered: false },
-        // { id: 6, question: "What is unique about your business?", answer: "", isAnswered: false },
-        // { id: 7, question: "What marketing tools do you have available to you?", answer: "", isAnswered: false },
-        // { id: 8, question: "Who do you think are your biggest competitors?", answer: "", isAnswered: false },
-        // { id: 9, question: "What are your strengths, weaknesses, opps and threats?", answer: "", isAnswered: false },
-        // { id: 10, question: "Tell us about your product/solution/service?", answer: "", isAnswered: false },
+        { id: 2, question: "Where do you want to be in three years?", answer: "", isAnswered: false },
+        { id: 3, question: "Where is your short term focus?", answer: "", isAnswered: false },
+        { id: 4, question: "Tell us about your business?", answer: "", isAnswered: false },
+        { id: 5, question: "Tell us about who you sell to? Where are they located?", answer: "", isAnswered: false },
+        { id: 6, question: "What is unique about your business?", answer: "", isAnswered: false },
+        { id: 7, question: "What marketing tools do you have available to you?", answer: "", isAnswered: false },
+        { id: 8, question: "Who do you think are your biggest competitors?", answer: "", isAnswered: false },
+        { id: 9, question: "What are your strengths, weaknesses, opps and threats?", answer: "", isAnswered: false },
+        { id: 10, question: "Tell us about your product/solution/service?", answer: "", isAnswered: false },
     ];
 
     const [questions, setQuestions] = useState<Question[]>(initialQuestions);
@@ -89,21 +90,27 @@ const GTMPage: React.FC = () => {
                 document_type: "gtm",
             };
 
-            await uploadTextFile(payload).unwrap();
-            // console.log("✅ File uploaded successfully");
+            const uploadPromise = uploadTextFile(payload).unwrap();
+            
+            await toast.promise(
+                uploadPromise,
+                {
+                    loading: 'Uploading your answers...',
+                    success: 'Answers uploaded successfully! Starting document generation...',
+                    error: 'Failed to upload answers. Please try again.',
+                }
+            );
 
             // Set WebSocket URL and show Generating component
             const websocketUrl = `wss://4iqvtvmxle.execute-api.us-east-1.amazonaws.com/prod/?session_id=${savedToken}`;
             setWsUrl(websocketUrl);
             setIsGenerating(true);
         } catch (err) {
-            // console.error("❌ Upload failed", err);
+            // Error already handled by toast.promise
         }
     };
 
     const handleGenerationComplete = async () => {
-        // console.log("Document generation completed! Fetching document...");
-
         try {
             const savedToken = Cookies.get("token");
             const project_id = JSON.parse(
@@ -111,11 +118,20 @@ const GTMPage: React.FC = () => {
             ).project_id;
 
             // Call the download API
-            const response = await getDocxFile({
+            const downloadPromise = getDocxFile({
                 session_id: savedToken || '',
                 document_type: 'gtm',
                 project_id: project_id,
             }).unwrap();
+
+            const response = await toast.promise(
+                downloadPromise,
+                {
+                    loading: 'Fetching your document...',
+                    success: 'Document ready for preview!',
+                    error: 'Failed to fetch document. Please try again.',
+                }
+            );
 
             // Set the document data
             setDocxBase64(response.docxBase64);
@@ -125,10 +141,9 @@ const GTMPage: React.FC = () => {
             setIsGenerating(false);
             setShowDocumentPreview(true);
 
-            // console.log("✅ Document fetched successfully");
         } catch (error) {
-            // console.error("❌ Failed to fetch document:", error);
             setIsGenerating(false);
+            // Error already handled by toast.promise
         }
     };
 
@@ -138,12 +153,19 @@ const GTMPage: React.FC = () => {
             const currentQuestion = questions[currentQuestionIndex];
             const fullPrompt = `${currentQuestion.question}\n\n${userPrompt}`;
 
-            const response = await refine({
+            const responsePromise = refine({
                 prompt: fullPrompt,
                 session_id: sessionId,
             }).unwrap();
 
-            // console.log(fullPrompt);
+            const response = await toast.promise(
+                responsePromise,
+                {
+                    loading: 'Generating answer...',
+                    success: 'Answer generated successfully!',
+                    error: 'Failed to generate answer. Please try again.',
+                }
+            );
 
             // Store session ID for conversation continuity
             if (response.session_id) {
@@ -153,13 +175,16 @@ const GTMPage: React.FC = () => {
             // Set the generated answer
             setCurrentAnswer(response.groq_response);
         } catch (error) {
-            // console.error('Failed to generate answer:', error);
+            // Error already handled by toast.promise
         }
     };
 
     // Handle regenerate
     const handleRegenerate = async () => {
         const currentQuestion = questions[currentQuestionIndex];
+        toast('Regenerating answer...', {
+            icon: '🔄',
+        });
         await handleGenerateAnswer(currentQuestion.question);
     };
 
@@ -178,9 +203,10 @@ const GTMPage: React.FC = () => {
         if (currentQuestionIndex < questions.length - 1) {
             setCurrentQuestionIndex(currentQuestionIndex + 1);
             setCurrentAnswer("");
+            toast.success(`Answer saved! Moving to question ${currentQuestionIndex + 2}`);
         } else {
             // All questions answered - show final preview
-            // console.log('All questions completed!');
+            toast.success('All questions completed! Review your answers below.');
             setShowFinalPreview(true);
         }
     };
@@ -197,6 +223,7 @@ const GTMPage: React.FC = () => {
         if (questionIndex !== -1) {
             updatedQuestions[questionIndex].answer = newAnswer;
             setQuestions(updatedQuestions);
+            toast.success('Answer updated successfully!');
         }
     };
 
@@ -303,6 +330,8 @@ const GTMPage: React.FC = () => {
                     </Box>
                 </>
             )}
+
+            <Toaster position="top-right" reverseOrder={false} />
         </Box>
     );
 };

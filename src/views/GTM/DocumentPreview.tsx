@@ -7,6 +7,7 @@ import { useDownloadPdfMutation } from '@/redux/services/document/download-pdf';
 import { useSendReviewDocumentMutation } from '@/redux/services/common/send_review';
 import Cookies from 'js-cookie';
 import EditHeadingDialog from './EditHeadingDialog';
+import toast, { Toaster } from "react-hot-toast";
 
 interface DocumentPreviewProps {
   docxBase64: string;
@@ -78,8 +79,9 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ docxBase64, fileName 
         }
         
         setIsLoading(false);
+        toast.success('Document loaded successfully!');
       } catch (error) {
-        // console.error('Error parsing DOCX:', error);
+        toast.error('Failed to load document. Please refresh the page.');
         setIsLoading(false);
       }
     };
@@ -131,23 +133,31 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ docxBase64, fileName 
   };
 
   const handleDownloadDocx = () => {
-    const binaryString = atob(docxBase64);
-    const bytes = new Uint8Array(binaryString.length);
-    for (let i = 0; i < binaryString.length; i++) {
-      bytes[i] = binaryString.charCodeAt(i);
+    try {
+      const binaryString = atob(docxBase64);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      
+      const blob = new Blob([bytes], { 
+        type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' 
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName || 'document.docx';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      toast.success('DOCx downloaded successfully!', {
+        icon: '📄',
+      });
+    } catch (error) {
+      toast.error('Failed to download DOCx. Please try again.');
     }
-    
-    const blob = new Blob([bytes], { 
-      type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' 
-    });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = fileName || 'document.docx';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
   };
 
   const handleDownloadPdf = async () => {
@@ -157,13 +167,20 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ docxBase64, fileName 
         localStorage.getItem("currentProject") || "{}"
       ).project_id;
 
-      const response = await downloadPdf({
+      const downloadPromise = downloadPdf({
         session_id: savedToken || '',
         project_id: project_id,
         document_type: 'gtm',
       }).unwrap();
 
-      // console.log("📄 PDF Response:", response);
+      const response = await toast.promise(
+        downloadPromise,
+        {
+          loading: 'Generating PDF...',
+          success: 'PDF downloaded successfully!',
+          error: 'Failed to download PDF. Please try again.',
+        }
+      );
 
       // Optimized base64 to blob conversion
       const byteCharacters = atob(response.base64_pdf);
@@ -185,16 +202,16 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ docxBase64, fileName 
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
 
-      // console.log('✅ PDF downloaded successfully');
     } catch (error) {
-      // console.error('❌ Failed to download PDF:', error);
+      // Error already handled by toast.promise
     }
   };
 
   const handleEdit = () => {
-    // console.log('Edit functionality to be implemented');
-    // Implement edit functionality
     setOpenEditDialog(true);
+    toast('Opening editor...', {
+      icon: '✏️',
+    });
   };
 
   const handleSubmitForReview = async () => {
@@ -204,18 +221,24 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ docxBase64, fileName 
         localStorage.getItem("currentProject") || "{}"
       ).project_id;
 
-      const response = await sendReview({
+      const reviewPromise = sendReview({
         session_id: savedToken || '',
         project_id: project_id,
         document_type: 'gtm',
         document_text: documentText,
       }).unwrap();
 
-      // console.log('✅ Document submitted for review:', response);
-      // You can add a success notification here
+      const response = await toast.promise(
+        reviewPromise,
+        {
+          loading: 'Submitting document for review...',
+          success: '🎉 Document submitted for review successfully! You\'ll receive feedback soon.',
+          error: 'Failed to submit for review. Please try again.',
+        }
+      );
+
     } catch (error) {
-      // console.error('❌ Failed to submit for review:', error);
-      // You can add an error notification here
+      // Error already handled by toast.promise
     }
   };
 
@@ -577,8 +600,6 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ docxBase64, fileName 
           documentType="gtm"
         />
 
-
-
         {/* Submit for Review Button */}
         <Button
           variant="outlined"
@@ -615,6 +636,8 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ docxBase64, fileName 
           </Box>
         </Button>
       </Box>
+
+      <Toaster position="top-right" reverseOrder={false} />
     </Box>
   );
 };
