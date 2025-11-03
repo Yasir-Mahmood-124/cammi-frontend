@@ -1,21 +1,22 @@
 // ICPPage.tsx
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { Box, Button, Typography } from '@mui/material';
-import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
-import DocumentQuestion from './DocumentQuestion';
-import UploadDocument from './UploadDocument';
-import UserInput from './UserInput';
-import InputTakerUpdated from './InputTakerUpdated';
-import FinalPreview from './FinalPreview';
-import Generating from './Generating';
-import DocumentPreview from './DocumentPreview';
-import { useGet_unanswered_questionsQuery } from '@/redux/services/common/getUnansweredQuestionsApi';
-import { useGetQuestionsQuery } from '@/redux/services/common/getQuestionsApi';
-import { useUploadTextFileMutation } from '@/redux/services/common/uploadApiSlice';
-import { useGetDocxFileMutation } from '@/redux/services/document/downloadApi';
-import Cookies from 'js-cookie';
+import React, { useState, useEffect } from "react";
+import { Box, Button, Typography } from "@mui/material";
+import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
+import DocumentQuestion from "./DocumentQuestion";
+import UploadDocument from "./UploadDocument";
+import UserInput from "./UserInput";
+import InputTakerUpdated from "./InputTakerUpdated";
+import FinalPreview from "./FinalPreview";
+import Generating from "./Generating";
+import DocumentPreview from "./DocumentPreview";
+import { useGet_unanswered_questionsQuery } from "@/redux/services/common/getUnansweredQuestionsApi";
+import { useGetQuestionsQuery } from "@/redux/services/common/getQuestionsApi";
+import { useUploadTextFileMutation } from "@/redux/services/common/uploadApiSlice";
+import { useGetDocxFileMutation } from "@/redux/services/document/downloadApi";
+import Cookies from "js-cookie";
+import toast, { Toaster } from "react-hot-toast";
 
 interface Question {
   id: number;
@@ -31,30 +32,33 @@ interface CurrentProject {
 }
 
 const ICPPage: React.FC = () => {
-  const [view, setView] = useState<'initial' | 'upload' | 'questions' | 'preview'>('initial');
+  const [view, setView] = useState<
+    "initial" | "upload" | "questions" | "preview"
+  >("initial");
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answeredIds, setAnsweredIds] = useState<number[]>([]);
   const [shouldFetchUnanswered, setShouldFetchUnanswered] = useState(false);
   const [shouldFetchAll, setShouldFetchAll] = useState(false);
-  const [projectId, setProjectId] = useState<string>('');
+  const [projectId, setProjectId] = useState<string>("");
 
   // Document generation states
   const [isGenerating, setIsGenerating] = useState(false);
-  const [wsUrl, setWsUrl] = useState<string>('');
-  
+  const [wsUrl, setWsUrl] = useState<string>("");
+
   // Document preview states
   const [showDocumentPreview, setShowDocumentPreview] = useState(false);
-  const [docxBase64, setDocxBase64] = useState<string>('');
-  const [fileName, setFileName] = useState<string>('');
+  const [docxBase64, setDocxBase64] = useState<string>("");
+  const [fileName, setFileName] = useState<string>("");
 
   // Redux mutation hooks
-  const [uploadTextFile, { isLoading: isUploading }] = useUploadTextFileMutation();
+  const [uploadTextFile, { isLoading: isUploading }] =
+    useUploadTextFileMutation();
   const [getDocxFile, { isLoading: isDownloading }] = useGetDocxFileMutation();
 
   // Get project_id from localStorage on component mount
   useEffect(() => {
-    const currentProjectStr = localStorage.getItem('currentProject');
+    const currentProjectStr = localStorage.getItem("currentProject");
     if (currentProjectStr) {
       try {
         const currentProject: CurrentProject = JSON.parse(currentProjectStr);
@@ -68,38 +72,39 @@ const ICPPage: React.FC = () => {
   // Setup WebSocket URL for upload - USING THE CORRECT DEV ENDPOINT
   useEffect(() => {
     // Use the WebSocket URL from your working project
-    const websocketUrl = "wss://91vm5ilj37.execute-api.us-east-1.amazonaws.com/dev";
+    const websocketUrl =
+      "wss://91vm5ilj37.execute-api.us-east-1.amazonaws.com/dev";
     setWsUrl(websocketUrl);
     // console.log('🔌 WebSocket URL set for upload:', websocketUrl);
   }, []);
 
   // RTK Query for unanswered questions
-  const { 
-    data: unansweredData, 
-    isLoading: isLoadingUnanswered, 
-    isError: isErrorUnanswered 
+  const {
+    data: unansweredData,
+    isLoading: isLoadingUnanswered,
+    isError: isErrorUnanswered,
   } = useGet_unanswered_questionsQuery(
     {
       project_id: projectId,
-      document_type: "icp"
+      document_type: "icp",
     },
     {
-      skip: !shouldFetchUnanswered || !projectId
+      skip: !shouldFetchUnanswered || !projectId,
     }
   );
 
   // RTK Query for all questions (answered)
-  const { 
-    data: allQuestionsData, 
-    isLoading: isLoadingAll, 
-    isError: isErrorAll 
+  const {
+    data: allQuestionsData,
+    isLoading: isLoadingAll,
+    isError: isErrorAll,
   } = useGetQuestionsQuery(
     {
       project_id: projectId,
-      document_type: "icp"
+      document_type: "icp",
     },
     {
-      skip: !shouldFetchAll || !projectId
+      skip: !shouldFetchAll || !projectId,
     }
   );
 
@@ -107,17 +112,21 @@ const ICPPage: React.FC = () => {
   useEffect(() => {
     if (unansweredData) {
       // console.log(' Unanswered questions data received:', unansweredData);
-      
-      if (unansweredData.missing_questions && unansweredData.missing_questions.length > 0) {
+
+      if (
+        unansweredData.missing_questions &&
+        unansweredData.missing_questions.length > 0
+      ) {
         // console.log(' Has unanswered questions:', unansweredData.missing_questions.length);
-        
-        const formattedQuestions: Question[] = unansweredData.missing_questions.map((q, index) => ({
-          id: index + 1,
-          question: q,
-          answer: ''
-        }));
+
+        const formattedQuestions: Question[] =
+          unansweredData.missing_questions.map((q, index) => ({
+            id: index + 1,
+            question: q,
+            answer: "",
+          }));
         setQuestions(formattedQuestions);
-        setView('questions');
+        setView("questions");
         setShouldFetchUnanswered(false);
       } else {
         // console.log(' No unanswered questions - fetching all answered questions');
@@ -131,23 +140,26 @@ const ICPPage: React.FC = () => {
   useEffect(() => {
     if (allQuestionsData && allQuestionsData.questions) {
       // console.log('All questions data received:', allQuestionsData.questions.length, 'questions');
-      
-      const formattedQuestions: Question[] = allQuestionsData.questions.map((q, index) => ({
-        id: index + 1,
-        question: q.question_text,
-        answer: q.answer_text || ''
-      }));
+
+      const formattedQuestions: Question[] = allQuestionsData.questions.map(
+        (q, index) => ({
+          id: index + 1,
+          question: q.question_text,
+          answer: q.answer_text || "",
+        })
+      );
       setQuestions(formattedQuestions);
-      setView('preview');
+      setView("preview");
       setShouldFetchAll(false);
     }
   }, [allQuestionsData]);
 
   // Check if all questions are answered
-  const allQuestionsAnswered = questions.length > 0 && questions.every(q => q.answer.trim() !== '');
+  const allQuestionsAnswered =
+    questions.length > 0 && questions.every((q) => q.answer.trim() !== "");
 
   const handleYesClick = () => {
-    setView('upload');
+    setView("upload");
   };
 
   const handleNoClick = () => {
@@ -169,25 +181,30 @@ const ICPPage: React.FC = () => {
     }
 
     // Handle questions_need_answers - MAIN CASE
-    if (data.status === 'questions_need_answers' && data.not_found_questions) {
+    if (data.status === "questions_need_answers" && data.not_found_questions) {
       // console.log(' Questions need answers - Count:', data.not_found_questions.length);
       // console.log('Questions array:', data.not_found_questions);
-      
+
       // Extract questions from the objects
-      const formattedQuestions: Question[] = data.not_found_questions.map((item: any, index: number) => {
-        // The question might be in item.question or item.question_text
-        const questionText = item.question || item.question_text || item;
-        // console.log(`Question ${index + 1}:`, questionText);
-        
-        return {
-          id: index + 1,
-          question: typeof questionText === 'string' ? questionText : String(questionText),
-          answer: ''
-        };
-      });
+      const formattedQuestions: Question[] = data.not_found_questions.map(
+        (item: any, index: number) => {
+          // The question might be in item.question or item.question_text
+          const questionText = item.question || item.question_text || item;
+          // console.log(`Question ${index + 1}:`, questionText);
+
+          return {
+            id: index + 1,
+            question:
+              typeof questionText === "string"
+                ? questionText
+                : String(questionText),
+            answer: "",
+          };
+        }
+      );
       setQuestions(formattedQuestions);
-      setView('questions');
-      
+      setView("questions");
+
       // console.log(' Switched to questions view');
       return;
     }
@@ -195,21 +212,21 @@ const ICPPage: React.FC = () => {
     // Handle processing_complete
     if (data.status === "processing_complete") {
       // console.log(' Processing complete!');
-      
-      // Check if there are any results with "Not Found" 
+
+      // Check if there are any results with "Not Found"
       if (data.results) {
         const notFoundQuestions = Object.entries(data.results)
           .filter(([_, answer]) => answer === "Not Found")
           .map(([question, _], index) => ({
             id: index + 1,
             question: question,
-            answer: ''
+            answer: "",
           }));
 
         if (notFoundQuestions.length > 0) {
           // console.log(' Found "Not Found" questions:', notFoundQuestions.length);
           setQuestions(notFoundQuestions);
-          setView('questions');
+          setView("questions");
         } else {
           // console.log('No missing questions - Going to preview');
           setShouldFetchAll(true);
@@ -242,29 +259,29 @@ const ICPPage: React.FC = () => {
   const handleConfirm = () => {
     if (questions[currentQuestionIndex].answer) {
       setAnsweredIds([...answeredIds, questions[currentQuestionIndex].id]);
-      
+
       if (currentQuestionIndex < questions.length - 1) {
         setCurrentQuestionIndex(currentQuestionIndex + 1);
       } else {
         // console.log('All questions answered!');
-        setView('preview');
+        setView("preview");
       }
     }
   };
 
   const handleItemClick = (id: number) => {
-    const index = questions.findIndex(q => q.id === id);
+    const index = questions.findIndex((q) => q.id === id);
     if (index !== -1) {
       setCurrentQuestionIndex(index);
     }
   };
 
   const handleBackToQuestions = () => {
-    setView('questions');
+    setView("questions");
   };
 
   const handleAnswerUpdate = (id: number, newAnswer: string) => {
-    const updatedQuestions = questions.map(q => 
+    const updatedQuestions = questions.map((q) =>
       q.id === id ? { ...q, answer: newAnswer } : q
     );
     setQuestions(updatedQuestions);
@@ -295,63 +312,86 @@ const ICPPage: React.FC = () => {
 
       // console.log("File Content  :" , base64Content);
 
-      const uploadResponse = await uploadTextFile(payload).unwrap();
+      // const uploadResponse = await uploadTextFile(payload).unwrap();
       // console.log('FILE UPLOADED SUCCESSFULLY!', uploadResponse);
 
+      // Wrap API call in toast.promise
+      const uploadPromise = uploadTextFile(payload).unwrap();
+
+      await toast.promise(uploadPromise, {
+        loading: "Uploading your answers...",
+        success:
+          "Answers uploaded successfully! Starting document generation...",
+        error: "Failed to upload answers. Please try again.",
+      });
+
       const websocketUrl = `wss://4iqvtvmxle.execute-api.us-east-1.amazonaws.com/prod/?session_id=${savedToken}`;
-      
+
       setWsUrl(websocketUrl);
       setIsGenerating(true);
-      
     } catch (err: any) {
       // console.error(" UPLOAD FAILED!", err);
-      alert('Upload failed. Please try again.');
+      alert("Upload failed. Please try again.");
     }
   };
 
   const handleGenerationComplete = async () => {
     // console.log(" Document generation completed! Fetching document...");
-    
+
     try {
       const savedToken = Cookies.get("token");
       const project_id = JSON.parse(
         localStorage.getItem("currentProject") || "{}"
       ).project_id;
 
-      const response = await getDocxFile({
-        session_id: savedToken || '',
-        document_type: 'icp',
+      const downloadPromise = getDocxFile({
+        session_id: savedToken || "",
+        document_type: "icp",
         project_id: project_id,
       }).unwrap();
 
+      const response = await toast.promise(downloadPromise, {
+        loading: "Fetching your document...",
+        success: "Document ready for preview!",
+        error: "Failed to fetch document. Please try again.",
+      });
+
+      // const response = await getDocxFile({
+      //   session_id: savedToken || "",
+      //   document_type: "icp",
+      //   project_id: project_id,
+      // }).unwrap();
+
       setDocxBase64(response.docxBase64);
-      setFileName(response.fileName || 'icp_document.docx');
-      
+      setFileName(response.fileName || "icp_document.docx");
+
       setIsGenerating(false);
       setShowDocumentPreview(true);
-      
+
       // console.log("Document fetched successfully");
     } catch (error) {
       // console.error(" Failed to fetch document:", error);
       setIsGenerating(false);
-      alert('Failed to download document. Please try again.');
+      alert("Failed to download document. Please try again.");
     }
   };
 
   const isLoading = isLoadingUnanswered || isLoadingAll;
   const isError = isErrorUnanswered || isErrorAll;
-  const showButton = view === 'questions' || view === 'preview';
+  const showButton = view === "questions" || view === "preview";
 
   if (isError) {
     return (
-      <Box sx={{ 
-        minHeight: '100vh', 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'center',
-        padding: '20px'
-      }}>
-        <div style={{ color: 'red', fontFamily: 'Poppins' }}>
+      <Box
+        sx={{
+          minHeight: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: "20px",
+        }}
+      >
+        <div style={{ color: "red", fontFamily: "Poppins" }}>
           Error loading questions. Please try again.
         </div>
       </Box>
@@ -365,47 +405,56 @@ const ICPPage: React.FC = () => {
   return (
     <Box
       sx={{
-        backgroundColor: '#EFF1F5',
-        padding: '20px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        position: 'relative',
+        backgroundColor: "#EFF1F5",
+        padding: "20px",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        position: "relative",
       }}
     >
       {isGenerating ? (
-        <Box sx={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+        <Box
+          sx={{
+            flex: 1,
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
           <Generating wsUrl={wsUrl} onComplete={handleGenerationComplete} />
         </Box>
       ) : (
         <>
-          {view === 'initial' && (
-            <DocumentQuestion 
-              onYesClick={handleYesClick} 
+          {view === "initial" && (
+            <DocumentQuestion
+              onYesClick={handleYesClick}
               onNoClick={handleNoClick}
               isLoading={isLoading}
             />
           )}
 
-          {view === 'upload' && (
-            <UploadDocument 
+          {view === "upload" && (
+            <UploadDocument
               document_type="icp"
               wsUrl={wsUrl}
               onUploadComplete={handleUploadComplete}
             />
           )}
 
-          {view === 'questions' && questions.length > 0 && (
-            <Box sx={{ width: '100%', maxWidth: '1200px' }}>
-              <Box sx={{ 
-                display: 'flex', 
-                gap: '24px', 
-                width: '100%',
-                alignItems: 'flex-start',
-                height: '100%',
-                maxHeight: '500px',
-              }}>
-                <Box sx={{ flex: 1, height: '100vh' }}>
+          {view === "questions" && questions.length > 0 && (
+            <Box sx={{ width: "100%", maxWidth: "1200px" }}>
+              <Box
+                sx={{
+                  display: "flex",
+                  gap: "24px",
+                  width: "100%",
+                  alignItems: "flex-start",
+                  height: "100%",
+                  maxHeight: "500px",
+                }}
+              >
+                <Box sx={{ flex: 1, height: "100vh" }}>
                   <UserInput
                     number={questions[currentQuestionIndex].id}
                     question={questions[currentQuestionIndex].question}
@@ -418,7 +467,7 @@ const ICPPage: React.FC = () => {
                   />
                 </Box>
 
-                <Box sx={{ flex: '0 0 300px', height: '100%' }}>
+                <Box sx={{ flex: "0 0 300px", height: "100%" }}>
                   <InputTakerUpdated
                     items={questions}
                     currentQuestionId={questions[currentQuestionIndex].id}
@@ -431,27 +480,29 @@ const ICPPage: React.FC = () => {
             </Box>
           )}
 
-          {view === 'preview' && (
-            <Box sx={{ 
-              width: '100%', 
-              maxWidth: '1200px',
-              display: 'flex',
-              justifyContent: 'flex-start',
-              paddingLeft: '20px',
-            }}>
-              <Box sx={{ width: '100%', maxWidth: '900px' }}>
-                {questions.some(q => q.answer === '') && (
+          {view === "preview" && (
+            <Box
+              sx={{
+                width: "100%",
+                maxWidth: "1200px",
+                display: "flex",
+                justifyContent: "flex-start",
+                paddingLeft: "20px",
+              }}
+            >
+              <Box sx={{ width: "100%", maxWidth: "900px" }}>
+                {questions.some((q) => q.answer === "") && (
                   <Button
                     onClick={handleBackToQuestions}
                     sx={{
-                      color: '#3EA3FF',
-                      textTransform: 'none',
-                      fontFamily: 'Poppins',
-                      fontSize: '14px',
+                      color: "#3EA3FF",
+                      textTransform: "none",
+                      fontFamily: "Poppins",
+                      fontSize: "14px",
                       fontWeight: 500,
-                      marginBottom: '16px',
-                      '&:hover': {
-                        backgroundColor: 'rgba(62, 163, 255, 0.1)',
+                      marginBottom: "16px",
+                      "&:hover": {
+                        backgroundColor: "rgba(62, 163, 255, 0.1)",
                       },
                     }}
                   >
@@ -459,7 +510,7 @@ const ICPPage: React.FC = () => {
                   </Button>
                 )}
 
-                <FinalPreview 
+                <FinalPreview
                   questionsAnswers={questions}
                   onAnswerUpdate={handleAnswerUpdate}
                 />
@@ -468,37 +519,41 @@ const ICPPage: React.FC = () => {
           )}
 
           {showButton && (
-            <Box sx={{ position: 'fixed', bottom: '25px', right: '60px' }}>
+            <Box sx={{ position: "fixed", bottom: "25px", right: "60px" }}>
               <Button
                 variant="contained"
-                endIcon={<ArrowForwardIcon sx={{ fontSize: '14px' }} />}
+                endIcon={<ArrowForwardIcon sx={{ fontSize: "14px" }} />}
                 onClick={handleGenerateDocument}
-                disabled={view !== 'preview' || !allQuestionsAnswered || isUploading}
+                disabled={
+                  view !== "preview" || !allQuestionsAnswered || isUploading
+                }
                 sx={{
-                  background: 'linear-gradient(135deg, #3EA3FF, #FF3C80)',
-                  color: '#fff',
-                  textTransform: 'none',
-                  fontFamily: 'Poppins',
-                  fontSize: '13px',
+                  background: "linear-gradient(135deg, #3EA3FF, #FF3C80)",
+                  color: "#fff",
+                  textTransform: "none",
+                  fontFamily: "Poppins",
+                  fontSize: "13px",
                   fontWeight: 600,
-                  padding: '10px 20px',
-                  borderRadius: '10px',
-                  boxShadow: '0 3px 8px rgba(62, 163, 255, 0.3)',
-                  '&:hover': {
-                    background: 'linear-gradient(135deg, #2E8FE6, #E6356D)',
+                  padding: "10px 20px",
+                  borderRadius: "10px",
+                  boxShadow: "0 3px 8px rgba(62, 163, 255, 0.3)",
+                  "&:hover": {
+                    background: "linear-gradient(135deg, #2E8FE6, #E6356D)",
                   },
-                  '&:disabled': {
-                    background: '#ccc',
-                    color: '#666',
+                  "&:disabled": {
+                    background: "#ccc",
+                    color: "#666",
                   },
                 }}
               >
-                {isUploading ? 'Uploading...' : 'Generate Document'}
+                {isUploading ? "Uploading..." : "Generate Document"}
               </Button>
             </Box>
           )}
         </>
       )}
+
+      <Toaster position="top-right" reverseOrder={false} />
     </Box>
   );
 };
