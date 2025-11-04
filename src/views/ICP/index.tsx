@@ -1,8 +1,8 @@
 // ICPPage.tsx
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { Box, Button, Typography } from "@mui/material";
+import React, { useState, useEffect, useRef } from "react";
+import { Box, Button } from "@mui/material";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import DocumentQuestion from "./DocumentQuestion";
 import UploadDocument from "./UploadDocument";
@@ -111,27 +111,36 @@ const ICPPage: React.FC = () => {
   // Handle unanswered questions response (NO flow)
   useEffect(() => {
     if (unansweredData) {
-      // console.log(' Unanswered questions data received:', unansweredData);
+      // toast loading when data first comes in
+      toast.loading("Checking for unanswered questions...");
 
       if (
         unansweredData.missing_questions &&
         unansweredData.missing_questions.length > 0
       ) {
-        // console.log(' Has unanswered questions:', unansweredData.missing_questions.length);
-
         const formattedQuestions: Question[] =
           unansweredData.missing_questions.map((q, index) => ({
             id: index + 1,
             question: q,
             answer: "",
           }));
+
         setQuestions(formattedQuestions);
         setView("questions");
         setShouldFetchUnanswered(false);
+
+        toast.dismiss(); // remove loading toast
+        toast.success(
+          `${formattedQuestions.length} unanswered question(s) found. Please provide answers.`
+        );
       } else {
-        // console.log(' No unanswered questions - fetching all answered questions');
         setShouldFetchUnanswered(false);
         setShouldFetchAll(true);
+
+        toast.dismiss();
+        toast.success(
+          "No unanswered questions found. Fetching all answered ones..."
+        );
       }
     }
   }, [unansweredData]);
@@ -139,7 +148,7 @@ const ICPPage: React.FC = () => {
   // Handle all questions (answered) response
   useEffect(() => {
     if (allQuestionsData && allQuestionsData.questions) {
-      // console.log('All questions data received:', allQuestionsData.questions.length, 'questions');
+      toast.loading("Loading all answered questions...");
 
       const formattedQuestions: Question[] = allQuestionsData.questions.map(
         (q, index) => ({
@@ -148,9 +157,13 @@ const ICPPage: React.FC = () => {
           answer: q.answer_text || "",
         })
       );
+
       setQuestions(formattedQuestions);
       setView("preview");
       setShouldFetchAll(false);
+
+      toast.dismiss();
+      toast.success("All answered questions loaded successfully!");
     }
   }, [allQuestionsData]);
 
@@ -166,32 +179,24 @@ const ICPPage: React.FC = () => {
     setShouldFetchUnanswered(true);
   };
 
-  // Handle WebSocket upload response - MATCHING YOUR WORKING PROJECT
   const handleUploadComplete = (data: any) => {
     // Handle processing_started
     if (data.status === "processing_started") {
-      // console.log('Processing started:', data.message);
+      // toast.loading("Processing started...");
       return;
     }
 
     // Handle analyzing_document
     if (data.status === "analyzing_document") {
-      // console.log('🔍 Analyzing document:', data.message);
+      toast("Analyzing your document...");
       return;
     }
 
     // Handle questions_need_answers - MAIN CASE
     if (data.status === "questions_need_answers" && data.not_found_questions) {
-      // console.log(' Questions need answers - Count:', data.not_found_questions.length);
-      // console.log('Questions array:', data.not_found_questions);
-
-      // Extract questions from the objects
       const formattedQuestions: Question[] = data.not_found_questions.map(
         (item: any, index: number) => {
-          // The question might be in item.question or item.question_text
           const questionText = item.question || item.question_text || item;
-          // console.log(`Question ${index + 1}:`, questionText);
-
           return {
             id: index + 1,
             question:
@@ -202,18 +207,20 @@ const ICPPage: React.FC = () => {
           };
         }
       );
+
       setQuestions(formattedQuestions);
       setView("questions");
 
-      // console.log(' Switched to questions view');
+      // toast.success(
+      //   `${formattedQuestions.length} new questions found. Please provide answers.`
+      // );
       return;
     }
 
     // Handle processing_complete
     if (data.status === "processing_complete") {
-      // console.log(' Processing complete!');
+      toast.success("Processing complete!");
 
-      // Check if there are any results with "Not Found"
       if (data.results) {
         const notFoundQuestions = Object.entries(data.results)
           .filter(([_, answer]) => answer === "Not Found")
@@ -224,24 +231,25 @@ const ICPPage: React.FC = () => {
           }));
 
         if (notFoundQuestions.length > 0) {
-          // console.log(' Found "Not Found" questions:', notFoundQuestions.length);
           setQuestions(notFoundQuestions);
           setView("questions");
+          toast("Some questions need answers. Please review them.");
         } else {
-          // console.log('No missing questions - Going to preview');
           setShouldFetchAll(true);
+          // toast.success("All data processed successfully!");
         }
       } else {
-        // No results, go to preview
-        // console.log(' No results field - Going to preview');
         setShouldFetchAll(true);
+        toast.success("Processing complete — moving to preview.");
       }
       return;
     }
 
     // Handle errors
     if (data.message === "Forbidden" || data.status === "error") {
-      // console.error(' WebSocket Error:', data.message || data.status);
+      toast.error(
+        `WebSocket Error: ${data.message || "Something went wrong."}`
+      );
       return;
     }
   };
@@ -257,15 +265,21 @@ const ICPPage: React.FC = () => {
   };
 
   const handleConfirm = () => {
-    if (questions[currentQuestionIndex].answer) {
-      setAnsweredIds([...answeredIds, questions[currentQuestionIndex].id]);
+    const currentQuestion = questions[currentQuestionIndex];
+
+    if (currentQuestion.answer) {
+      setAnsweredIds([...answeredIds, currentQuestion.id]);
+
+      toast.success("Answer confirmed successfully!");
 
       if (currentQuestionIndex < questions.length - 1) {
         setCurrentQuestionIndex(currentQuestionIndex + 1);
       } else {
-        // console.log('All questions answered!');
+        toast.success("All questions answered! Previewing your responses...");
         setView("preview");
       }
+    } else {
+      toast.error("Please provide an answer before confirming!");
     }
   };
 
