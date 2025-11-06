@@ -1,7 +1,7 @@
-// ICPPage.tsx
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useEffect, useRef, useCallback } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { Box, Button } from "@mui/material";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import DocumentQuestion from "./DocumentQuestion";
@@ -15,6 +15,24 @@ import { useGet_unanswered_questionsQuery } from "@/redux/services/common/getUna
 import { useGetQuestionsQuery } from "@/redux/services/common/getQuestionsApi";
 import { useUploadTextFileMutation } from "@/redux/services/common/uploadApiSlice";
 import { useGetDocxFileMutation } from "@/redux/services/document/downloadApi";
+import { RootState, AppDispatch } from "@/redux/store";
+import {
+  setView,
+  setQuestions,
+  updateQuestionAnswer,
+  updateCurrentQuestionAnswer,
+  nextQuestion,
+  goToQuestion,
+  addAnsweredId,
+  setProjectId,
+  setIsGenerating,
+  setWsUrl,
+  setDocumentData,
+  setShouldFetchUnanswered,
+  setShouldFetchAll,
+  setShowDocumentPreview,
+  setCompletionMessageReceived,
+} from "@/redux/services/icp/icpSlice";
 import Cookies from "js-cookie";
 import toast, { Toaster } from "react-hot-toast";
 
@@ -32,29 +50,53 @@ interface CurrentProject {
 }
 
 const ICPPage: React.FC = () => {
-  const [view, setView] = useState<
-    "initial" | "upload" | "questions" | "preview"
-  >("initial");
-  const [questions, setQuestions] = useState<Question[]>([]);
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [answeredIds, setAnsweredIds] = useState<number[]>([]);
-  const [shouldFetchUnanswered, setShouldFetchUnanswered] = useState(false);
-  const [shouldFetchAll, setShouldFetchAll] = useState(false);
-  const [projectId, setProjectId] = useState<string>("");
+  const dispatch = useDispatch<AppDispatch>();
+  const documentFetchTriggered = useRef(false);
+  const mountRecoveryTriggered = useRef(false);
 
-  // Document generation states
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [wsUrl, setWsUrl] = useState<string>("");
-
-  // Document preview states
-  const [showDocumentPreview, setShowDocumentPreview] = useState(false);
-  const [docxBase64, setDocxBase64] = useState<string>("");
-  const [fileName, setFileName] = useState<string>("");
+  // Get state from Redux
+  const {
+    view,
+    questions,
+    currentQuestionIndex,
+    answeredIds,
+    projectId,
+    isGenerating,
+    wsUrl,
+    showDocumentPreview,
+    docxBase64,
+    fileName,
+    shouldFetchUnanswered,
+    shouldFetchAll,
+    generatingProgress,
+    generatingContent,
+    hasReceivedCompletionMessage,
+    displayedContent,
+  } = useSelector((state: RootState) => state.icp);
 
   // Redux mutation hooks
-  const [uploadTextFile, { isLoading: isUploading }] =
-    useUploadTextFileMutation();
+  const [uploadTextFile, { isLoading: isUploading }] = useUploadTextFileMutation();
   const [getDocxFile, { isLoading: isDownloading }] = useGetDocxFileMutation();
+
+  // ==================== CONSOLE LOG ALL REDUX STATE ON MOUNT ====================
+  // useEffect(() => {
+  //   console.log("╔════════════════════════════════════════════════════════════╗");
+  //   console.log("║           🔄 ICPPage Component Mounted                      ║");
+  //   console.log("╚════════════════════════════════════════════════════════════╝");
+  //   console.log("📦 [Redux State] Complete ICP State:");
+  //   console.log("  ├─ isGenerating:", isGenerating);
+  //   console.log("  ├─ generatingProgress:", generatingProgress + "%");
+  //   console.log("  ├─ generatingContent length:", generatingContent.length, "chars");
+  //   console.log("  ├─ displayedContent length:", displayedContent.length, "chars");
+  //   console.log("  ├─ hasReceivedCompletionMessage:", hasReceivedCompletionMessage);
+  //   console.log("  ├─ docxBase64 exists:", !!docxBase64);
+  //   console.log("  ├─ fileName:", fileName);
+  //   console.log("  ├─ showDocumentPreview:", showDocumentPreview);
+  //   console.log("  ├─ view:", view);
+  //   console.log("  ├─ projectId:", projectId);
+  //   console.log("  └─ wsUrl:", wsUrl);
+  //   console.log("════════════════════════════════════════════════════════════");
+  // }, []);
 
   // Get project_id from localStorage on component mount
   useEffect(() => {
@@ -62,21 +104,140 @@ const ICPPage: React.FC = () => {
     if (currentProjectStr) {
       try {
         const currentProject: CurrentProject = JSON.parse(currentProjectStr);
-        setProjectId(currentProject.project_id);
+        if (currentProject.project_id !== projectId) {
+          // console.log("📝 [Project] Setting project ID:", currentProject.project_id);
+          dispatch(setProjectId(currentProject.project_id));
+        }
       } catch (error) {
-        // console.error('Error parsing currentProject from localStorage:', error);
+        // console.error("❌ [Project] Error parsing currentProject:", error);
       }
     }
-  }, []);
+  }, [dispatch, projectId]);
 
-  // Setup WebSocket URL for upload - USING THE CORRECT DEV ENDPOINT
+  // Setup WebSocket URL for upload
   useEffect(() => {
-    // Use the WebSocket URL from your working project
-    const websocketUrl =
-      "wss://91vm5ilj37.execute-api.us-east-1.amazonaws.com/dev";
-    setWsUrl(websocketUrl);
-    // console.log('🔌 WebSocket URL set for upload:', websocketUrl);
-  }, []);
+    if (!wsUrl) {
+      const websocketUrl = "wss://91vm5ilj37.execute-api.us-east-1.amazonaws.com/dev";
+      // console.log("🔗 [WebSocket] Setting upload WebSocket URL");
+      dispatch(setWsUrl(websocketUrl));
+    }
+  }, [dispatch, wsUrl]);
+
+  // Fetch document function
+  const handleGenerationComplete = useCallback(async () => {
+    if (documentFetchTriggered.current) {
+      // console.log("⏭️ [Document] Fetch already triggered, skipping...");
+      return;
+    }
+
+    documentFetchTriggered.current = true;
+    // console.log("📥 [Document] Starting document fetch...");
+
+    try {
+      const savedToken = Cookies.get("token");
+      const project_id = JSON.parse(
+        localStorage.getItem("currentProject") || "{}"
+      ).project_id;
+
+      // console.log("📤 [Document] Fetching with:", { project_id, document_type: "icp" });
+
+      const response = await getDocxFile({
+        session_id: savedToken || "",
+        document_type: "icp",
+        project_id: project_id,
+      }).unwrap();
+
+      // console.log("✅ [Document] Fetch successful!");
+      // console.log("  ├─ fileName:", response.fileName);
+      // console.log("  └─ docxBase64 length:", response.docxBase64?.length || 0);
+
+      dispatch(
+        setDocumentData({
+          docxBase64: response.docxBase64,
+          fileName: response.fileName || "icp_document.docx",
+        })
+      );
+
+      toast.success("Document ready for preview!");
+    } catch (error: any) {
+      // console.error("❌ [Document] Fetch failed:", error);
+      // console.error("  ├─ Status:", error?.status);
+      // console.error("  └─ Message:", error?.data?.message || error?.message);
+      
+      toast.error("Failed to fetch document. Please try again.");
+      documentFetchTriggered.current = false; // Reset on error to allow retry
+    }
+  }, [dispatch, getDocxFile]);
+
+  // ==================== SIMPLE MOUNT RECOVERY ====================
+  useEffect(() => {
+    if (mountRecoveryTriggered.current) {
+      console.log("⏭️ [Recovery] Already triggered, skipping");
+      return;
+    }
+
+    // console.log("╔════════════════════════════════════════════════════════════╗");
+    // console.log("║           🔍 Mount Recovery Check                          ║");
+    // console.log("╚════════════════════════════════════════════════════════════╝");
+
+    // Scenario 1: Document already fetched and available
+    if (docxBase64 && fileName) {
+      // console.log("✅ [Recovery] Document already available in Redux");
+      // console.log("  ├─ docxBase64 length:", docxBase64.length);
+      // console.log("  └─ fileName:", fileName);
+      
+      if (!showDocumentPreview) {
+        // console.log("🔄 [Recovery] Setting showDocumentPreview to true");
+        dispatch(setShowDocumentPreview(true));
+      }
+      mountRecoveryTriggered.current = true;
+      return;
+    }
+
+    // Scenario 2: Completion message received but no document yet - FETCH IT!
+    if (hasReceivedCompletionMessage && !docxBase64) {
+      // console.log("🎯 [Recovery] Completion message found in Redux - fetching document!");
+      // console.log("  ├─ hasReceivedCompletionMessage:", hasReceivedCompletionMessage);
+      // console.log("  ├─ isGenerating:", isGenerating);
+      // console.log("  └─ progress:", generatingProgress + "%");
+      
+      mountRecoveryTriggered.current = true;
+      
+      setTimeout(() => {
+        // console.log("⏰ [Recovery] Executing document fetch...");
+        handleGenerationComplete();
+      }, 1000);
+      return;
+    }
+
+    // Scenario 3: Generation in progress - global middleware is handling it
+    if (isGenerating && generatingProgress >= 0 && !hasReceivedCompletionMessage) {
+      // console.log("⚠️ [Recovery] Generation in progress - global middleware is listening");
+      // console.log("  ├─ Progress:", generatingProgress + "%");
+      // console.log("  ├─ Content length:", generatingContent.length);
+      // console.log("  └─ Global WebSocket middleware will handle completion message");
+      mountRecoveryTriggered.current = true;
+      return;
+    }
+
+    // Scenario 4: No active generation
+    if (!isGenerating) {
+      // console.log("✅ [Recovery] No active generation, normal state");
+      mountRecoveryTriggered.current = true;
+      return;
+    }
+
+    // console.log("ℹ️ [Recovery] No recovery action needed");
+    mountRecoveryTriggered.current = true;
+  }, []); // Run only once on mount
+
+  // Watch for completion message flag changes (backup)
+  useEffect(() => {
+    if (hasReceivedCompletionMessage && !docxBase64 && !documentFetchTriggered.current) {
+      // console.log("🎯 [Watch] Completion message flag detected - fetching document");
+      handleGenerationComplete();
+    }
+  }, [hasReceivedCompletionMessage, docxBase64, handleGenerationComplete]);
 
   // RTK Query for unanswered questions
   const {
@@ -108,10 +269,9 @@ const ICPPage: React.FC = () => {
     }
   );
 
-  // Handle unanswered questions response (NO flow)
+  // Handle unanswered questions response
   useEffect(() => {
     if (unansweredData) {
-      // toast loading when data first comes in
       toast.loading("Checking for unanswered questions...");
 
       if (
@@ -125,17 +285,17 @@ const ICPPage: React.FC = () => {
             answer: "",
           }));
 
-        setQuestions(formattedQuestions);
-        setView("questions");
-        setShouldFetchUnanswered(false);
+        dispatch(setQuestions(formattedQuestions));
+        dispatch(setView("questions"));
+        dispatch(setShouldFetchUnanswered(false));
 
-        toast.dismiss(); // remove loading toast
+        toast.dismiss();
         toast.success(
           `${formattedQuestions.length} unanswered question(s) found. Please provide answers.`
         );
       } else {
-        setShouldFetchUnanswered(false);
-        setShouldFetchAll(true);
+        dispatch(setShouldFetchUnanswered(false));
+        dispatch(setShouldFetchAll(true));
 
         toast.dismiss();
         toast.success(
@@ -143,7 +303,7 @@ const ICPPage: React.FC = () => {
         );
       }
     }
-  }, [unansweredData]);
+  }, [unansweredData, dispatch]);
 
   // Handle all questions (answered) response
   useEffect(() => {
@@ -158,41 +318,37 @@ const ICPPage: React.FC = () => {
         })
       );
 
-      setQuestions(formattedQuestions);
-      setView("preview");
-      setShouldFetchAll(false);
+      dispatch(setQuestions(formattedQuestions));
+      dispatch(setView("preview"));
+      dispatch(setShouldFetchAll(false));
 
       toast.dismiss();
       toast.success("All answered questions loaded successfully!");
     }
-  }, [allQuestionsData]);
+  }, [allQuestionsData, dispatch]);
 
   // Check if all questions are answered
   const allQuestionsAnswered =
     questions.length > 0 && questions.every((q) => q.answer.trim() !== "");
 
   const handleYesClick = () => {
-    setView("upload");
+    dispatch(setView("upload"));
   };
 
   const handleNoClick = () => {
-    setShouldFetchUnanswered(true);
+    dispatch(setShouldFetchUnanswered(true));
   };
 
   const handleUploadComplete = (data: any) => {
-    // Handle processing_started
     if (data.status === "processing_started") {
-      // toast.loading("Processing started...");
       return;
     }
 
-    // Handle analyzing_document
     if (data.status === "analyzing_document") {
       toast("Analyzing your document...");
       return;
     }
 
-    // Handle questions_need_answers - MAIN CASE
     if (data.status === "questions_need_answers" && data.not_found_questions) {
       const formattedQuestions: Question[] = data.not_found_questions.map(
         (item: any, index: number) => {
@@ -208,16 +364,11 @@ const ICPPage: React.FC = () => {
         }
       );
 
-      setQuestions(formattedQuestions);
-      setView("questions");
-
-      // toast.success(
-      //   `${formattedQuestions.length} new questions found. Please provide answers.`
-      // );
+      dispatch(setQuestions(formattedQuestions));
+      dispatch(setView("questions"));
       return;
     }
 
-    // Handle processing_complete
     if (data.status === "processing_complete") {
       toast.success("Processing complete!");
 
@@ -231,21 +382,19 @@ const ICPPage: React.FC = () => {
           }));
 
         if (notFoundQuestions.length > 0) {
-          setQuestions(notFoundQuestions);
-          setView("questions");
+          dispatch(setQuestions(notFoundQuestions));
+          dispatch(setView("questions"));
           toast("Some questions need answers. Please review them.");
         } else {
-          setShouldFetchAll(true);
-          // toast.success("All data processed successfully!");
+          dispatch(setShouldFetchAll(true));
         }
       } else {
-        setShouldFetchAll(true);
+        dispatch(setShouldFetchAll(true));
         toast.success("Processing complete — moving to preview.");
       }
       return;
     }
 
-    // Handle errors
     if (data.message === "Forbidden" || data.status === "error") {
       toast.error(
         `WebSocket Error: ${data.message || "Something went wrong."}`
@@ -255,9 +404,7 @@ const ICPPage: React.FC = () => {
   };
 
   const handleGenerate = (generatedAnswer: string) => {
-    const updatedQuestions = [...questions];
-    updatedQuestions[currentQuestionIndex].answer = generatedAnswer;
-    setQuestions(updatedQuestions);
+    dispatch(updateCurrentQuestionAnswer(generatedAnswer));
   };
 
   const handleRegenerate = () => {
@@ -268,15 +415,14 @@ const ICPPage: React.FC = () => {
     const currentQuestion = questions[currentQuestionIndex];
 
     if (currentQuestion.answer) {
-      setAnsweredIds([...answeredIds, currentQuestion.id]);
-
+      dispatch(addAnsweredId(currentQuestion.id));
       toast.success("Answer confirmed successfully!");
 
       if (currentQuestionIndex < questions.length - 1) {
-        setCurrentQuestionIndex(currentQuestionIndex + 1);
+        dispatch(nextQuestion());
       } else {
         toast.success("All questions answered! Previewing your responses...");
-        setView("preview");
+        dispatch(setView("preview"));
       }
     } else {
       toast.error("Please provide an answer before confirming!");
@@ -284,26 +430,27 @@ const ICPPage: React.FC = () => {
   };
 
   const handleItemClick = (id: number) => {
-    const index = questions.findIndex((q) => q.id === id);
-    if (index !== -1) {
-      setCurrentQuestionIndex(index);
-    }
+    dispatch(goToQuestion(id));
   };
 
   const handleBackToQuestions = () => {
-    setView("questions");
+    dispatch(setView("questions"));
   };
 
   const handleAnswerUpdate = (id: number, newAnswer: string) => {
-    const updatedQuestions = questions.map((q) =>
-      q.id === id ? { ...q, answer: newAnswer } : q
-    );
-    setQuestions(updatedQuestions);
+    dispatch(updateQuestionAnswer({ id, answer: newAnswer }));
   };
 
-  // Handle document generation from Q&A
   const handleGenerateDocument = async () => {
     try {
+      // Reset flags
+      documentFetchTriggered.current = false;
+      mountRecoveryTriggered.current = false;
+
+      // console.log("╔════════════════════════════════════════════════════════════╗");
+      // console.log("║           🚀 Starting Document Generation                  ║");
+      // console.log("╚════════════════════════════════════════════════════════════╝");
+
       const dynamicFileName = "businessidea.txt";
       const savedToken = Cookies.get("token");
       const project_id = JSON.parse(
@@ -324,12 +471,7 @@ const ICPPage: React.FC = () => {
         document_type: "icp",
       };
 
-      // console.log("File Content  :" , base64Content);
-
-      // const uploadResponse = await uploadTextFile(payload).unwrap();
-      // console.log('FILE UPLOADED SUCCESSFULLY!', uploadResponse);
-
-      // Wrap API call in toast.promise
+      // console.log("📤 [Upload] Uploading answers...");
       const uploadPromise = uploadTextFile(payload).unwrap();
 
       await toast.promise(uploadPromise, {
@@ -341,52 +483,15 @@ const ICPPage: React.FC = () => {
 
       const websocketUrl = `wss://4iqvtvmxle.execute-api.us-east-1.amazonaws.com/prod/?session_id=${savedToken}`;
 
-      setWsUrl(websocketUrl);
-      setIsGenerating(true);
+      // console.log("🔗 [WebSocket] Setting generation WebSocket URL");
+      // console.log("🔄 [Redux] Setting isGenerating to true");
+      // console.log("🌐 [Info] Global WebSocket middleware will handle all messages");
+      
+      dispatch(setWsUrl(websocketUrl));
+      dispatch(setIsGenerating(true)); // This triggers the global middleware!
     } catch (err: any) {
-      // console.error(" UPLOAD FAILED!", err);
-      alert("Upload failed. Please try again.");
-    }
-  };
-
-  const handleGenerationComplete = async () => {
-    // console.log(" Document generation completed! Fetching document...");
-
-    try {
-      const savedToken = Cookies.get("token");
-      const project_id = JSON.parse(
-        localStorage.getItem("currentProject") || "{}"
-      ).project_id;
-
-      const downloadPromise = getDocxFile({
-        session_id: savedToken || "",
-        document_type: "icp",
-        project_id: project_id,
-      }).unwrap();
-
-      const response = await toast.promise(downloadPromise, {
-        loading: "Fetching your document...",
-        success: "Document ready for preview!",
-        error: "Failed to fetch document. Please try again.",
-      });
-
-      // const response = await getDocxFile({
-      //   session_id: savedToken || "",
-      //   document_type: "icp",
-      //   project_id: project_id,
-      // }).unwrap();
-
-      setDocxBase64(response.docxBase64);
-      setFileName(response.fileName || "icp_document.docx");
-
-      setIsGenerating(false);
-      setShowDocumentPreview(true);
-
-      // console.log("Document fetched successfully");
-    } catch (error) {
-      // console.error(" Failed to fetch document:", error);
-      setIsGenerating(false);
-      alert("Failed to download document. Please try again.");
+      // console.error("❌ [Upload] Error:", err);
+      toast.error("Upload failed. Please try again.");
     }
   };
 
@@ -413,8 +518,11 @@ const ICPPage: React.FC = () => {
   }
 
   if (showDocumentPreview && docxBase64) {
-    return <DocumentPreview docxBase64={docxBase64} fileName={fileName} />;
+    // console.log("📄 [Render] Showing DocumentPreview component");
+    return <DocumentPreview docxBase64={docxBase64} fileName={fileName} documentType="icp" />;
   }
+
+  // console.log("🎨 [Render] Main layout - isGenerating:", isGenerating);
 
   return (
     <Box
@@ -436,7 +544,7 @@ const ICPPage: React.FC = () => {
             alignItems: "center",
           }}
         >
-          <Generating wsUrl={wsUrl} onComplete={handleGenerationComplete} />
+          <Generating wsUrl={wsUrl} documentType="icp" />
         </Box>
       ) : (
         <>

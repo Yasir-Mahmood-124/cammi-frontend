@@ -1,5 +1,8 @@
 // redux/store.ts
-import { configureStore } from "@reduxjs/toolkit";
+import { configureStore, combineReducers } from "@reduxjs/toolkit";
+import { persistStore, persistReducer } from 'redux-persist';
+import storage from 'redux-persist/lib/storage';
+
 import authReducer from "./services/auth/authSlice";
 import { authApi } from "./services/auth/authApi";
 import { onboardingApi } from "./services/onboarding/onboardingApi";
@@ -8,18 +11,18 @@ import { projectsApi } from "./services/projects/projectApi";
 import { reviewApi } from "./services/documentReview/reviewApi";
 import { refineApi } from "./services/common/refineApi";
 import { uploadApiSlice } from "./services/common/uploadApiSlice";
-import {downloadDocument} from "./services/document/downloadApi";
-import {downloadPdfApi} from "./services/document/download-pdf";
+import { downloadDocument } from "./services/document/downloadApi";
+import { downloadPdfApi } from "./services/document/download-pdf";
 import { sendReviewApi } from "./services/common/send_review";
-import {getUnansweredQuestionsApi} from "./services/common/getUnansweredQuestionsApi";
+import { getUnansweredQuestionsApi } from "./services/common/getUnansweredQuestionsApi";
 import { addQuestionApi } from "./services/common/addQuestion";
 import { getQuestionsApi } from "./services/common/getQuestionsApi";
-import {aiGenerateApi} from "./services/linkedin/aiGenerateApi";
+import { aiGenerateApi } from "./services/linkedin/aiGenerateApi";
 import { editDeleteApi } from "./services/linkedin/editDeleteApi";
 import { fetchSchedulePostApi } from "./services/linkedin/fetchSchedulePostApi";
 import { linkedinLoginApi } from "./services/linkedin/linkedinLoginApi";
 import { linkedinPostApi } from "./services/linkedin/linkedinPostApi";
-import {schedulePostApi} from "./services/linkedin/schedulePostApi";
+import { schedulePostApi } from "./services/linkedin/schedulePostApi";
 import { viewApiSlice } from "./services/linkedin/viewApiSlice";
 import { imageGenerationApi } from "./services/linkedin/imageGeneration";
 import { getPostQuestionsApi } from "./services/linkedin/getPostQuestion";
@@ -32,45 +35,110 @@ import { documentsApi } from "./services/document/documentsApi";
 import { creditsApi } from "./services/credits/credits";
 import { documentParsingApi } from "./services/webscrap/documentParcing";
 import { profileSettingsApi } from "./services/settings/profileSettings";
+import icpReducer from "./services/icp/icpSlice";
+import kmfReducer from "./services/kmf/kmfSlice";
+import { icpWebSocketMiddleware } from "./middleware/icpWebSocketMiddleware";
+import { kmfWebSocketMiddleware } from "./middleware/kmfWebSocketMiddleware";
 
-// Create the store
+// ==================== REDUX PERSIST CONFIGURATION ====================
+
+const icpPersistConfig = {
+  key: 'icp',
+  storage,
+  whitelist: [
+    'projectId',
+    'isGenerating',
+    'generatingProgress',
+    'generatingContent',
+    'displayedContent',
+    'hasReceivedCompletionMessage',
+    'generationComplete',
+    'docxBase64',
+    'fileName',
+    'showDocumentPreview',
+    'questions',
+    'answeredIds',
+    'currentQuestionIndex',
+    'view',
+  ],
+};
+
+const kmfPersistConfig = {
+  key: 'kmf',
+  storage,
+  whitelist: [
+    'projectId',
+    'isGenerating',
+    'generatingProgress',
+    'generatingContent',
+    'displayedContent',
+    'hasReceivedCompletionMessage',
+    'generationComplete',
+    'docxBase64',
+    'fileName',
+    'showDocumentPreview',
+    'questions',
+    'answeredIds',
+    'currentQuestionIndex',
+    'view',
+  ],
+};
+
+const persistedIcpReducer = persistReducer(icpPersistConfig, icpReducer);
+const persistedKmfReducer = persistReducer(kmfPersistConfig, kmfReducer);
+
+// ==================== ROOT REDUCER ====================
+
+const rootReducer = combineReducers({
+  auth: authReducer,
+  icp: persistedIcpReducer,
+  kmf: persistedKmfReducer,
+
+  [authApi.reducerPath]: authApi.reducer,
+  [onboardingApi.reducerPath]: onboardingApi.reducer,
+  [googleApi.reducerPath]: googleApi.reducer,
+  [projectsApi.reducerPath]: projectsApi.reducer,
+  [reviewApi.reducerPath]: reviewApi.reducer,
+  [refineApi.reducerPath]: refineApi.reducer,
+  [uploadApiSlice.reducerPath]: uploadApiSlice.reducer,
+  [downloadDocument.reducerPath]: downloadDocument.reducer,
+  [downloadPdfApi.reducerPath]: downloadPdfApi.reducer,
+  [sendReviewApi.reducerPath]: sendReviewApi.reducer,
+  [getUnansweredQuestionsApi.reducerPath]: getUnansweredQuestionsApi.reducer,
+  [addQuestionApi.reducerPath]: addQuestionApi.reducer,
+  [getQuestionsApi.reducerPath]: getQuestionsApi.reducer,
+  [aiGenerateApi.reducerPath]: aiGenerateApi.reducer,
+  [editDeleteApi.reducerPath]: editDeleteApi.reducer,
+  [fetchSchedulePostApi.reducerPath]: fetchSchedulePostApi.reducer,
+  [linkedinLoginApi.reducerPath]: linkedinLoginApi.reducer,
+  [linkedinPostApi.reducerPath]: linkedinPostApi.reducer,
+  [schedulePostApi.reducerPath]: schedulePostApi.reducer,
+  [viewApiSlice.reducerPath]: viewApiSlice.reducer,
+  [imageGenerationApi.reducerPath]: imageGenerationApi.reducer,
+  [getPostQuestionsApi.reducerPath]: getPostQuestionsApi.reducer,
+  [insertPostQuestionApi.reducerPath]: insertPostQuestionApi.reducer,
+  [userFeedbackApi.reducerPath]: userFeedbackApi.reducer,
+  [checkFeedbackApi.reducerPath]: checkFeedbackApi.reducer,
+  [webscrapApi.reducerPath]: webscrapApi.reducer,
+  [editHeadingWebsocketApi.reducerPath]: editHeadingWebsocketApi.reducer,
+  [documentsApi.reducerPath]: documentsApi.reducer,
+  [creditsApi.reducerPath]: creditsApi.reducer,
+  [documentParsingApi.reducerPath]: documentParsingApi.reducer,
+  [profileSettingsApi.reducerPath]: profileSettingsApi.reducer,
+});
+
+// ==================== STORE CONFIGURATION ====================
+
 export const store = configureStore({
-  reducer: {
-    auth: authReducer, // slice reducer
-    [authApi.reducerPath]: authApi.reducer, // RTK Query API reducer
-    [onboardingApi.reducerPath]: onboardingApi.reducer,
-    [googleApi.reducerPath]: googleApi.reducer,
-    [projectsApi.reducerPath]: projectsApi.reducer,
-    [reviewApi.reducerPath]: reviewApi.reducer,
-    [refineApi.reducerPath]: refineApi.reducer,
-    [uploadApiSlice.reducerPath]: uploadApiSlice.reducer,
-    [downloadDocument.reducerPath]: downloadDocument.reducer,
-    [downloadPdfApi.reducerPath]: downloadPdfApi.reducer,
-    [sendReviewApi.reducerPath]: sendReviewApi.reducer,
-    [getUnansweredQuestionsApi.reducerPath]: getUnansweredQuestionsApi.reducer,
-    [addQuestionApi.reducerPath]: addQuestionApi.reducer,
-    [getQuestionsApi.reducerPath]: getQuestionsApi.reducer,
-    [aiGenerateApi.reducerPath]: aiGenerateApi.reducer,
-    [editDeleteApi.reducerPath]: editDeleteApi.reducer,
-    [fetchSchedulePostApi.reducerPath]: fetchSchedulePostApi.reducer,
-    [linkedinLoginApi.reducerPath]: linkedinLoginApi.reducer,
-    [linkedinPostApi.reducerPath]: linkedinPostApi.reducer,
-    [schedulePostApi.reducerPath]: schedulePostApi.reducer,
-    [viewApiSlice.reducerPath]: viewApiSlice.reducer,
-    [imageGenerationApi.reducerPath]: imageGenerationApi.reducer,
-    [getPostQuestionsApi.reducerPath]: getPostQuestionsApi.reducer,
-    [insertPostQuestionApi.reducerPath]: insertPostQuestionApi.reducer,
-    [userFeedbackApi.reducerPath]: userFeedbackApi.reducer,
-    [checkFeedbackApi.reducerPath]: checkFeedbackApi.reducer,
-    [webscrapApi.reducerPath]: webscrapApi.reducer,
-    [editHeadingWebsocketApi.reducerPath]: editHeadingWebsocketApi.reducer,
-    [documentsApi.reducerPath]: documentsApi.reducer,
-    [creditsApi.reducerPath]: creditsApi.reducer,
-    [documentParsingApi.reducerPath]: documentParsingApi.reducer,
-    [profileSettingsApi.reducerPath]: profileSettingsApi.reducer,
-  },
+  reducer: rootReducer,
   middleware: (getDefaultMiddleware) =>
-    getDefaultMiddleware()
+    getDefaultMiddleware({
+      serializableCheck: {
+        ignoredActions: ['persist/PERSIST', 'persist/REHYDRATE'],
+      },
+    })
+      .concat(icpWebSocketMiddleware)
+      .concat(kmfWebSocketMiddleware)
       .concat(authApi.middleware)
       .concat(onboardingApi.middleware)
       .concat(googleApi.middleware)
@@ -101,9 +169,17 @@ export const store = configureStore({
       .concat(documentsApi.middleware)
       .concat(creditsApi.middleware)
       .concat(documentParsingApi.middleware)
-      .concat(profileSettingsApi.middleware)
+      .concat(profileSettingsApi.middleware),
 });
 
-// Infer types for RootState and AppDispatch
+export const persistor = persistStore(store);
+
+if (typeof window !== 'undefined') {
+  (window as any).__REDUX_STATE__ = store.getState();
+  store.subscribe(() => {
+    (window as any).__REDUX_STATE__ = store.getState();
+  });
+}
+
 export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;

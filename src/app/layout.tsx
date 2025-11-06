@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Providers from "@/theme/Providers";
 import "typeface-glacial-indifference";
+import GlobalRefreshWarning from "@/components/GlobalRefreshWarning";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -27,7 +28,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
-        <Providers>{children}</Providers>
+        <Providers>
+          <GlobalRefreshWarning />
+          {children}
+        </Providers>
       </body>
     </html>
   );
