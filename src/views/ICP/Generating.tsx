@@ -5,20 +5,23 @@ import { useDispatch, useSelector } from 'react-redux';
 import { RootState, AppDispatch } from '@/redux/store';
 import { setDisplayedContent as setIcpDisplayedContent } from '@/redux/services/icp/icpSlice';
 import { setDisplayedContent as setKmfDisplayedContent } from '@/redux/services/kmf/kmfSlice';
+import { setDisplayedContent as setBsDisplayedContent } from '@/redux/services/bs/bsSlice';
 import { wsManager } from '@/redux/services/websocketManager';
 
 interface GeneratingProps {
   wsUrl: string;
-  documentType: 'icp' | 'kmf';
+  documentType: 'icp' | 'kmf' | 'bs';
 }
 
 const Generating: React.FC<GeneratingProps> = ({ wsUrl, documentType }) => {
   const dispatch = useDispatch<AppDispatch>();
   
   // Get state from Redux based on documentType
-  const state = useSelector((state: RootState) => 
-    documentType === 'icp' ? state.icp : state.kmf
-  );
+  const state = useSelector((state: RootState) => {
+    if (documentType === 'icp') return state.icp;
+    if (documentType === 'kmf') return state.kmf;
+    return state.bs;
+  });
   
   const { 
     generatingProgress, 
@@ -28,7 +31,10 @@ const Generating: React.FC<GeneratingProps> = ({ wsUrl, documentType }) => {
   } = state;
   
   // Select the correct action based on documentType
-  const setDisplayedContent = documentType === 'icp' ? setIcpDisplayedContent : setKmfDisplayedContent;
+  const setDisplayedContent = 
+    documentType === 'icp' ? setIcpDisplayedContent :
+    documentType === 'kmf' ? setKmfDisplayedContent :
+    setBsDisplayedContent;
   
   // Local state for typing effect
   const [localDisplayedContent, setLocalDisplayedContent] = useState("");

@@ -37,8 +37,10 @@ import { documentParsingApi } from "./services/webscrap/documentParcing";
 import { profileSettingsApi } from "./services/settings/profileSettings";
 import icpReducer from "./services/icp/icpSlice";
 import kmfReducer from "./services/kmf/kmfSlice";
+import bsReducer from "./services/bs/bsSlice";
 import { icpWebSocketMiddleware } from "./middleware/icpWebSocketMiddleware";
 import { kmfWebSocketMiddleware } from "./middleware/kmfWebSocketMiddleware";
+import { bsWebSocketMiddleware } from "./middleware/bsWebSocketMiddleware";
 
 // ==================== REDUX PERSIST CONFIGURATION ====================
 
@@ -84,8 +86,30 @@ const kmfPersistConfig = {
   ],
 };
 
+const bsPersistConfig = {
+  key: 'bs',
+  storage,
+  whitelist: [
+    'projectId',
+    'isGenerating',
+    'generatingProgress',
+    'generatingContent',
+    'displayedContent',
+    'hasReceivedCompletionMessage',
+    'generationComplete',
+    'docxBase64',
+    'fileName',
+    'showDocumentPreview',
+    'questions',
+    'answeredIds',
+    'currentQuestionIndex',
+    'view',
+  ],
+};
+
 const persistedIcpReducer = persistReducer(icpPersistConfig, icpReducer);
 const persistedKmfReducer = persistReducer(kmfPersistConfig, kmfReducer);
+const persistedBsReducer = persistReducer(bsPersistConfig, bsReducer);
 
 // ==================== ROOT REDUCER ====================
 
@@ -93,6 +117,7 @@ const rootReducer = combineReducers({
   auth: authReducer,
   icp: persistedIcpReducer,
   kmf: persistedKmfReducer,
+  bs: persistedBsReducer,
 
   [authApi.reducerPath]: authApi.reducer,
   [onboardingApi.reducerPath]: onboardingApi.reducer,
@@ -139,6 +164,7 @@ export const store = configureStore({
     })
       .concat(icpWebSocketMiddleware)
       .concat(kmfWebSocketMiddleware)
+      .concat(bsWebSocketMiddleware)
       .concat(authApi.middleware)
       .concat(onboardingApi.middleware)
       .concat(googleApi.middleware)

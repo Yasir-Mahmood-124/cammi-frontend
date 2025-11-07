@@ -10,6 +10,7 @@ import { useGetDocxFileMutation } from '@/redux/services/document/downloadApi';
 import { useDispatch } from 'react-redux';
 import { resetForNewDocument as resetIcp } from '@/redux/services/icp/icpSlice';
 import { resetForNewDocument as resetKmf } from '@/redux/services/kmf/kmfSlice';
+import { resetForNewDocument as resetBs } from '@/redux/services/bs/bsSlice';
 import { AppDispatch } from '@/redux/store';
 import Cookies from 'js-cookie';
 import EditHeadingDialog from './EditHeadingDialog';
@@ -18,7 +19,7 @@ import toast from 'react-hot-toast';
 interface DocumentPreviewProps {
   docxBase64: string;
   fileName: string;
-  documentType: 'icp' | 'kmf';
+  documentType: 'icp' | 'kmf' | 'bs';
 }
 
 interface TableOfContentsItem {
@@ -47,7 +48,8 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ docxBase64, fileName,
   // Document type labels
   const documentTypeLabels = {
     icp: 'ICP',
-    kmf: 'KMF'
+    kmf: 'KMF',
+    bs: 'BS'
   };
 
   useEffect(() => {
@@ -244,8 +246,10 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ docxBase64, fileName,
     // Reset the appropriate Redux state based on documentType
     if (documentType === 'icp') {
       dispatch(resetIcp());
-    } else {
+    } else if (documentType === 'kmf') {
       dispatch(resetKmf());
+    } else if (documentType === 'bs') {
+      dispatch(resetBs());
     }
     
     console.log("✅ Redux state reset - returning to initial view");
