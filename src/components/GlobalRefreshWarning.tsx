@@ -5,20 +5,21 @@ import { useSelector } from "react-redux";
 import { RootState } from "@/redux/store";
 
 /**
- * Global component that monitors ICP and KMF generation states and warns users
+ * Global component that monitors ICP, KMF, and BS generation states and warns users
  * before refreshing the page, even when they're on a different page.
  * 
- * This component monitors both ICP and KMF generation states simultaneously.
- * If either document is being generated, it will prevent accidental page refresh.
+ * This component monitors ICP, KMF, and BS generation states simultaneously.
+ * If any document is being generated, it will prevent accidental page refresh.
  * 
  * Add this component to your root layout or app component.
  */
 const GlobalRefreshWarning: React.FC = () => {
   const icpIsGenerating = useSelector((state: RootState) => state.icp.isGenerating);
   const kmfIsGenerating = useSelector((state: RootState) => state.kmf.isGenerating);
+  const bsIsGenerating = useSelector((state: RootState) => state.bs.isGenerating);
 
-  // Combine both states - warn if EITHER is generating
-  const isGenerating = icpIsGenerating || kmfIsGenerating;
+  // Combine all states - warn if ANY is generating
+  const isGenerating = icpIsGenerating || kmfIsGenerating || bsIsGenerating;
 
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
@@ -38,13 +39,14 @@ const GlobalRefreshWarning: React.FC = () => {
 
   // Optional: Log which documents are generating (helpful for debugging)
   useEffect(() => {
-    if (icpIsGenerating || kmfIsGenerating) {
+    if (icpIsGenerating || kmfIsGenerating || bsIsGenerating) {
       const generating = [];
       if (icpIsGenerating) generating.push('ICP');
       if (kmfIsGenerating) generating.push('KMF');
+      if (bsIsGenerating) generating.push('BS');
       console.log(`🔒 [Refresh Warning] Active generation: ${generating.join(', ')}`);
     }
-  }, [icpIsGenerating, kmfIsGenerating]);
+  }, [icpIsGenerating, kmfIsGenerating, bsIsGenerating]);
 
   return null; // This component doesn't render anything
 };
