@@ -6,11 +6,12 @@ import { RootState, AppDispatch } from '@/redux/store';
 import { setDisplayedContent as setIcpDisplayedContent } from '@/redux/services/icp/icpSlice';
 import { setDisplayedContent as setKmfDisplayedContent } from '@/redux/services/kmf/kmfSlice';
 import { setDisplayedContent as setBsDisplayedContent } from '@/redux/services/bs/bsSlice';
+import { setDisplayedContent as setSrDisplayedContent } from '@/redux/services/sr/srSlice';
 import { wsManager } from '@/redux/services/websocketManager';
 
 interface GeneratingProps {
   wsUrl: string;
-  documentType: 'icp' | 'kmf' | 'bs';
+  documentType: 'icp' | 'kmf' | 'bs' | 'sr';
 }
 
 const Generating: React.FC<GeneratingProps> = ({ wsUrl, documentType }) => {
@@ -20,7 +21,8 @@ const Generating: React.FC<GeneratingProps> = ({ wsUrl, documentType }) => {
   const state = useSelector((state: RootState) => {
     if (documentType === 'icp') return state.icp;
     if (documentType === 'kmf') return state.kmf;
-    return state.bs;
+    if (documentType === 'bs') return state.bs;
+    return state.sr;
   });
   
   const { 
@@ -34,7 +36,8 @@ const Generating: React.FC<GeneratingProps> = ({ wsUrl, documentType }) => {
   const setDisplayedContent = 
     documentType === 'icp' ? setIcpDisplayedContent :
     documentType === 'kmf' ? setKmfDisplayedContent :
-    setBsDisplayedContent;
+    documentType === 'bs' ? setBsDisplayedContent :
+    setSrDisplayedContent;
   
   // Local state for typing effect
   const [localDisplayedContent, setLocalDisplayedContent] = useState("");

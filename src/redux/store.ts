@@ -38,9 +38,11 @@ import { profileSettingsApi } from "./services/settings/profileSettings";
 import icpReducer from "./services/icp/icpSlice";
 import kmfReducer from "./services/kmf/kmfSlice";
 import bsReducer from "./services/bs/bsSlice";
+import srReducer from "./services/sr/srSlice";
 import { icpWebSocketMiddleware } from "./middleware/icpWebSocketMiddleware";
 import { kmfWebSocketMiddleware } from "./middleware/kmfWebSocketMiddleware";
 import { bsWebSocketMiddleware } from "./middleware/bsWebSocketMiddleware";
+import { srWebSocketMiddleware } from "./middleware/srWebSocketMiddleware";
 
 // ==================== REDUX PERSIST CONFIGURATION ====================
 
@@ -107,9 +109,31 @@ const bsPersistConfig = {
   ],
 };
 
+const srPersistConfig = {
+  key: 'sr',
+  storage,
+  whitelist: [
+    'projectId',
+    'isGenerating',
+    'generatingProgress',
+    'generatingContent',
+    'displayedContent',
+    'hasReceivedCompletionMessage',
+    'generationComplete',
+    'docxBase64',
+    'fileName',
+    'showDocumentPreview',
+    'questions',
+    'answeredIds',
+    'currentQuestionIndex',
+    'view',
+  ],
+};
+
 const persistedIcpReducer = persistReducer(icpPersistConfig, icpReducer);
 const persistedKmfReducer = persistReducer(kmfPersistConfig, kmfReducer);
 const persistedBsReducer = persistReducer(bsPersistConfig, bsReducer);
+const persistedSrReducer = persistReducer(srPersistConfig, srReducer);
 
 // ==================== ROOT REDUCER ====================
 
@@ -118,6 +142,7 @@ const rootReducer = combineReducers({
   icp: persistedIcpReducer,
   kmf: persistedKmfReducer,
   bs: persistedBsReducer,
+  sr: persistedSrReducer,
 
   [authApi.reducerPath]: authApi.reducer,
   [onboardingApi.reducerPath]: onboardingApi.reducer,
@@ -165,6 +190,7 @@ export const store = configureStore({
       .concat(icpWebSocketMiddleware)
       .concat(kmfWebSocketMiddleware)
       .concat(bsWebSocketMiddleware)
+      .concat(srWebSocketMiddleware)
       .concat(authApi.middleware)
       .concat(onboardingApi.middleware)
       .concat(googleApi.middleware)
