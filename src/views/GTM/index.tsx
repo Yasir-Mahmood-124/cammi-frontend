@@ -328,10 +328,6 @@ const GTMPage: React.FC = () => {
     dispatch(goToQuestion(id));
   };
 
-  const handleBackToQuestions = () => {
-    dispatch(setView("questions"));
-  };
-
   const handleAnswerUpdate = (id: number, newAnswer: string) => {
     dispatch(updateQuestionAnswer({ id, answer: newAnswer }));
   };
@@ -383,6 +379,7 @@ const GTMPage: React.FC = () => {
 
   const isLoading = isLoadingUnanswered || isLoadingAll;
   const isError = isErrorUnanswered || isErrorAll;
+  const showButton = view === "questions" || view === "preview";
 
   if (isError) {
     return (
@@ -409,14 +406,12 @@ const GTMPage: React.FC = () => {
   return (
     <Box
       sx={{
-        height: "100vh",
-        maxHeight: "100vh",
         backgroundColor: "#EFF1F5",
         padding: "20px",
         display: "flex",
-        gap: "20px",
+        alignItems: "center",
+        justifyContent: "center",
         position: "relative",
-        overflow: "hidden",
       }}
     >
       {isGenerating ? (
@@ -432,99 +427,87 @@ const GTMPage: React.FC = () => {
         </Box>
       ) : (
         <>
-          <Box
-            sx={{
-              flex: 1,
-              display: "flex",
-              justifyContent: "center",
-              overflow: "hidden",
-            }}
-          >
-            {view === "preview" ? (
-              <Box sx={{ width: "100%", maxWidth: "900px" }}>
-                {questions.some((q) => q.answer === "") && (
-                  <Button
-                    onClick={handleBackToQuestions}
-                    sx={{
-                      color: "#3EA3FF",
-                      textTransform: "none",
-                      fontFamily: "Poppins",
-                      fontSize: "14px",
-                      fontWeight: 500,
-                      marginBottom: "16px",
-                      "&:hover": {
-                        backgroundColor: "rgba(62, 163, 255, 0.1)",
-                      },
-                    }}
-                  >
-                    ← Back to Questions
-                  </Button>
-                )}
-
-                <FinalPreview
-                  questionsAnswers={questions}
-                  onAnswerUpdate={handleAnswerUpdate}
-                />
-              </Box>
-            ) : questions.length > 0 ? (
-              <UserInput
-                number={questions[currentQuestionIndex].id}
-                question={questions[currentQuestionIndex].question}
-                answer={questions[currentQuestionIndex].answer}
-                documentType="gtm"
-                isLoading={isRefining}
-                onGenerate={handleGenerate}
-                onRegenerate={handleRegenerate}
-                onConfirm={handleConfirm}
-              />
-            ) : (
+          {view === "questions" && questions.length > 0 && (
+            <Box sx={{ width: "100%", maxWidth: "1200px" }}>
               <Box
                 sx={{
                   display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
+                  gap: "24px",
+                  width: "100%",
+                  alignItems: "flex-start",
                   height: "100%",
+                  maxHeight: "500px",
                 }}
               >
-                <div style={{ fontFamily: "Poppins", color: "#666" }}>
-                  Loading questions...
-                </div>
-              </Box>
-            )}
-          </Box>
+                <Box sx={{ flex: 1, height: "100vh" }}>
+                  <UserInput
+                    number={questions[currentQuestionIndex].id}
+                    question={questions[currentQuestionIndex].question}
+                    answer={questions[currentQuestionIndex].answer}
+                    documentType="gtm"
+                    isLoading={isRefining}
+                    onGenerate={handleGenerate}
+                    onRegenerate={handleRegenerate}
+                    onConfirm={handleConfirm}
+                  />
+                </Box>
 
-          {questions.length > 0 && view === "questions" && (
-            <Box
-              sx={{
-                width: "350px",
-                display: "flex",
-                flexDirection: "column",
-                height: "100%",
-              }}
-            >
-              <InputTakerUpdated
-                items={questions}
-                currentQuestionId={questions[currentQuestionIndex].id}
-                answeredIds={answeredIds}
-                onItemClick={handleItemClick}
-                isClickable={true}
-              />
+                <Box sx={{ flex: "0 0 300px", height: "100%" }}>
+                  <InputTakerUpdated
+                    items={questions}
+                    currentQuestionId={questions[currentQuestionIndex].id}
+                    answeredIds={answeredIds}
+                    onItemClick={handleItemClick}
+                    isClickable={true}
+                  />
+                </Box>
+              </Box>
             </Box>
           )}
 
           {view === "preview" && (
             <Box
               sx={{
-                position: "fixed",
-                bottom: "19px",
-                right: "118px",
+                width: "100%",
+                maxWidth: "1200px",
+                display: "flex",
+                justifyContent: "flex-start",
+                paddingLeft: "20px",
               }}
             >
+              <Box sx={{ width: "100%", maxWidth: "900px" }}>
+                <FinalPreview
+                  questionsAnswers={questions}
+                  onAnswerUpdate={handleAnswerUpdate}
+                />
+              </Box>
+            </Box>
+          )}
+
+          {questions.length === 0 && !isLoading && (
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                height: "100vh",
+              }}
+            >
+              <div style={{ fontFamily: "Poppins", color: "#666" }}>
+                Loading questions...
+              </div>
+            </Box>
+          )}
+
+          {showButton && (
+            <Box sx={{ position: "fixed", bottom: "25px", right: "60px" }}>
               <Button
                 variant="contained"
                 endIcon={<ArrowForwardIcon sx={{ fontSize: "14px" }} />}
                 onClick={handleGenerateDocument}
-                disabled={!allQuestionsAnswered || isUploading}
+                disabled={
+                  view !== "preview" || !allQuestionsAnswered || isUploading
+                }
                 sx={{
                   background: "linear-gradient(135deg, #3EA3FF, #FF3C80)",
                   color: "#fff",
@@ -537,7 +520,6 @@ const GTMPage: React.FC = () => {
                   boxShadow: "0 3px 8px rgba(62, 163, 255, 0.3)",
                   "&:hover": {
                     background: "linear-gradient(135deg, #2E8FE6, #E6356D)",
-                    boxShadow: "0 4px 11px rgba(62, 163, 255, 0.4)",
                   },
                   "&:disabled": {
                     background: "#ccc",
