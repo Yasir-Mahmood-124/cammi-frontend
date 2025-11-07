@@ -12,6 +12,7 @@ import { resetForNewDocument as resetIcp } from '@/redux/services/icp/icpSlice';
 import { resetForNewDocument as resetKmf } from '@/redux/services/kmf/kmfSlice';
 import { resetForNewDocument as resetBs } from '@/redux/services/bs/bsSlice';
 import { resetForNewDocument as resetSr } from '@/redux/services/sr/srSlice';
+import { resetForNewDocument as resetGtm } from '@/redux/services/gtm/gtmSlice';
 import { AppDispatch } from '@/redux/store';
 import Cookies from 'js-cookie';
 import EditHeadingDialog from './EditHeadingDialog';
@@ -20,7 +21,7 @@ import toast from 'react-hot-toast';
 interface DocumentPreviewProps {
   docxBase64: string;
   fileName: string;
-  documentType: 'icp' | 'kmf' | 'bs' | 'sr';
+  documentType: 'icp' | 'kmf' | 'bs' | 'sr' | 'gtm';
 }
 
 interface TableOfContentsItem {
@@ -51,7 +52,8 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ docxBase64, fileName,
     icp: 'ICP',
     kmf: 'KMF',
     bs: 'BS',
-    sr: 'SR'
+    sr: 'SR',
+    gtm: 'GTM'
   };
 
   useEffect(() => {
@@ -254,6 +256,8 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ docxBase64, fileName,
       dispatch(resetBs());
     } else if (documentType === 'sr') {
       dispatch(resetSr());
+    } else if (documentType === 'gtm') {
+      dispatch(resetGtm());
     }
     
     console.log("✅ Redux state reset - returning to initial view");
