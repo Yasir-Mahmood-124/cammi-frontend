@@ -77,7 +77,8 @@ const GTMPage: React.FC = () => {
 
   // Redux mutation hooks
   const [refine, { isLoading: isRefining }] = useRefineMutation();
-  const [uploadTextFile, { isLoading: isUploading }] = useUploadTextFileMutation();
+  const [uploadTextFile, { isLoading: isUploading }] =
+    useUploadTextFileMutation();
   const [getDocxFile, { isLoading: isDownloading }] = useGetDocxFileMutation();
 
   // Get project_id from localStorage on component mount
@@ -130,49 +131,148 @@ const GTMPage: React.FC = () => {
     }
   }, [dispatch, getDocxFile]);
 
-  // ==================== SIMPLE MOUNT RECOVERY ====================
+  // // ==================== SIMPLE MOUNT RECOVERY ====================
+  // useEffect(() => {
+  //   if (mountRecoveryTriggered.current) {
+  //     return;
+  //   }
+
+  //   // Scenario 1: Document already fetched and available
+  //   if (docxBase64 && fileName) {
+  //     if (!showDocumentPreview) {
+  //       dispatch(setShowDocumentPreview(true));
+  //     }
+  //     mountRecoveryTriggered.current = true;
+  //     return;
+  //   }
+
+  //   // Scenario 2: Completion message received but no document yet - FETCH IT!
+  //   if (hasReceivedCompletionMessage && !docxBase64) {
+  //     mountRecoveryTriggered.current = true;
+
+  //     setTimeout(() => {
+  //       handleGenerationComplete();
+  //     }, 1000);
+  //     return;
+  //   }
+
+  //   // Scenario 3: Generation in progress - global middleware is handling it
+  //   if (isGenerating && generatingProgress >= 0 && !hasReceivedCompletionMessage) {
+  //     mountRecoveryTriggered.current = true;
+  //     return;
+  //   }
+
+  //   // Scenario 4: No active generation
+  //   if (!isGenerating) {
+  //     mountRecoveryTriggered.current = true;
+  //     return;
+  //   }
+
+  //   mountRecoveryTriggered.current = true;
+  // }, []); // Run only once on mount
+
+  // ==================== MOUNT RECOVERY WITH WEBSOCKET RE-CONNECTION (ENHANCED) ====================
   useEffect(() => {
     if (mountRecoveryTriggered.current) {
+      console.log(
+        "↩️ [Recovery] Already triggered during this mount, skipping duplicate"
+      );
       return;
     }
+    mountRecoveryTriggered.current = true;
 
-    // Scenario 1: Document already fetched and available
+    console.log(
+      "╔════════════════════════════════════════════════════════════╗"
+    );
+    console.log(
+      "║           🔍 Mount Recovery Check (Enhanced)               ║"
+    );
+    console.log(
+      "╚════════════════════════════════════════════════════════════╝"
+    );
+
+    // 🧩 Scenario 1: Document already fetched and available
     if (docxBase64 && fileName) {
+      console.log("✅ [Recovery] Document already available in Redux");
       if (!showDocumentPreview) {
         dispatch(setShowDocumentPreview(true));
       }
-      mountRecoveryTriggered.current = true;
       return;
     }
 
-    // Scenario 2: Completion message received but no document yet - FETCH IT!
+    // 🧩 Scenario 2: Completion message received but no document yet - FETCH IT!
     if (hasReceivedCompletionMessage && !docxBase64) {
-      mountRecoveryTriggered.current = true;
-      
+      console.log(
+        "🎯 [Recovery] Completion message found - fetching document!"
+      );
       setTimeout(() => {
         handleGenerationComplete();
       }, 1000);
       return;
     }
 
-    // Scenario 3: Generation in progress - global middleware is handling it
-    if (isGenerating && generatingProgress >= 0 && !hasReceivedCompletionMessage) {
+    // 🧩 Scenario 3: Generation in progress - RE-ESTABLISH WEBSOCKET CONNECTION
+    if (isGenerating && !hasReceivedCompletionMessage && wsUrl) {
+      console.log(
+        "⚡ [Recovery] Generation active - restoring progress and WebSocket"
+      );
+      console.log("  ├─ Progress:", generatingProgress + "%");
+      console.log("  ├─ wsUrl:", wsUrl);
+      console.log("  └─ Re-triggering WebSocket connection...");
+
       mountRecoveryTriggered.current = true;
+
+      // 🔄 Re-trigger the middleware by toggling isGenerating
+      setTimeout(() => {
+        // dispatch(setIsGenerating(false));
+        setTimeout(() => {
+          dispatch(setIsGenerating(true));
+        }, 100);
+      }, 500);
       return;
     }
 
-    // Scenario 4: No active generation
+    // 🧩 Scenario 4: Stale generation state (no wsUrl but isGenerating true)
+    if (isGenerating && !wsUrl) {
+      console.log(
+        "⚠️ [Recovery] Stale generation state detected - resetting..."
+      );
+      dispatch(setIsGenerating(false));
+      toast.error("Generation state was interrupted. Please try again.");
+      return;
+    }
+
+    // 🧩 Scenario 5: No active generation
     if (!isGenerating) {
-      mountRecoveryTriggered.current = true;
+      console.log("✅ [Recovery] No active generation, normal state");
       return;
     }
 
-    mountRecoveryTriggered.current = true;
-  }, []); // Run only once on mount
+    console.log("ℹ️ [Recovery] No specific recovery action required");
+
+    // 🧹 CLEANUP — allows this effect to run again when user revisits this page
+    return () => {
+      console.log("🧹 [Cleanup] Resetting mount recovery flag for next mount");
+      mountRecoveryTriggered.current = true;
+    };
+  }, [
+    // Dependencies to handle re-mounts properly:
+    docxBase64,
+    fileName,
+    showDocumentPreview,
+    hasReceivedCompletionMessage,
+    isGenerating,
+    generatingProgress,
+    wsUrl,
+  ]);
 
   // Watch for completion message flag changes (backup)
   useEffect(() => {
-    if (hasReceivedCompletionMessage && !docxBase64 && !documentFetchTriggered.current) {
+    if (
+      hasReceivedCompletionMessage &&
+      !docxBase64 &&
+      !documentFetchTriggered.current
+    ) {
       handleGenerationComplete();
     }
   }, [hasReceivedCompletionMessage, docxBase64, handleGenerationComplete]);
@@ -400,7 +500,13 @@ const GTMPage: React.FC = () => {
   }
 
   if (showDocumentPreview && docxBase64) {
-    return <DocumentPreview docxBase64={docxBase64} fileName={fileName} documentType="gtm" />;
+    return (
+      <DocumentPreview
+        docxBase64={docxBase64}
+        fileName={fileName}
+        documentType="gtm"
+      />
+    );
   }
 
   return (
