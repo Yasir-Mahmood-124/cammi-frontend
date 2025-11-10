@@ -615,7 +615,7 @@ const KMFPage: React.FC = () => {
                   maxHeight: "500px",
                 }}
               >
-                <Box sx={{ flex: 1, height: "100vh" }}>
+                <Box sx={{ flex: 1 }}>
                   <UserInput
                     number={questions[currentQuestionIndex].id}
                     question={questions[currentQuestionIndex].question}
@@ -680,7 +680,7 @@ const KMFPage: React.FC = () => {
           )}
 
           {showButton && (
-            <Box sx={{ position: "fixed", bottom: "25px", right: "60px" }}>
+            <Box sx={{ position: "fixed", bottom: "35px", right: "70px" }}>
               <Button
                 variant="contained"
                 endIcon={<ArrowForwardIcon sx={{ fontSize: "14px" }} />}
