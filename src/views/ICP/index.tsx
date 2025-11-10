@@ -75,7 +75,8 @@ const ICPPage: React.FC = () => {
   } = useSelector((state: RootState) => state.icp);
 
   // Redux mutation hooks
-  const [uploadTextFile, { isLoading: isUploading }] = useUploadTextFileMutation();
+  const [uploadTextFile, { isLoading: isUploading }] =
+    useUploadTextFileMutation();
   const [getDocxFile, { isLoading: isDownloading }] = useGetDocxFileMutation();
 
   // ==================== CONSOLE LOG ALL REDUX STATE ON MOUNT ====================
@@ -117,7 +118,8 @@ const ICPPage: React.FC = () => {
   // Setup WebSocket URL for upload
   useEffect(() => {
     if (!wsUrl) {
-      const websocketUrl = "wss://91vm5ilj37.execute-api.us-east-1.amazonaws.com/dev";
+      const websocketUrl =
+        "wss://91vm5ilj37.execute-api.us-east-1.amazonaws.com/dev";
       // console.log("🔗 [WebSocket] Setting upload WebSocket URL");
       dispatch(setWsUrl(websocketUrl));
     }
@@ -163,77 +165,115 @@ const ICPPage: React.FC = () => {
       // console.error("❌ [Document] Fetch failed:", error);
       // console.error("  ├─ Status:", error?.status);
       // console.error("  └─ Message:", error?.data?.message || error?.message);
-      
+
       toast.error("Failed to fetch document. Please try again.");
       documentFetchTriggered.current = false; // Reset on error to allow retry
     }
   }, [dispatch, getDocxFile]);
 
-  // ==================== SIMPLE MOUNT RECOVERY ====================
+
+  // ==================== MOUNT RECOVERY WITH WEBSOCKET RE-CONNECTION (ENHANCED) ====================
   useEffect(() => {
     if (mountRecoveryTriggered.current) {
-      console.log("⏭️ [Recovery] Already triggered, skipping");
+      console.log(
+        "↩️ [Recovery] Already triggered during this mount, skipping duplicate"
+      );
       return;
     }
+    mountRecoveryTriggered.current = true;
 
-    // console.log("╔════════════════════════════════════════════════════════════╗");
-    // console.log("║           🔍 Mount Recovery Check                          ║");
-    // console.log("╚════════════════════════════════════════════════════════════╝");
+    console.log(
+      "╔════════════════════════════════════════════════════════════╗"
+    );
+    console.log(
+      "║           🔍 Mount Recovery Check (Enhanced)               ║"
+    );
+    console.log(
+      "╚════════════════════════════════════════════════════════════╝"
+    );
 
-    // Scenario 1: Document already fetched and available
+    // 🧩 Scenario 1: Document already fetched and available
     if (docxBase64 && fileName) {
-      // console.log("✅ [Recovery] Document already available in Redux");
-      // console.log("  ├─ docxBase64 length:", docxBase64.length);
-      // console.log("  └─ fileName:", fileName);
-      
+      console.log("✅ [Recovery] Document already available in Redux");
       if (!showDocumentPreview) {
-        // console.log("🔄 [Recovery] Setting showDocumentPreview to true");
         dispatch(setShowDocumentPreview(true));
       }
-      mountRecoveryTriggered.current = true;
       return;
     }
 
-    // Scenario 2: Completion message received but no document yet - FETCH IT!
+    // 🧩 Scenario 2: Completion message received but no document yet - FETCH IT!
     if (hasReceivedCompletionMessage && !docxBase64) {
-      // console.log("🎯 [Recovery] Completion message found in Redux - fetching document!");
-      // console.log("  ├─ hasReceivedCompletionMessage:", hasReceivedCompletionMessage);
-      // console.log("  ├─ isGenerating:", isGenerating);
-      // console.log("  └─ progress:", generatingProgress + "%");
-      
-      mountRecoveryTriggered.current = true;
-      
+      console.log(
+        "🎯 [Recovery] Completion message found - fetching document!"
+      );
       setTimeout(() => {
-        // console.log("⏰ [Recovery] Executing document fetch...");
         handleGenerationComplete();
       }, 1000);
       return;
     }
 
-    // Scenario 3: Generation in progress - global middleware is handling it
-    if (isGenerating && generatingProgress >= 0 && !hasReceivedCompletionMessage) {
-      // console.log("⚠️ [Recovery] Generation in progress - global middleware is listening");
-      // console.log("  ├─ Progress:", generatingProgress + "%");
-      // console.log("  ├─ Content length:", generatingContent.length);
-      // console.log("  └─ Global WebSocket middleware will handle completion message");
+    // 🧩 Scenario 3: Generation in progress - RE-ESTABLISH WEBSOCKET CONNECTION
+    if (isGenerating && !hasReceivedCompletionMessage && wsUrl) {
+      console.log(
+        "⚡ [Recovery] Generation active - restoring progress and WebSocket"
+      );
+      console.log("  ├─ Progress:", generatingProgress + "%");
+      console.log("  ├─ wsUrl:", wsUrl);
+      console.log("  └─ Re-triggering WebSocket connection...");
+
       mountRecoveryTriggered.current = true;
+
+      // 🔄 Re-trigger the middleware by toggling isGenerating
+      setTimeout(() => {
+        // dispatch(setIsGenerating(false));
+        setTimeout(() => {
+          dispatch(setIsGenerating(true));
+        }, 100);
+      }, 500);
       return;
     }
 
-    // Scenario 4: No active generation
+    // 🧩 Scenario 4: Stale generation state (no wsUrl but isGenerating true)
+    if (isGenerating && !wsUrl) {
+      console.log(
+        "⚠️ [Recovery] Stale generation state detected - resetting..."
+      );
+      dispatch(setIsGenerating(false));
+      toast.error("Generation state was interrupted. Please try again.");
+      return;
+    }
+
+    // 🧩 Scenario 5: No active generation
     if (!isGenerating) {
-      // console.log("✅ [Recovery] No active generation, normal state");
-      mountRecoveryTriggered.current = true;
+      console.log("✅ [Recovery] No active generation, normal state");
       return;
     }
 
-    // console.log("ℹ️ [Recovery] No recovery action needed");
-    mountRecoveryTriggered.current = true;
-  }, []); // Run only once on mount
+    console.log("ℹ️ [Recovery] No specific recovery action required");
+
+    // 🧹 CLEANUP — allows this effect to run again when user revisits this page
+    return () => {
+      console.log("🧹 [Cleanup] Resetting mount recovery flag for next mount");
+      mountRecoveryTriggered.current = true;
+    };
+  }, [
+    // Dependencies to handle re-mounts properly:
+    docxBase64,
+    fileName,
+    showDocumentPreview,
+    hasReceivedCompletionMessage,
+    isGenerating,
+    generatingProgress,
+    wsUrl,
+  ]);
 
   // Watch for completion message flag changes (backup)
   useEffect(() => {
-    if (hasReceivedCompletionMessage && !docxBase64 && !documentFetchTriggered.current) {
+    if (
+      hasReceivedCompletionMessage &&
+      !docxBase64 &&
+      !documentFetchTriggered.current
+    ) {
       // console.log("🎯 [Watch] Completion message flag detected - fetching document");
       handleGenerationComplete();
     }
@@ -486,7 +526,7 @@ const ICPPage: React.FC = () => {
       // console.log("🔗 [WebSocket] Setting generation WebSocket URL");
       // console.log("🔄 [Redux] Setting isGenerating to true");
       // console.log("🌐 [Info] Global WebSocket middleware will handle all messages");
-      
+
       dispatch(setWsUrl(websocketUrl));
       dispatch(setIsGenerating(true)); // This triggers the global middleware!
     } catch (err: any) {
@@ -519,7 +559,13 @@ const ICPPage: React.FC = () => {
 
   if (showDocumentPreview && docxBase64) {
     // console.log("📄 [Render] Showing DocumentPreview component");
-    return <DocumentPreview docxBase64={docxBase64} fileName={fileName} documentType="icp" />;
+    return (
+      <DocumentPreview
+        docxBase64={docxBase64}
+        fileName={fileName}
+        documentType="icp"
+      />
+    );
   }
 
   // console.log("🎨 [Render] Main layout - isGenerating:", isGenerating);
