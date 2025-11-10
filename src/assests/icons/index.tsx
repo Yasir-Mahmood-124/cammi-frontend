@@ -23,6 +23,7 @@ export {default as Moniter} from "./Moniter.svg";
 export {default as Iterate} from "./Iterate.svg";
 export {default as BrandSetup} from "./BrandSetup.svg";
 export {default as Logo} from "./Logo.svg";
+export {default as CollapseIcon} from "./CollapseIcon.svg";
 // 👆 Add more icons like this if needed
 // export { default as Facebook } from "./Facebook.svg";
 // export { default as Twitter } from "./Twitter.svg";

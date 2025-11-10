@@ -1,22 +1,40 @@
-// KMFPage.tsx
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { Box, Button, Menu, MenuItem, Typography } from '@mui/material';
-import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
-import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
-import DocumentQuestion from '../ICP/DocumentQuestion';
-import UploadDocument from '../ICP/UploadDocument';
-import UserInput from '../ICP/UserInput';
-import InputTakerUpdated from '../ICP/InputTakerUpdated';
-import FinalPreview from '../ICP/FinalPreview';
-import Generating from '../ICP/Generating';
-import DocumentPreview from './DocumentPreview';
-import { useGet_unanswered_questionsQuery } from '@/redux/services/common/getUnansweredQuestionsApi';
-import { useGetQuestionsQuery } from '@/redux/services/common/getQuestionsApi';
-import { useUploadTextFileMutation } from '@/redux/services/common/uploadApiSlice';
-import { useGetDocxFileMutation } from '@/redux/services/document/downloadApi';
-import Cookies from 'js-cookie';
+import React, { useEffect, useRef, useCallback } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { Box, Button } from "@mui/material";
+import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
+import DocumentQuestion from "../ICP/DocumentQuestion";
+import UploadDocument from "../ICP/UploadDocument";
+import UserInput from "../ICP/UserInput";
+import InputTakerUpdated from "../ICP/InputTakerUpdated";
+import FinalPreview from "../ICP/FinalPreview";
+import Generating from "../ICP/Generating";
+import DocumentPreview from "../ICP/DocumentPreview";
+import { useGet_unanswered_questionsQuery } from "@/redux/services/common/getUnansweredQuestionsApi";
+import { useGetQuestionsQuery } from "@/redux/services/common/getQuestionsApi";
+import { useUploadTextFileMutation } from "@/redux/services/common/uploadApiSlice";
+import { useGetDocxFileMutation } from "@/redux/services/document/downloadApi";
+import { RootState, AppDispatch } from "@/redux/store";
+import {
+  setView,
+  setQuestions,
+  updateQuestionAnswer,
+  updateCurrentQuestionAnswer,
+  nextQuestion,
+  goToQuestion,
+  addAnsweredId,
+  setProjectId,
+  setIsGenerating,
+  setWsUrl,
+  setDocumentData,
+  setShouldFetchUnanswered,
+  setShouldFetchAll,
+  setShowDocumentPreview,
+  setCompletionMessageReceived,
+} from "@/redux/services/kmf/kmfSlice";
+import Cookies from "js-cookie";
+import toast, { Toaster } from "react-hot-toast";
 
 interface Question {
   id: number;
@@ -32,212 +50,406 @@ interface CurrentProject {
 }
 
 const KMFPage: React.FC = () => {
-  const [view, setView] = useState<'initial' | 'upload' | 'questions' | 'preview'>('initial');
-  const [questions, setQuestions] = useState<Question[]>([]);
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [answeredIds, setAnsweredIds] = useState<number[]>([]);
-  const [shouldFetchUnanswered, setShouldFetchUnanswered] = useState(false);
-  const [shouldFetchAll, setShouldFetchAll] = useState(false);
-  const [projectId, setProjectId] = useState<string>('');
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [selectedOption, setSelectedOption] = useState<'text' | 'infographic'>('text');
+  const dispatch = useDispatch<AppDispatch>();
+  const documentFetchTriggered = useRef(false);
+  const mountRecoveryTriggered = useRef(false);
 
-  // Document generation states
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [wsUrl, setWsUrl] = useState<string>('');
-  
-  // Document preview states
-  const [showDocumentPreview, setShowDocumentPreview] = useState(false);
-  const [docxBase64, setDocxBase64] = useState<string>('');
-  const [fileName, setFileName] = useState<string>('');
-
-  const open = Boolean(anchorEl);
+  // Get state from Redux
+  const {
+    view,
+    questions,
+    currentQuestionIndex,
+    answeredIds,
+    projectId,
+    isGenerating,
+    wsUrl,
+    showDocumentPreview,
+    docxBase64,
+    fileName,
+    shouldFetchUnanswered,
+    shouldFetchAll,
+    generatingProgress,
+    generatingContent,
+    hasReceivedCompletionMessage,
+    displayedContent,
+  } = useSelector((state: RootState) => state.kmf);
 
   // Redux mutation hooks
-  const [uploadTextFile, { isLoading: isUploading }] = useUploadTextFileMutation();
+  const [uploadTextFile, { isLoading: isUploading }] =
+    useUploadTextFileMutation();
   const [getDocxFile, { isLoading: isDownloading }] = useGetDocxFileMutation();
 
   // Get project_id from localStorage on component mount
   useEffect(() => {
-    const currentProjectStr = localStorage.getItem('currentProject');
+    const currentProjectStr = localStorage.getItem("currentProject");
     if (currentProjectStr) {
       try {
         const currentProject: CurrentProject = JSON.parse(currentProjectStr);
-        setProjectId(currentProject.project_id);
+        if (currentProject.project_id !== projectId) {
+          dispatch(setProjectId(currentProject.project_id));
+        }
       } catch (error) {
-        // console.error('Error parsing currentProject from localStorage:', error);
+        console.error("❌ [KMF Project] Error parsing currentProject:", error);
       }
     }
-  }, []);
+  }, [dispatch, projectId]);
 
-  // Setup WebSocket URL for upload - USING THE CORRECT DEV ENDPOINT
+  // Setup WebSocket URL for upload
   useEffect(() => {
-    // Use the WebSocket URL from your working project
-    const websocketUrl = "wss://91vm5ilj37.execute-api.us-east-1.amazonaws.com/dev";
-    setWsUrl(websocketUrl);
-    // console.log('🔌 WebSocket URL set for upload:', websocketUrl);
-  }, []);
+    if (!wsUrl) {
+      const websocketUrl =
+        "wss://91vm5ilj37.execute-api.us-east-1.amazonaws.com/dev";
+      dispatch(setWsUrl(websocketUrl));
+    }
+  }, [dispatch, wsUrl]);
+
+  // Fetch document function
+  const handleGenerationComplete = useCallback(async () => {
+    if (documentFetchTriggered.current) {
+      return;
+    }
+
+    documentFetchTriggered.current = true;
+
+    try {
+      const savedToken = Cookies.get("token");
+      const project_id = JSON.parse(
+        localStorage.getItem("currentProject") || "{}"
+      ).project_id;
+
+      const response = await getDocxFile({
+        session_id: savedToken || "",
+        document_type: "kmf",
+        project_id: project_id,
+      }).unwrap();
+
+      dispatch(
+        setDocumentData({
+          docxBase64: response.docxBase64,
+          fileName: response.fileName || "kmf_document.docx",
+        })
+      );
+
+      toast.success("Document ready for preview!");
+    } catch (error: any) {
+      console.error("❌ [KMF Document] Fetch failed:", error);
+      toast.error("Failed to fetch document. Please try again.");
+      documentFetchTriggered.current = false; // Reset on error to allow retry
+    }
+  }, [dispatch, getDocxFile]);
+
+  // // ==================== SIMPLE MOUNT RECOVERY ====================
+  // useEffect(() => {
+  //   if (mountRecoveryTriggered.current) {
+  //     return;
+  //   }
+
+  //   // Scenario 1: Document already fetched and available
+  //   if (docxBase64 && fileName) {
+  //     if (!showDocumentPreview) {
+  //       dispatch(setShowDocumentPreview(true));
+  //     }
+  //     mountRecoveryTriggered.current = true;
+  //     return;
+  //   }
+
+  //   // Scenario 2: Completion message received but no document yet - FETCH IT!
+  //   if (hasReceivedCompletionMessage && !docxBase64) {
+  //     mountRecoveryTriggered.current = true;
+
+  //     setTimeout(() => {
+  //       handleGenerationComplete();
+  //     }, 1000);
+  //     return;
+  //   }
+
+  //   // Scenario 3: Generation in progress - global middleware is handling it
+  //   if (isGenerating && generatingProgress >= 0 && !hasReceivedCompletionMessage) {
+  //     mountRecoveryTriggered.current = true;
+  //     return;
+  //   }
+
+  //   // Scenario 4: No active generation
+  //   if (!isGenerating) {
+  //     mountRecoveryTriggered.current = true;
+  //     return;
+  //   }
+
+  //   mountRecoveryTriggered.current = true;
+  // }, []); // Run only once on mount
+
+  // ==================== MOUNT RECOVERY WITH WEBSOCKET RE-CONNECTION (ENHANCED) ====================
+  useEffect(() => {
+    if (mountRecoveryTriggered.current) {
+      console.log(
+        "↩️ [Recovery] Already triggered during this mount, skipping duplicate"
+      );
+      return;
+    }
+    mountRecoveryTriggered.current = true;
+
+    console.log(
+      "╔════════════════════════════════════════════════════════════╗"
+    );
+    console.log(
+      "║           🔍 Mount Recovery Check (Enhanced)               ║"
+    );
+    console.log(
+      "╚════════════════════════════════════════════════════════════╝"
+    );
+
+    // 🧩 Scenario 1: Document already fetched and available
+    if (docxBase64 && fileName) {
+      console.log("✅ [Recovery] Document already available in Redux");
+      if (!showDocumentPreview) {
+        dispatch(setShowDocumentPreview(true));
+      }
+      return;
+    }
+
+    // 🧩 Scenario 2: Completion message received but no document yet - FETCH IT!
+    if (hasReceivedCompletionMessage && !docxBase64) {
+      console.log(
+        "🎯 [Recovery] Completion message found - fetching document!"
+      );
+      setTimeout(() => {
+        handleGenerationComplete();
+      }, 1000);
+      return;
+    }
+
+    // 🧩 Scenario 3: Generation in progress - RE-ESTABLISH WEBSOCKET CONNECTION
+    if (isGenerating && !hasReceivedCompletionMessage && wsUrl) {
+      console.log(
+        "⚡ [Recovery] Generation active - restoring progress and WebSocket"
+      );
+      console.log("  ├─ Progress:", generatingProgress + "%");
+      console.log("  ├─ wsUrl:", wsUrl);
+      console.log("  └─ Re-triggering WebSocket connection...");
+
+      mountRecoveryTriggered.current = true;
+
+      // 🔄 Re-trigger the middleware by toggling isGenerating
+      setTimeout(() => {
+        // dispatch(setIsGenerating(false));
+        setTimeout(() => {
+          dispatch(setIsGenerating(true));
+        }, 100);
+      }, 500);
+      return;
+    }
+
+    // 🧩 Scenario 4: Stale generation state (no wsUrl but isGenerating true)
+    if (isGenerating && !wsUrl) {
+      console.log(
+        "⚠️ [Recovery] Stale generation state detected - resetting..."
+      );
+      dispatch(setIsGenerating(false));
+      toast.error("Generation state was interrupted. Please try again.");
+      return;
+    }
+
+    // 🧩 Scenario 5: No active generation
+    if (!isGenerating) {
+      console.log("✅ [Recovery] No active generation, normal state");
+      return;
+    }
+
+    console.log("ℹ️ [Recovery] No specific recovery action required");
+
+    // 🧹 CLEANUP — allows this effect to run again when user revisits this page
+    return () => {
+      console.log("🧹 [Cleanup] Resetting mount recovery flag for next mount");
+      mountRecoveryTriggered.current = true;
+    };
+  }, [
+    // Dependencies to handle re-mounts properly:
+    docxBase64,
+    fileName,
+    showDocumentPreview,
+    hasReceivedCompletionMessage,
+    isGenerating,
+    generatingProgress,
+    wsUrl,
+  ]);
+
+  // Watch for completion message flag changes (backup)
+  useEffect(() => {
+    if (
+      hasReceivedCompletionMessage &&
+      !docxBase64 &&
+      !documentFetchTriggered.current
+    ) {
+      handleGenerationComplete();
+    }
+  }, [hasReceivedCompletionMessage, docxBase64, handleGenerationComplete]);
 
   // RTK Query for unanswered questions
-  const { 
-    data: unansweredData, 
-    isLoading: isLoadingUnanswered, 
-    isError: isErrorUnanswered 
+  const {
+    data: unansweredData,
+    isLoading: isLoadingUnanswered,
+    isError: isErrorUnanswered,
   } = useGet_unanswered_questionsQuery(
     {
       project_id: projectId,
-      document_type: "kmf"
+      document_type: "kmf",
     },
     {
-      skip: !shouldFetchUnanswered || !projectId
+      skip: !shouldFetchUnanswered || !projectId,
     }
   );
 
   // RTK Query for all questions (answered)
-  const { 
-    data: allQuestionsData, 
-    isLoading: isLoadingAll, 
-    isError: isErrorAll 
+  const {
+    data: allQuestionsData,
+    isLoading: isLoadingAll,
+    isError: isErrorAll,
   } = useGetQuestionsQuery(
     {
       project_id: projectId,
-      document_type: "kmf"
+      document_type: "kmf",
     },
     {
-      skip: !shouldFetchAll || !projectId
+      skip: !shouldFetchAll || !projectId,
     }
   );
 
-  // Handle unanswered questions response (NO flow)
+  // Handle unanswered questions response
   useEffect(() => {
     if (unansweredData) {
-      // console.log('📋 Unanswered questions data received:', unansweredData);
-      
-      if (unansweredData.missing_questions && unansweredData.missing_questions.length > 0) {
-        // console.log('❓ Has unanswered questions:', unansweredData.missing_questions.length);
-        
-        const formattedQuestions: Question[] = unansweredData.missing_questions.map((q, index) => ({
-          id: index + 1,
-          question: q,
-          answer: ''
-        }));
-        setQuestions(formattedQuestions);
-        setView('questions');
-        setShouldFetchUnanswered(false);
+      toast.loading("Checking for unanswered questions...");
+
+      if (
+        unansweredData.missing_questions &&
+        unansweredData.missing_questions.length > 0
+      ) {
+        const formattedQuestions: Question[] =
+          unansweredData.missing_questions.map((q, index) => ({
+            id: index + 1,
+            question: q,
+            answer: "",
+          }));
+
+        dispatch(setQuestions(formattedQuestions));
+        dispatch(setView("questions"));
+        dispatch(setShouldFetchUnanswered(false));
+
+        toast.dismiss();
+        toast.success(
+          `${formattedQuestions.length} unanswered question(s) found. Please provide answers.`
+        );
       } else {
-        // console.log('✅ No unanswered questions - fetching all answered questions');
-        setShouldFetchUnanswered(false);
-        setShouldFetchAll(true);
+        dispatch(setShouldFetchUnanswered(false));
+        dispatch(setShouldFetchAll(true));
+
+        toast.dismiss();
+        toast.success(
+          "No unanswered questions found. Fetching all answered ones..."
+        );
       }
     }
-  }, [unansweredData]);
+  }, [unansweredData, dispatch]);
 
   // Handle all questions (answered) response
   useEffect(() => {
     if (allQuestionsData && allQuestionsData.questions) {
-      // console.log('📝 All questions data received:', allQuestionsData.questions.length, 'questions');
-      
-      const formattedQuestions: Question[] = allQuestionsData.questions.map((q, index) => ({
-        id: index + 1,
-        question: q.question_text,
-        answer: q.answer_text || ''
-      }));
-      setQuestions(formattedQuestions);
-      setView('preview');
-      setShouldFetchAll(false);
+      toast.loading("Loading all answered questions...");
+
+      const formattedQuestions: Question[] = allQuestionsData.questions.map(
+        (q, index) => ({
+          id: index + 1,
+          question: q.question_text,
+          answer: q.answer_text || "",
+        })
+      );
+
+      dispatch(setQuestions(formattedQuestions));
+      dispatch(setView("preview"));
+      dispatch(setShouldFetchAll(false));
+
+      toast.dismiss();
+      toast.success("All answered questions loaded successfully!");
     }
-  }, [allQuestionsData]);
+  }, [allQuestionsData, dispatch]);
 
   // Check if all questions are answered
-  const allQuestionsAnswered = questions.length > 0 && questions.every(q => q.answer.trim() !== '');
+  const allQuestionsAnswered =
+    questions.length > 0 && questions.every((q) => q.answer.trim() !== "");
 
   const handleYesClick = () => {
-    setView('upload');
+    dispatch(setView("upload"));
   };
 
   const handleNoClick = () => {
-    setShouldFetchUnanswered(true);
+    dispatch(setShouldFetchUnanswered(true));
   };
 
-  // Handle WebSocket upload response - MATCHING YOUR WORKING PROJECT
   const handleUploadComplete = (data: any) => {
-    // Handle processing_started
     if (data.status === "processing_started") {
-      // console.log('🚀 Processing started:', data.message);
       return;
     }
 
-    // Handle analyzing_document
     if (data.status === "analyzing_document") {
-      // console.log('🔍 Analyzing document:', data.message);
+      toast("Analyzing your document...");
       return;
     }
 
-    // Handle questions_need_answers - MAIN CASE
-    if (data.status === 'questions_need_answers' && data.not_found_questions) {
-      // console.log('❓ Questions need answers - Count:', data.not_found_questions.length);
-      // console.log('Questions array:', data.not_found_questions);
-      
-      // Extract questions from the objects
-      const formattedQuestions: Question[] = data.not_found_questions.map((item: any, index: number) => {
-        // The question might be in item.question or item.question_text
-        const questionText = item.question || item.question_text || item;
-        // console.log(`Question ${index + 1}:`, questionText);
-        
-        return {
-          id: index + 1,
-          question: typeof questionText === 'string' ? questionText : String(questionText),
-          answer: ''
-        };
-      });
-      setQuestions(formattedQuestions);
-      setView('questions');
-      
-      // console.log('✅ Switched to questions view');
+    if (data.status === "questions_need_answers" && data.not_found_questions) {
+      const formattedQuestions: Question[] = data.not_found_questions.map(
+        (item: any, index: number) => {
+          const questionText = item.question || item.question_text || item;
+          return {
+            id: index + 1,
+            question:
+              typeof questionText === "string"
+                ? questionText
+                : String(questionText),
+            answer: "",
+          };
+        }
+      );
+
+      dispatch(setQuestions(formattedQuestions));
+      dispatch(setView("questions"));
       return;
     }
 
-    // Handle processing_complete
     if (data.status === "processing_complete") {
-      // console.log('✅ Processing complete!');
-      
-      // Check if there are any results with "Not Found" 
+      toast.success("Processing complete!");
+
       if (data.results) {
         const notFoundQuestions = Object.entries(data.results)
           .filter(([_, answer]) => answer === "Not Found")
           .map(([question, _], index) => ({
             id: index + 1,
             question: question,
-            answer: ''
+            answer: "",
           }));
 
         if (notFoundQuestions.length > 0) {
-          // console.log('❓ Found "Not Found" questions:', notFoundQuestions.length);
-          setQuestions(notFoundQuestions);
-          setView('questions');
+          dispatch(setQuestions(notFoundQuestions));
+          dispatch(setView("questions"));
+          toast("Some questions need answers. Please review them.");
         } else {
-          // console.log('✅ No missing questions - Going to preview');
-          setShouldFetchAll(true);
+          dispatch(setShouldFetchAll(true));
         }
       } else {
-        // No results, go to preview
-        // console.log('✅ No results field - Going to preview');
-        setShouldFetchAll(true);
+        dispatch(setShouldFetchAll(true));
+        toast.success("Processing complete — moving to preview.");
       }
       return;
     }
 
-    // Handle errors
     if (data.message === "Forbidden" || data.status === "error") {
-      // console.error('❌ WebSocket Error:', data.message || data.status);
+      toast.error(
+        `WebSocket Error: ${data.message || "Something went wrong."}`
+      );
       return;
     }
   };
 
   const handleGenerate = (generatedAnswer: string) => {
-    const updatedQuestions = [...questions];
-    updatedQuestions[currentQuestionIndex].answer = generatedAnswer;
-    setQuestions(updatedQuestions);
+    dispatch(updateCurrentQuestionAnswer(generatedAnswer));
   };
 
   const handleRegenerate = () => {
@@ -245,56 +457,41 @@ const KMFPage: React.FC = () => {
   };
 
   const handleConfirm = () => {
-    if (questions[currentQuestionIndex].answer) {
-      setAnsweredIds([...answeredIds, questions[currentQuestionIndex].id]);
-      
+    const currentQuestion = questions[currentQuestionIndex];
+
+    if (currentQuestion.answer) {
+      dispatch(addAnsweredId(currentQuestion.id));
+      toast.success("Answer confirmed successfully!");
+
       if (currentQuestionIndex < questions.length - 1) {
-        setCurrentQuestionIndex(currentQuestionIndex + 1);
+        dispatch(nextQuestion());
       } else {
-        // console.log('All questions answered!');
-        setView('preview');
+        toast.success("All questions answered! Previewing your responses...");
+        dispatch(setView("preview"));
       }
+    } else {
+      toast.error("Please provide an answer before confirming!");
     }
   };
 
   const handleItemClick = (id: number) => {
-    const index = questions.findIndex(q => q.id === id);
-    if (index !== -1) {
-      setCurrentQuestionIndex(index);
-    }
+    dispatch(goToQuestion(id));
   };
 
   const handleBackToQuestions = () => {
-    setView('questions');
+    dispatch(setView("questions"));
   };
 
   const handleAnswerUpdate = (id: number, newAnswer: string) => {
-    const updatedQuestions = questions.map(q => 
-      q.id === id ? { ...q, answer: newAnswer } : q
-    );
-    setQuestions(updatedQuestions);
+    dispatch(updateQuestionAnswer({ id, answer: newAnswer }));
   };
 
-  const handleClick = (event: React.MouseEvent<HTMLElement>) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleClose = () => {
-    setAnchorEl(null);
-  };
-
-  const handleOptionSelect = async (option: 'text' | 'infographic') => {
-    setSelectedOption(option);
-    handleClose();
-
-    if (option === 'text') {
-      await handleGenerateDocument();
-    }
-  };
-
-  // Handle document generation from Q&A
   const handleGenerateDocument = async () => {
     try {
+      // Reset flags
+      documentFetchTriggered.current = false;
+      mountRecoveryTriggered.current = false;
+
       const dynamicFileName = "businessidea.txt";
       const savedToken = Cookies.get("token");
       const project_id = JSON.parse(
@@ -315,63 +512,41 @@ const KMFPage: React.FC = () => {
         document_type: "kmf",
       };
 
-      const uploadResponse = await uploadTextFile(payload).unwrap();
-      // console.log('✅ FILE UPLOADED SUCCESSFULLY!', uploadResponse);
+      const uploadPromise = uploadTextFile(payload).unwrap();
+
+      await toast.promise(uploadPromise, {
+        loading: "Uploading your answers...",
+        success:
+          "Answers uploaded successfully! Starting document generation...",
+        error: "Failed to upload answers. Please try again.",
+      });
 
       const websocketUrl = `wss://4iqvtvmxle.execute-api.us-east-1.amazonaws.com/prod/?session_id=${savedToken}`;
-      
-      setWsUrl(websocketUrl);
-      setIsGenerating(true);
-      
+
+      dispatch(setWsUrl(websocketUrl));
+      dispatch(setIsGenerating(true)); // This triggers the global middleware!
     } catch (err: any) {
-      // console.error("❌ UPLOAD FAILED!", err);
-      alert('Upload failed. Please try again.');
-    }
-  };
-
-  const handleGenerationComplete = async () => {
-    // console.log("✅ Document generation completed! Fetching document...");
-    
-    try {
-      const savedToken = Cookies.get("token");
-      const project_id = JSON.parse(
-        localStorage.getItem("currentProject") || "{}"
-      ).project_id;
-
-      const response = await getDocxFile({
-        session_id: savedToken || '',
-        document_type: 'kmf',
-        project_id: project_id,
-      }).unwrap();
-
-      setDocxBase64(response.docxBase64);
-      setFileName(response.fileName || 'kmf_document.docx');
-      
-      setIsGenerating(false);
-      setShowDocumentPreview(true);
-      
-      // console.log("✅ Document fetched successfully");
-    } catch (error) {
-      // console.error("❌ Failed to fetch document:", error);
-      setIsGenerating(false);
-      alert('Failed to download document. Please try again.');
+      console.error("❌ [KMF Upload] Error:", err);
+      toast.error("Upload failed. Please try again.");
     }
   };
 
   const isLoading = isLoadingUnanswered || isLoadingAll;
   const isError = isErrorUnanswered || isErrorAll;
-  const showButton = view === 'questions' || view === 'preview';
+  const showButton = view === "questions" || view === "preview";
 
   if (isError) {
     return (
-      <Box sx={{ 
-        minHeight: '100vh', 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'center',
-        padding: '20px'
-      }}>
-        <div style={{ color: 'red', fontFamily: 'Poppins' }}>
+      <Box
+        sx={{
+          minHeight: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: "20px",
+        }}
+      >
+        <div style={{ color: "red", fontFamily: "Poppins" }}>
           Error loading questions. Please try again.
         </div>
       </Box>
@@ -379,53 +554,68 @@ const KMFPage: React.FC = () => {
   }
 
   if (showDocumentPreview && docxBase64) {
-    return <DocumentPreview docxBase64={docxBase64} fileName={fileName} />;
+    return (
+      <DocumentPreview
+        docxBase64={docxBase64}
+        fileName={fileName}
+        documentType="kmf"
+      />
+    );
   }
 
   return (
     <Box
       sx={{
-        backgroundColor: '#EFF1F5',
-        padding: '20px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        position: 'relative',
+        backgroundColor: "#EFF1F5",
+        padding: "20px",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        position: "relative",
       }}
     >
       {isGenerating ? (
-        <Box sx={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-          <Generating wsUrl={wsUrl} onComplete={handleGenerationComplete} />
+        <Box
+          sx={{
+            flex: 1,
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
+          <Generating wsUrl={wsUrl} documentType="kmf" />
         </Box>
       ) : (
         <>
-          {view === 'initial' && (
-            <DocumentQuestion 
-              onYesClick={handleYesClick} 
+          {view === "initial" && (
+            <DocumentQuestion
+              onYesClick={handleYesClick}
               onNoClick={handleNoClick}
               isLoading={isLoading}
             />
           )}
 
-          {view === 'upload' && (
-            <UploadDocument 
+          {view === "upload" && (
+            <UploadDocument
               document_type="kmf"
               wsUrl={wsUrl}
               onUploadComplete={handleUploadComplete}
             />
           )}
 
-          {view === 'questions' && questions.length > 0 && (
-            <Box sx={{ width: '100%', maxWidth: '1200px' }}>
-              <Box sx={{ 
-                display: 'flex', 
-                gap: '24px', 
-                width: '100%',
-                alignItems: 'flex-start',
-                height: '100%',
-                maxHeight: '500px',
-              }}>
-                <Box sx={{ flex: 1, height: '100vh' }}>
+          {view === "questions" && questions.length > 0 && (
+            <Box sx={{ width: "100%", maxWidth: "1200px" }}>
+              <Box
+                sx={{
+                  display: "flex",
+                  gap: "24px",
+                  width: "100%",
+                  alignItems: "flex-start",
+                  height: "100%",
+                  maxHeight: "500px",
+                }}
+              >
+                <Box sx={{ flex: 1, height: "100vh" }}>
                   <UserInput
                     number={questions[currentQuestionIndex].id}
                     question={questions[currentQuestionIndex].question}
@@ -438,7 +628,7 @@ const KMFPage: React.FC = () => {
                   />
                 </Box>
 
-                <Box sx={{ flex: '0 0 300px', height: '100%' }}>
+                <Box sx={{ flex: "0 0 300px", height: "100%" }}>
                   <InputTakerUpdated
                     items={questions}
                     currentQuestionId={questions[currentQuestionIndex].id}
@@ -451,27 +641,29 @@ const KMFPage: React.FC = () => {
             </Box>
           )}
 
-          {view === 'preview' && (
-            <Box sx={{ 
-              width: '100%', 
-              maxWidth: '1200px',
-              display: 'flex',
-              justifyContent: 'flex-start',
-              paddingLeft: '20px',
-            }}>
-              <Box sx={{ width: '100%', maxWidth: '900px' }}>
-                {questions.some(q => q.answer === '') && (
+          {view === "preview" && (
+            <Box
+              sx={{
+                width: "100%",
+                maxWidth: "1200px",
+                display: "flex",
+                justifyContent: "flex-start",
+                paddingLeft: "20px",
+              }}
+            >
+              <Box sx={{ width: "100%", maxWidth: "900px" }}>
+                {questions.some((q) => q.answer === "") && (
                   <Button
                     onClick={handleBackToQuestions}
                     sx={{
-                      color: '#3EA3FF',
-                      textTransform: 'none',
-                      fontFamily: 'Poppins',
-                      fontSize: '14px',
+                      color: "#3EA3FF",
+                      textTransform: "none",
+                      fontFamily: "Poppins",
+                      fontSize: "14px",
                       fontWeight: 500,
-                      marginBottom: '16px',
-                      '&:hover': {
-                        backgroundColor: 'rgba(62, 163, 255, 0.1)',
+                      marginBottom: "16px",
+                      "&:hover": {
+                        backgroundColor: "rgba(62, 163, 255, 0.1)",
                       },
                     }}
                   >
@@ -479,7 +671,7 @@ const KMFPage: React.FC = () => {
                   </Button>
                 )}
 
-                <FinalPreview 
+                <FinalPreview
                   questionsAnswers={questions}
                   onAnswerUpdate={handleAnswerUpdate}
                 />
@@ -488,73 +680,41 @@ const KMFPage: React.FC = () => {
           )}
 
           {showButton && (
-            <Box sx={{ position: 'fixed', bottom: '25px', right: '60px' }}>
+            <Box sx={{ position: "fixed", bottom: "25px", right: "60px" }}>
               <Button
                 variant="contained"
-                endIcon={<ArrowForwardIcon sx={{ fontSize: '14px' }} />}
-                onClick={handleClick}
-                disabled={view !== 'preview' || !allQuestionsAnswered || isUploading}
+                endIcon={<ArrowForwardIcon sx={{ fontSize: "14px" }} />}
+                onClick={handleGenerateDocument}
+                disabled={
+                  view !== "preview" || !allQuestionsAnswered || isUploading
+                }
                 sx={{
-                  background: 'linear-gradient(135deg, #3EA3FF, #FF3C80)',
-                  color: '#fff',
-                  textTransform: 'none',
-                  fontFamily: 'Poppins',
-                  fontSize: '13px',
+                  background: "linear-gradient(135deg, #3EA3FF, #FF3C80)",
+                  color: "#fff",
+                  textTransform: "none",
+                  fontFamily: "Poppins",
+                  fontSize: "13px",
                   fontWeight: 600,
-                  padding: '10px 20px',
-                  borderRadius: '10px',
-                  boxShadow: '0 3px 8px rgba(62, 163, 255, 0.3)',
-                  '&:hover': {
-                    background: 'linear-gradient(135deg, #2E8FE6, #E6356D)',
+                  padding: "10px 20px",
+                  borderRadius: "10px",
+                  boxShadow: "0 3px 8px rgba(62, 163, 255, 0.3)",
+                  "&:hover": {
+                    background: "linear-gradient(135deg, #2E8FE6, #E6356D)",
                   },
-                  '&:disabled': {
-                    background: '#ccc',
-                    color: '#666',
+                  "&:disabled": {
+                    background: "#ccc",
+                    color: "#666",
                   },
                 }}
               >
-                {isUploading ? 'Uploading...' : 'Generate Document'}
+                {isUploading ? "Uploading..." : "Generate Document"}
               </Button>
-
-              <Menu
-                anchorEl={anchorEl}
-                open={open}
-                onClose={handleClose}
-                anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-                transformOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-                PaperProps={{
-                  sx: {
-                    borderRadius: '10px',
-                    border: '1px solid #D2D2D2',
-                    backgroundColor: '#FFF',
-                    minWidth: '180px',
-                    marginTop: '-8px',
-                  },
-                }}
-              >
-                <MenuItem onClick={() => handleOptionSelect('text')} sx={{ fontFamily: 'Poppins', fontSize: '11px', padding: '10px 14px', backgroundColor: selectedOption === 'text' ? '#D9D9D980' : 'transparent', '&:hover': { backgroundColor: '#D9D9D980' } }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
-                    <Typography sx={{ fontFamily: 'Poppins', fontSize: '11px' }}>Text Base</Typography>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: '4px', marginLeft: '16px' }}>
-                      <Typography sx={{ fontFamily: 'Poppins', fontSize: '11px', color: '#3EA3FF' }}>25</Typography>
-                      <AccountBalanceWalletIcon sx={{ fontSize: '13px', color: '#3EA3FF' }} />
-                    </Box>
-                  </Box>
-                </MenuItem>
-                <MenuItem onClick={() => handleOptionSelect('infographic')} sx={{ fontFamily: 'Poppins', fontSize: '11px', padding: '10px 14px', backgroundColor: selectedOption === 'infographic' ? '#D9D9D980' : 'transparent', '&:hover': { backgroundColor: '#D9D9D980' } }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
-                    <Typography sx={{ fontFamily: 'Poppins', fontSize: '11px' }}>Infographic Base</Typography>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: '4px', marginLeft: '16px' }}>
-                      <Typography sx={{ fontFamily: 'Poppins', fontSize: '11px', color: '#3EA3FF' }}>50</Typography>
-                      <AccountBalanceWalletIcon sx={{ fontSize: '13px', color: '#3EA3FF' }} />
-                    </Box>
-                  </Box>
-                </MenuItem>
-              </Menu>
             </Box>
           )}
         </>
       )}
+
+      <Toaster position="top-right" reverseOrder={false} />
     </Box>
   );
 };

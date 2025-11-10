@@ -1,140 +1,268 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { RootState, AppDispatch } from '@/redux/store';
+import { setDisplayedContent as setIcpDisplayedContent } from '@/redux/services/icp/icpSlice';
+import { setDisplayedContent as setKmfDisplayedContent } from '@/redux/services/kmf/kmfSlice';
+import { setDisplayedContent as setBsDisplayedContent } from '@/redux/services/bs/bsSlice';
+import { setDisplayedContent as setSrDisplayedContent } from '@/redux/services/sr/srSlice';
+import { setDisplayedContent as setGtmDisplayedContent } from '@/redux/services/gtm/gtmSlice';
+import { wsManager } from '@/redux/services/websocketManager';
 
 interface GeneratingProps {
   wsUrl: string;
-  onComplete?: () => void;
+  documentType: 'icp' | 'kmf' | 'bs' | 'sr' | 'gtm';
 }
 
-const Generating: React.FC<GeneratingProps> = ({ wsUrl, onComplete }) => {
-  const [displayedContent, setDisplayedContent] = useState("Waiting for Document Generation...");
-  const [progress, setProgress] = useState(0);
-  const [isComplete, setIsComplete] = useState(false);
+const Generating: React.FC<GeneratingProps> = ({ wsUrl, documentType }) => {
+  const dispatch = useDispatch<AppDispatch>();
   
-  const pendingQueue = useRef<string[]>([]);
+  // Get state from Redux based on documentType
+  const state = useSelector((state: RootState) => {
+    if (documentType === 'icp') return state.icp;
+    if (documentType === 'kmf') return state.kmf;
+    if (documentType === 'bs') return state.bs;
+    if (documentType === 'sr') return state.sr;
+    return state.gtm;
+  });
+  
+  const { 
+    generatingProgress, 
+    generatingContent, 
+    displayedContent: reduxDisplayedContent,
+    generationComplete 
+  } = state;
+  
+  // Select the correct action based on documentType
+  const setDisplayedContent = 
+    documentType === 'icp' ? setIcpDisplayedContent :
+    documentType === 'kmf' ? setKmfDisplayedContent :
+    documentType === 'bs' ? setBsDisplayedContent :
+    documentType === 'sr' ? setSrDisplayedContent :
+    setGtmDisplayedContent;
+  
+  // Local state for typing effect
+  const [localDisplayedContent, setLocalDisplayedContent] = useState("");
+  const [displayedProgress, setDisplayedProgress] = useState(0);
+  const [autoScroll, setAutoScroll] = useState(true);
+  
   const typingInterval = useRef<NodeJS.Timeout | null>(null);
-  const wsRef = useRef<WebSocket | null>(null);
-  const hasCalledComplete = useRef(false); // Prevent duplicate calls
+  const contentRef = useRef<HTMLDivElement>(null);
+  const lastScrollTop = useRef(0);
+  const isUserScrolling = useRef(false);
+  const scrollTimeout = useRef<NodeJS.Timeout | null>(null);
+  const lastTypedLength = useRef(0);
+  const isTypingActive = useRef(false);
+
+  // Check if user is at the bottom
+  const isAtBottom = () => {
+    if (!contentRef.current) return false;
+    const { scrollTop, scrollHeight, clientHeight } = contentRef.current;
+    return scrollHeight - scrollTop - clientHeight < 50;
+  };
+
+  // Handle manual scroll
+  const handleScroll = () => {
+    if (!contentRef.current) return;
+    
+    const currentScrollTop = contentRef.current.scrollTop;
+    const scrollingUp = currentScrollTop < lastScrollTop.current;
+    
+    isUserScrolling.current = true;
+    
+    if (scrollTimeout.current) {
+      clearTimeout(scrollTimeout.current);
+    }
+    
+    if (scrollingUp) {
+      setAutoScroll(false);
+    } else if (isAtBottom()) {
+      setAutoScroll(true);
+    }
+    
+    lastScrollTop.current = currentScrollTop;
+    
+    scrollTimeout.current = setTimeout(() => {
+      isUserScrolling.current = false;
+    }, 150);
+  };
+
+  // Auto-scroll effect
+  useEffect(() => {
+    if (autoScroll && !isUserScrolling.current && contentRef.current) {
+      requestAnimationFrame(() => {
+        if (contentRef.current) {
+          contentRef.current.scrollTop = contentRef.current.scrollHeight;
+          lastScrollTop.current = contentRef.current.scrollTop;
+        }
+      });
+    }
+  }, [localDisplayedContent, autoScroll]);
 
   // Typing effect function
-  const startTyping = (text: string) => {
-    if (typingInterval.current) {
-      clearInterval(typingInterval.current);
-      typingInterval.current = null;
+  const startTypingEffect = (targetContent: string, startFrom: number = 0) => {
+    // Don't start if already typing
+    if (isTypingActive.current) {
+      console.log(`[${documentType.toUpperCase()} Generating] ⏭️ Already typing, skipping...`);
+      return;
     }
-
-    let i = 0;
+    
+    // Don't start if we're already at the target
+    if (startFrom >= targetContent.length) {
+      console.log(`[${documentType.toUpperCase()} Generating] ✓ Already at target length`);
+      return;
+    }
+    
+    console.log(`[${documentType.toUpperCase()} Generating] ⌨️ Starting typing from ${startFrom} to ${targetContent.length}`);
+    isTypingActive.current = true;
+    
+    let currentIndex = startFrom;
+    
     typingInterval.current = setInterval(() => {
-      setDisplayedContent((prev) => prev + text[i]);
-      i++;
-
-      if (i >= text.length) {
+      if (currentIndex < targetContent.length) {
+        const newContent = targetContent.substring(0, currentIndex + 1);
+        setLocalDisplayedContent(newContent);
+        dispatch(setDisplayedContent(newContent));
+        lastTypedLength.current = newContent.length;
+        currentIndex++;
+      } else {
+        // Typing complete
+        console.log(`[${documentType.toUpperCase()} Generating] ✓ Typing complete`);
         clearInterval(typingInterval.current!);
         typingInterval.current = null;
-
-        if (pendingQueue.current.length > 0) {
-          const nextMsg = pendingQueue.current.shift()!;
-          startTyping("\n\n" + nextMsg);
-        }
+        isTypingActive.current = false;
       }
-    }, 15);
+    }, 10); // 10ms per character
   };
 
-  // Function to trigger completion
-  const triggerCompletion = () => {
-    if (!hasCalledComplete.current) {
-      hasCalledComplete.current = true;
-      // console.log("✅ Document generation completed! Triggering onComplete callback...");
-      setIsComplete(true);
-      setProgress(100);
-      
-      // Close WebSocket
-      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-        wsRef.current.close();
-      }
-      
-      // Call the completion callback with a small delay for better UX
-      if (onComplete) {
-        setTimeout(() => {
-          onComplete();
-        }, 800);
-      }
-    }
-  };
-
+  // Initialize on mount
   useEffect(() => {
-    const ws = new WebSocket(wsUrl);
-    wsRef.current = ws;
-
-    ws.onmessage = (event) => {
-      try {
-        const message = JSON.parse(event.data);
-
-        // Handle progress updates
-        if (message.action === "sendMessage" && typeof message.body === "number") {
-          const newProgress = message.body;
-          setProgress(newProgress);
-          
-          // Check if progress reached 100%
-          if (newProgress >= 100) {
-            triggerCompletion();
-          }
-          return;
-        }
-
-        // Handle tier completion messages
-        if (message.type === "tier_completion" && message.data?.content?.content) {
-          const newContent = message.data.content.content;
-
-          if (typingInterval.current) {
-            pendingQueue.current.push(newContent);
-          } else {
-            startTyping(
-              displayedContent === "Waiting for Document Generation..."
-                ? newContent
-                : "\n\n" + newContent
-            );
-          }
-        }
-
-        // Handle completion message
-        if (message.action === "sendMessage" && message.body === "Document generated successfully!") {
-          triggerCompletion();
-        }
-
-        // Handle completion status
-        if (message.status === "completed" || message.status === "complete") {
-          triggerCompletion();
-        }
-      } catch (err) {
-        // console.error("❌ Failed parsing WS message", err);
-      }
-    };
-
-    ws.onerror = (err) => {
-      // console.error("❌ WebSocket error:", err);
-      setDisplayedContent("WebSocket connection error.");
-    };
-
-    ws.onclose = (event) => {
-      // console.log("🔗 WebSocket closed:", event.code, event.reason);
+    console.log(`[${documentType.toUpperCase()} Generating] 🔄 Component mounted`);
+    console.log(`[${documentType.toUpperCase()} Generating] State check:`, {
+      generationComplete,
+      progress: generatingProgress,
+      contentLength: generatingContent.length,
+      displayedLength: reduxDisplayedContent.length
+    });
+    
+    // If already complete, show all content immediately
+    if (generationComplete || generatingProgress >= 100) {
+      console.log(`[${documentType.toUpperCase()} Generating] ⚡ Already complete - showing all content`);
+      setLocalDisplayedContent(generatingContent);
+      setDisplayedProgress(generatingProgress);
+      return;
+    }
+    
+    // Restore displayed content from Redux
+    if (reduxDisplayedContent && reduxDisplayedContent !== "Waiting for Document Generation...") {
+      console.log(`[${documentType.toUpperCase()} Generating] 📦 Restoring content:`, reduxDisplayedContent.length, 'chars');
+      setLocalDisplayedContent(reduxDisplayedContent);
+      lastTypedLength.current = reduxDisplayedContent.length;
       
-      // If connection closed and progress is 100%, ensure completion is triggered
-      if (progress >= 100 || isComplete) {
-        triggerCompletion();
+      // Continue typing if there's new content
+      if (generatingContent.length > reduxDisplayedContent.length) {
+        console.log(`[${documentType.toUpperCase()} Generating] ➕ Continuing typing from where we left off`);
+        startTypingEffect(generatingContent, reduxDisplayedContent.length);
       }
-    };
-
+    } else if (generatingContent !== "Waiting for Document Generation...") {
+      console.log(`[${documentType.toUpperCase()} Generating] 🆕 Starting fresh typing`);
+      setLocalDisplayedContent("");
+      lastTypedLength.current = 0;
+      startTypingEffect(generatingContent, 0);
+    } else {
+      setLocalDisplayedContent("Waiting for Document Generation...");
+    }
+    
+    setDisplayedProgress(generatingProgress);
+    
+    // Cleanup
     return () => {
+      console.log(`[${documentType.toUpperCase()} Generating] 🧹 Component unmounting`);
       if (typingInterval.current) {
         clearInterval(typingInterval.current);
+        typingInterval.current = null;
       }
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.close();
+      if (scrollTimeout.current) {
+        clearTimeout(scrollTimeout.current);
       }
+      isTypingActive.current = false;
     };
-  }, [wsUrl]);
+  }, []);
+
+  // Watch for new content
+  useEffect(() => {
+    const currentContent = generatingContent;
+    const displayedLength = localDisplayedContent.length;
+    
+    if (currentContent === "Waiting for Document Generation...") {
+      return;
+    }
+    
+    // First real content
+    if (localDisplayedContent === "Waiting for Document Generation..." && currentContent !== "Waiting for Document Generation...") {
+      console.log(`[${documentType.toUpperCase()} Generating] 🆕 First real content, starting typing`);
+      setLocalDisplayedContent("");
+      lastTypedLength.current = 0;
+      startTypingEffect(currentContent, 0);
+      return;
+    }
+    
+    // New content to type
+    if (currentContent.length > displayedLength) {
+      if (isTypingActive.current) {
+        console.log(`[${documentType.toUpperCase()} Generating] ⏳ Currently typing, will catch up...`);
+      } else {
+        console.log(`[${documentType.toUpperCase()} Generating] ➕ New content detected, continuing from`, displayedLength);
+        startTypingEffect(currentContent, displayedLength);
+      }
+    }
+  }, [generatingContent]);
+
+  // Smooth progress animation
+  useEffect(() => {
+    const targetProgress = generatingProgress;
+    const currentProgress = displayedProgress;
+    const diff = targetProgress - currentProgress;
+    
+    if (Math.abs(diff) > 0.5) {
+      const duration = 300;
+      const steps = 20;
+      const stepValue = diff / steps;
+      const stepDuration = duration / steps;
+      
+      let currentStep = 0;
+      const interval = setInterval(() => {
+        currentStep++;
+        if (currentStep >= steps) {
+          setDisplayedProgress(targetProgress);
+          clearInterval(interval);
+        } else {
+          setDisplayedProgress(prev => prev + stepValue);
+        }
+      }, stepDuration);
+      
+      return () => clearInterval(interval);
+    } else {
+      setDisplayedProgress(targetProgress);
+    }
+  }, [generatingProgress]);
+
+  // When complete, stop typing and show everything
+  useEffect(() => {
+    if (generationComplete || generatingProgress >= 100) {
+      console.log(`[${documentType.toUpperCase()} Generating] 🎯 Completion detected - stopping typing`);
+      if (typingInterval.current) {
+        clearInterval(typingInterval.current);
+        typingInterval.current = null;
+      }
+      isTypingActive.current = false;
+      setLocalDisplayedContent(generatingContent);
+      setDisplayedProgress(100);
+    }
+  }, [generationComplete, generatingProgress, generatingContent]);
+
+  const isTyping = isTypingActive.current;
 
   return (
     <div
@@ -148,7 +276,7 @@ const Generating: React.FC<GeneratingProps> = ({ wsUrl, onComplete }) => {
         gap: '16px',
       }}
     >
-      {/* Main Card with Content */}
+      {/* Main Card */}
       <div
         style={{
           flex: 1,
@@ -174,12 +302,39 @@ const Generating: React.FC<GeneratingProps> = ({ wsUrl, onComplete }) => {
           Generating Document
         </div>
 
-        {/* Content Display Area */}
+        {/* Connection Status */}
         <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px',
+            marginBottom: '12px',
+          }}
+        >
+          <div
+            style={{
+              width: '8px',
+              height: '8px',
+              borderRadius: '50%',
+              backgroundColor: wsManager.isConnected() ? '#4CAF50' : '#FF5252',
+              animation: wsManager.isConnected() ? 'none' : 'pulse 1.5s ease-in-out infinite',
+            }}
+          />
+          <span style={{ fontFamily: 'Poppins', fontSize: '11px', color: '#666' }}>
+            {wsManager.isConnected() ? 'Connected' : 'Connecting...'}
+          </span>
+        </div>
+
+        {/* Content Display */}
+        <div
+          ref={contentRef}
+          onScroll={handleScroll}
           style={{
             flex: 1,
             overflowY: 'auto',
-            whiteSpace: 'pre-line',
+            whiteSpace: 'pre-wrap',
+            wordBreak: 'break-word',
             fontFamily: 'Poppins',
             fontSize: '12px',
             lineHeight: 1.6,
@@ -188,47 +343,38 @@ const Generating: React.FC<GeneratingProps> = ({ wsUrl, onComplete }) => {
           }}
           className="custom-scrollbar"
         >
-          {displayedContent}
+          {localDisplayedContent}
+          {isTyping && (
+            <span
+              style={{
+                display: 'inline-block',
+                width: '8px',
+                height: '14px',
+                backgroundColor: '#3EA3FF',
+                marginLeft: '2px',
+                animation: 'blink 1s step-end infinite',
+              }}
+            />
+          )}
         </div>
       </div>
 
-      {/* Progress Bar - Below the Main Card */}
+      {/* Progress Bar */}
       <div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-          <div
-            style={{
-              fontFamily: 'Poppins',
-              fontSize: '12px',
-              fontWeight: 500,
-              color: '#666',
-            }}
-          >
-            {isComplete ? 'Document Generated Successfully!' : 'Document is generating it can take a while'}
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+          <div style={{ fontFamily: 'Poppins', fontSize: '12px', fontWeight: 500, color: '#666' }}>
+            {(generationComplete || generatingProgress >= 100) ? 'Document Generated Successfully!' : 'Document is generating, it can take a while'}
           </div>
-          <div
-            style={{
-              fontFamily: 'Poppins',
-              fontSize: '12px',
-              fontWeight: 600,
-              color: '#3EA3FF',
-            }}
-          >
-            {progress.toFixed(0)}%
+          <div style={{ fontFamily: 'Poppins', fontSize: '12px', fontWeight: 600, color: '#3EA3FF' }}>
+            {Math.round(displayedProgress)}%
           </div>
         </div>
         
-        <div
-          style={{
-            height: '8px',
-            borderRadius: '4px',
-            backgroundColor: '#E0E0E0',
-            overflow: 'hidden',
-          }}
-        >
+        <div style={{ height: '8px', borderRadius: '4px', backgroundColor: '#E0E0E0', overflow: 'hidden' }}>
           <div
             style={{
               height: '100%',
-              width: `${progress}%`,
+              width: `${displayedProgress}%`,
               background: 'linear-gradient(90deg, #3EA3FF 0%, #FF3C80 100%)',
               borderRadius: '4px',
               transition: 'width 0.3s ease',
@@ -238,20 +384,12 @@ const Generating: React.FC<GeneratingProps> = ({ wsUrl, onComplete }) => {
       </div>
 
       <style>{`
-        .custom-scrollbar::-webkit-scrollbar {
-          width: 6px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-          background: #f1f1f1;
-          border-radius: 10px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: #888;
-          border-radius: 10px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: #555;
-        }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #888; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #555; }
+        @keyframes blink { 0%, 50% { opacity: 1; } 51%, 100% { opacity: 0; } }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
       `}</style>
     </div>
   );

@@ -34,12 +34,8 @@ import {
   Moniter,
   Iterate,
   BrandSetup,
-  GTM,
-  ICP,
-  KMF,
   LeadCalculator,
   Scheduler,
-  SR,
   FeedbackIcon,
   Logo,
 } from "@/assests/icons";
@@ -325,8 +321,6 @@ const Sidebar: React.FC = () => {
                       : {},
                 }}
               >
-                {/* <DashboardIcon sx={{ fontSize: 20, mr: 1.5, color: selectedItem === 'Dashboard' ? '#FFFFFF' : '#000000' }} />
-                <Dashboard sx={{ fontSize: 20, mr: 1.5, color: selectedItem === 'Dashboard' ? '#FFFFFF' : '#000000' }} /> */}
 
                 <Box
                   component={Dashboard}

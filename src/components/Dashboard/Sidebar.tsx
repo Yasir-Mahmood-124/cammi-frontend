@@ -3,46 +3,41 @@
 import React, { useState, useEffect } from "react";
 import {
   Box,
-  Typography,
-  Avatar,
+  Drawer,
   List,
+  ListItem,
   ListItemButton,
   ListItemText,
-  Divider,
-  IconButton,
-  ListItemIcon,
-  Modal,
+  Typography,
   Collapse,
+  IconButton,
+  Tooltip,
+  Modal,
 } from "@mui/material";
-import Image from "next/image";
-import Logo from "../../assests/images/Logo.png";
-import AddIcon from "@mui/icons-material/Add";
-import MenuIcon from "@mui/icons-material/Menu";
-import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import ExpandLessIcon from "@mui/icons-material/ExpandLess";
+import {
+  ChevronRight as ChevronRightIcon,
+  ExpandMore as ExpandMoreIcon,
+  MenuOpen as MenuOpenIcon,
+  Menu as MenuIcon,
+} from "@mui/icons-material";
 import { useRouter, usePathname } from "next/navigation";
 import toast from "react-hot-toast";
 
-// --------- ICON IMPORTS ----------
 import {
-  BS,
+  Clarify,
   Dashboard,
-  GTM,
-  ICP,
-  KMF,
+  Align,
+  Mobilize,
+  Moniter,
+  Iterate,
+  BrandSetup,
   LeadCalculator,
   Scheduler,
-  SR,
   FeedbackIcon,
+  Logo,
+  CollapseIcon,
 } from "@/assests/icons";
 import CreateProject from "./CreateProject";
-import DocumentGenerationModal from "./DocumentGenerationModal";
-
-interface SidebarProps {
-  isCollapsed: boolean;
-  setIsCollapsed: (collapsed: boolean) => void;
-}
 
 interface CurrentProject {
   organization_id: string;
@@ -51,12 +46,17 @@ interface CurrentProject {
   project_name: string;
 }
 
+interface SidebarProps {
+  isCollapsed: boolean;
+  setIsCollapsed: (collapsed: boolean) => void;
+}
+
 const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
-  const [selected, setSelected] = useState<string>("Dashboard");
-  const [selectedDocs, setSelectedDocs] = useState<string[]>([]);
+  const [openMenus, setOpenMenus] = useState<{ [key: string]: boolean }>({});
+  const [selectedItem, setSelectedItem] = useState<string>("Dashboard");
+  const [selectedParent, setSelectedParent] = useState<string>("");
+  // const [isCollapsed, setIsCollapsed] = useState<boolean>(false);
   const [open, setOpen] = useState(false);
-  const [openDocument, setOpenDocument] = useState(false);
-  const [schedulerOpen, setSchedulerOpen] = useState(false);
   const [currentProject, setCurrentProject] = useState<CurrentProject | null>(
     null
   );
@@ -64,23 +64,27 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
   const router = useRouter();
   const pathname = usePathname();
 
-  const staticDocs = [
-    "GTM Document",
-    "ICP Document",
-    "Strategy Roadmap",
-    "Messaging Framework",
-    "Brand Identity",
-  ];
-
   // Map document labels to routes
   const documentRoutes: Record<string, string> = {
     "GTM Document": "/dashboard/gtm",
-    "ICP Document": "/dashboard/icp",
+    "Ideal Customer Profile": "/dashboard/icp",
     "Strategy Roadmap": "/dashboard/strategy-roadmap",
-    "Messaging Framework": "/dashboard/messaging-framework",
-    "Brand Identity": "/dashboard/brand-identity",
-    "Quarterly marketing plan": "/dashboard/quarterly-marketing-plan",
-    "Content calendar template": "/dashboard/content-calendar-template",
+    "Messaging framework": "/dashboard/messaging-framework",
+    "Brand identity": "/dashboard/brand-identity",
+    "Quarterly Plan": "/dashboard/quarterly-marketing-plan",
+    "Content Strategy": "/dashboard/content-strategy",
+    "Campaign Brief ": "/dashboard/campaign-brief",
+    "SEO/AEO Playbook": "/dashboard/seo-aeo-playbook",
+    "Website landing page": "/dashboard/website-landing-page",
+    Blog: "/dashboard/blog",
+    "Social Media Post": "/dashboard/social-media-post",
+    "Email Templates": "/dashboard/email-templates",
+    "Case Studies": "/dashboard/case-studies",
+    "Sales Deck": "/dashboard/sales-deck",
+    "One-pager": "/dashboard/one-pager",
+    Dashboard: "/dashboard",
+    Recommendations: "/dashboard/recommendations",
+    "Updated Assets": "/dashboard/updated-assets",
   };
 
   // Map tool labels to routes
@@ -92,7 +96,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
     Calendar: "/dashboard/scheduler/calendar",
   };
 
-  //Map Feedback labels to routes
+  // Map Feedback labels to routes
   const feedbackRoutes: Record<string, string> = {
     Feedback: "/dashboard/feedback",
   };
@@ -140,14 +144,23 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
   // Update selected based on current pathname
   useEffect(() => {
     if (pathname === "/dashboard") {
-      setSelected("Dashboard");
+      setSelectedItem("Dashboard");
+      setSelectedParent("");
     } else {
       // Find which document matches the current path
       const matchedDoc = Object.entries(documentRoutes).find(
         ([_, route]) => pathname === route
       );
       if (matchedDoc) {
-        setSelected(matchedDoc[0]);
+        setSelectedItem(matchedDoc[0]);
+        // Find parent for this document
+        const parent = documentGenerationItems.find((item) =>
+          item.subItems?.includes(matchedDoc[0])
+        );
+        if (parent) {
+          setSelectedParent(parent.text);
+          setOpenMenus((prev) => ({ ...prev, [parent.text]: true }));
+        }
         return;
       }
 
@@ -156,22 +169,27 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
         ([_, route]) => pathname === route
       );
       if (matchedTool) {
-        setSelected(matchedTool[0]);
+        setSelectedItem(matchedTool[0]);
         // Auto-open scheduler dropdown if LinkedIn or Calendar is selected
         if (matchedTool[0] === "LinkedIn" || matchedTool[0] === "Calendar") {
-          setSchedulerOpen(true);
+          setSelectedParent("Scheduler");
+          setOpenMenus((prev) => ({ ...prev, Scheduler: true }));
+        } else {
+          setSelectedParent("");
         }
+        return;
+      }
+
+      // Check feedback routes
+      const matchedFeedback = Object.entries(feedbackRoutes).find(
+        ([_, route]) => pathname === route
+      );
+      if (matchedFeedback) {
+        setSelectedItem(matchedFeedback[0]);
+        setSelectedParent("");
       }
     }
   }, [pathname]);
-
-  // Load saved docs from localStorage
-  useEffect(() => {
-    const storedDocs = localStorage.getItem("sidebarDocs");
-    if (storedDocs) {
-      setSelectedDocs(JSON.parse(storedDocs));
-    }
-  }, []);
 
   // Load current project on mount
   useEffect(() => {
@@ -196,726 +214,958 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
     };
   }, []);
 
-  // Save docs to localStorage whenever selectedDocs changes
-  useEffect(() => {
-    localStorage.setItem("sidebarDocs", JSON.stringify(selectedDocs));
-  }, [selectedDocs]);
+  const handleMenuClick = (itemName: string, hasSubItems: boolean = true) => {
+    if (isCollapsed && hasSubItems) {
+      setIsCollapsed(false);
+    }
+    if (hasSubItems) {
+      setOpenMenus((prev) => {
+        const newState: { [key: string]: boolean } = {};
+        Object.keys(prev).forEach((key) => {
+          newState[key] = false;
+        });
+        newState[itemName] = !prev[itemName];
+        return newState;
+      });
+      setSelectedItem(itemName);
+      setSelectedParent("");
+    }
+  };
 
-  const menuItems = [{ label: "Dashboard", icon: <Dashboard /> }];
-  const documentItems = [
-    { label: "GTM Document", icon: <GTM /> },
-    { label: "ICP Document", icon: <ICP /> },
-    { label: "Strategy Roadmap", icon: <SR /> },
-    { label: "Messaging Framework", icon: <KMF /> },
-    { label: "Brand Identity", icon: <BS /> },
-  ];
-  const toolItems = [
-    { label: "Brand Setup", icon: <BS /> },
-    { label: "Lead Calculator", icon: <LeadCalculator /> },
-    { label: "Scheduler", icon: <Scheduler /> },
-  ];
-  const feedbackItems = [{ label: "Feedback", icon: <FeedbackIcon /> }];
+  const handleSubmenuClick = (
+    itemName: string,
+    parentName: string,
+    requiresProject: boolean = false
+  ) => {
+    // Check if project exists for document generation items
+    if (requiresProject && !checkProjectExists()) {
+      toast.error("Please create or select a project first");
+      setOpen(true);
+      return;
+    }
 
-  const getIconFilter = (label: string, isSelected: boolean) => {
-    const reverseIcons = ["Dashboard"];
-    const isReversed = reverseIcons.includes(label);
-    if (isReversed) {
-      return isSelected ? "invert(0)" : "invert(1) brightness(2)";
-    } else {
-      return isSelected ? "invert(1) brightness(2)" : "invert(0)";
+    setSelectedItem(itemName);
+    setSelectedParent(parentName);
+
+    // Navigate based on the route
+    const route =
+      documentRoutes[itemName] ||
+      toolRoutes[itemName] ||
+      feedbackRoutes[itemName];
+    if (route) {
+      router.push(route);
+    } else if (itemName === "Dashboard" && !parentName) {
+      router.push("/dashboard");
+    }
+  };
+
+  const toggleSidebar = () => {
+    setIsCollapsed(!isCollapsed);
+    if (!isCollapsed) {
+      setOpenMenus({});
     }
   };
 
   const handleOpen = () => setOpen(true);
   const handleClose = () => {
     setOpen(false);
-    // Reload project data when modal closes
     loadCurrentProject();
   };
-  const handleOpenDocument = () => setOpenDocument(true);
-  const handleCloseDocument = () => setOpenDocument(false);
 
-  // Handle navigation for menu items
-  const handleMenuItemClick = (label: string) => {
-    setSelected(label);
-    if (label === "Dashboard") {
-      router.push("/dashboard");
-    }
-  };
-
-  // Handle navigation for document items with validation
-  const handleDocumentClick = (label: string) => {
-    if (!checkProjectExists()) {
-      toast.error("Please create or select a project first");
-      setOpen(true);
-      return;
-    }
-
-    setSelected(label);
-    const route = documentRoutes[label];
-    if (route) {
-      router.push(route);
-    }
-  };
-
-  // Handle navigation for tool items
-  const handleToolClick = (label: string) => {
-    setSelected(label);
-    const route = toolRoutes[label];
-    if (route) {
-      router.push(route);
-    }
-  };
-
-  // Common button styles with left indicator
-  const getButtonStyles = (isSelected: boolean) => ({
-    borderRadius: "8px",
-    pl: "8px",
-    color: isSelected ? "#FFF" : "#000",
-    backgroundColor: isSelected ? "#3EA3FF" : "transparent",
-    position: "relative",
-    justifyContent: isCollapsed ? "center" : "flex-start",
-    mb: 0.5,
-    "&:hover": {
-      backgroundColor: isSelected ? "#3EA3FF" : "rgba(62,163,255,0.1)",
+  const documentGenerationItems = [
+    {
+      text: "Clarify",
+      icon: Clarify,
+      subItems: [
+        "GTM Document",
+        "Ideal Customer Profile",
+        "Strategy Roadmap",
+        "Messaging framework",
+        "Brand identity",
+      ],
     },
-    "&::before": {
-      content: '""',
-      position: "absolute",
-      left: "-16px",
-      top: 0,
-      height: "100%",
-      width: isSelected ? "4px" : "0px",
-      backgroundColor: "#3EA3FF",
-      borderRadius: "0 4px 4px 0",
-      transition: "width 0.2s ease",
+    {
+      text: "Align",
+      icon: Align,
+      subItems: [
+        "Quarterly Plan",
+        "Content Strategy",
+        "Campaign Brief ",
+        "SEO/AEO Playbook",
+      ],
     },
-  });
+    {
+      text: "Mobilize",
+      icon: Mobilize,
+      subItems: [
+        "Website landing page",
+        "Blog",
+        "Social Media Post",
+        "Email Templates",
+        "Case Studies",
+        "Sales Deck",
+        "One-pager",
+      ],
+    },
+    {
+      text: "Monitor",
+      icon: Moniter,
+      subItems: ["Dashboard"],
+    },
+    {
+      text: "Iterate",
+      icon: Iterate,
+      subItems: ["Recommendations", "Updated Assets"],
+    },
+  ];
+
+  const toolsItems = [
+    {
+      text: "Brand Setup",
+      icon: BrandSetup,
+    },
+    {
+      text: "Lead Calculator",
+      icon: LeadCalculator,
+    },
+    {
+      text: "Scheduler",
+      icon: Scheduler,
+      subItems: ["LinkedIn", "Calendar"],
+    },
+  ];
+
+  const renderIcon = (
+    IconComponent: any,
+    itemText: string,
+    hasSubItems?: boolean
+  ) => {
+    const isSelected = selectedItem === itemText;
+    const isParentSelected = selectedParent === itemText;
+    const shouldBeColored =
+      isCollapsed && (isSelected || isParentSelected)
+        ? "#3EA3FF"
+        : isSelected && !hasSubItems
+          ? "#FFFFFF"
+          : isSelected || isParentSelected
+            ? "#3EA3FF"
+            : "#000000";
+
+    return (
+      <Box
+        component={IconComponent}
+        sx={{
+          width: 20,
+          height: 20,
+          mr: isCollapsed ? 0 : 1.5,
+          "& path": {
+            fill: shouldBeColored,
+          },
+        }}
+      />
+    );
+  };
 
   return (
-    <Box
+    <Drawer
+      variant="permanent"
       sx={{
-        width: isCollapsed ? "70px" : "270px",
-        backgroundColor: "#FFF",
-        display: "flex",
-        flexDirection: "column",
-        justifyContent: "space-between",
-        borderRight: "1px solid #E0E0E0",
-        height: "100vh",
-        position: "fixed",
-        top: 0,
-        left: 0,
+        width: isCollapsed ? 70 : 240,
+        flexShrink: 0,
         transition: "width 0.3s ease",
-        overflow: "hidden",
+        "& .MuiDrawer-paper": {
+          width: isCollapsed ? 70 : 240,
+          boxSizing: "border-box",
+          backgroundColor: "#FFFFFF",
+          borderRight: "1px solid #E0E0E0",
+          height: "100vh",
+          overflow: "hidden",
+          transition: "width 0.3s ease",
+        },
       }}
     >
-      {/* Top Section */}
-      <Box sx={{ p: 2, flexShrink: 0 }}>
+      <Box sx={{ display: "flex", flexDirection: "column", height: "100vh" }}>
+        {/* Logo and Toggle Button */}
         <Box
-          display="flex"
-          alignItems="center"
-          justifyContent={isCollapsed ? "center" : "space-between"}
-          gap={1.5}
-          mb={2}
+          sx={{
+            px: isCollapsed ? 1 : 3,
+            pt: 1.5,
+            pb: 0.8,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: isCollapsed ? "center" : "space-between",
+          }}
         >
           {!isCollapsed && (
-            <Image
-              src={Logo}
-              alt="Logo"
-              width={60}
-              height={45}
-              style={{ aspectRatio: "4/3" }}
+            <Box
+              component={Logo}
+              alt="Cammi Logo"
+              sx={{
+                height: 50,
+                width: "auto",
+                display: "flex",
+                alignItems: "center",
+                color: "#000",
+                marginLeft: "45px",
+              }}
             />
           )}
           <IconButton
-            onClick={() => setIsCollapsed(!isCollapsed)}
+            onClick={toggleSidebar}
+            size="small"
             sx={{
-              color: "#3EA3FF",
-              "&:hover": { backgroundColor: "rgba(62,163,255,0.1)" },
+              color: "#757575",
+              "&:hover": {
+                backgroundColor: "#F5F5F5",
+              },
             }}
           >
-            {isCollapsed ? <MenuIcon /> : <ChevronLeftIcon />}
+            {isCollapsed ? (
+              <MenuIcon sx={{ fontSize: 20 }} />
+
+            ) : (
+              <Box
+                component={CollapseIcon}
+                alt="Cammi Logo"
+                sx={{
+                  // height: 50,
+                  // width: 50,
+                  display: "flex",
+                  alignItems: "center",
+                  color: "#000",
+                  // marginLeft: "100px",
+                  marginRight: "-16px"
+
+                }}
+              />
+            )}
           </IconButton>
         </Box>
-      </Box>
 
-      {/* Middle Section */}
-      <Box
-        sx={{
-          flexGrow: 1,
-          px: 2,
-          overflow: "hidden",
-          display: "flex",
-          flexDirection: "column",
-          marginTop: "-20px",
-        }}
-      >
-        {/* Main Menu */}
-        <List sx={{ flexShrink: 0 }}>
-          {menuItems.map((item) => {
-            const isSelected = selected === item.label;
-            return (
-              <ListItemButton
-                key={item.label}
-                onClick={() => handleMenuItemClick(item.label)}
-                sx={getButtonStyles(isSelected)}
+        {/* Scrollable Content Area */}
+        <Box
+          sx={{
+            flexGrow: 1,
+            overflowY: "auto",
+            overflowX: "hidden",
+            "&::-webkit-scrollbar": {
+              width: "6px",
+            },
+            "&::-webkit-scrollbar-track": {
+              backgroundColor: "transparent",
+            },
+            "&::-webkit-scrollbar-thumb": {
+              backgroundColor: "#BDBDBD",
+              borderRadius: "3px",
+            },
+            "&::-webkit-scrollbar-thumb:hover": {
+              backgroundColor: "#9E9E9E",
+            },
+          }}
+        >
+          {/* Main Menu */}
+          <List sx={{ px: isCollapsed ? 1 : 2, pt: 0, pb: 0 }}>
+            <ListItem disablePadding>
+              <Tooltip
+                title={isCollapsed ? "Dashboard" : ""}
+                placement="right"
               >
-                <ListItemIcon
+                <ListItemButton
+                  onClick={() => handleSubmenuClick("Dashboard", "", false)}
                   sx={{
-                    minWidth: isCollapsed ? "unset" : "32px",
-                    justifyContent: "center",
-                    "& svg": {
-                      width: 21,
-                      height: 21,
-                      transition: "filter 0.2s ease",
-                      filter: getIconFilter(item.label, isSelected),
+                    borderRadius: 1,
+                    mb: 0.2,
+                    py: 0.4,
+                    backgroundColor:
+                      isCollapsed || selectedItem !== "Dashboard"
+                        ? "transparent"
+                        : "#3EA3FF",
+                    position: "relative",
+                    justifyContent: isCollapsed ? "center" : "flex-start",
+                    "&:hover": {
+                      backgroundColor:
+                        selectedItem === "Dashboard" && !isCollapsed
+                          ? "#3EA3FF"
+                          : "#F5F5F5",
                     },
+                    "&::before":
+                      selectedItem === "Dashboard"
+                        ? {
+                          content: '""',
+                          position: "absolute",
+                          left: -8,
+                          top: "50%",
+                          transform: "translateY(-50%)",
+                          width: "4px",
+                          height: "20px",
+                          backgroundColor: "#3EA3FF",
+                          borderRadius: "0 4px 4px 0",
+                        }
+                        : {},
                   }}
                 >
-                  {item.icon}
-                </ListItemIcon>
-                {!isCollapsed && (
-                  <ListItemText
-                    primary={item.label}
-                    primaryTypographyProps={{
-                      fontSize: "14px",
-                      letterSpacing: "0.3px",
-                      color: isSelected ? "#FFF" : "#000",
+                  <Box
+                    component={Dashboard}
+                    sx={{
+                      fontSize: 20,
+                      mr: isCollapsed ? 0 : 1.5,
+                      color:
+                        isCollapsed && selectedItem === "Dashboard"
+                          ? "#3EA3FF"
+                          : selectedItem === "Dashboard"
+                            ? "#FFFFFF"
+                            : "#000000",
+                      "& path": {
+                        fill:
+                          isCollapsed && selectedItem === "Dashboard"
+                            ? "#3EA3FF"
+                            : selectedItem === "Dashboard"
+                              ? "#FFFFFF"
+                              : "#000000",
+                      },
                     }}
                   />
-                )}
-              </ListItemButton>
-            );
-          })}
-        </List>
+                  {!isCollapsed && (
+                    <ListItemText
+                      primary="Dashboard"
+                      primaryTypographyProps={{
+                        fontSize: "14px",
+                        fontWeight: 500,
+                        color:
+                          selectedItem === "Dashboard" ? "#FFFFFF" : "#000000",
+                      }}
+                    />
+                  )}
+                </ListItemButton>
+              </Tooltip>
+            </ListItem>
+          </List>
 
-        {!isCollapsed && (
-          <>
-            <Divider
-              sx={{ my: 0, mx: "-16px", borderColor: "#E0E0E0", flexShrink: 0 }}
-            />
+          {/* Divider */}
+          <Box sx={{ my: 0.5 }}>
+            <Box sx={{ borderTop: "1px solid #E0E0E0" }} />
+          </Box>
 
-            {/* Document Generation */}
-            <Box sx={{ flexShrink: 0, flexGrow: 0 }}>
-              {/* Fixed Header */}
-              <Box
-                display="flex"
-                alignItems="center"
-                justifyContent="space-between"
-                sx={{ mb: 1, backgroundColor: "#FFF", zIndex: 1 }}
-              >
-                <Typography
-                  sx={{
-                    color: "#202224",
-                    opacity: 0.6,
-                    fontSize: "12px",
-                    letterSpacing: "0.257px",
-                  }}
-                >
-                  Document Generation
-                </Typography>
-                <IconButton
-                  size="small"
-                  sx={{ color: "#202224", opacity: 0.6 }}
-                  onClick={handleOpenDocument}
-                >
-                  <AddIcon sx={{ fontSize: "16px" }} />
-                </IconButton>
-              </Box>
-
-              <DocumentGenerationModal
-                open={openDocument}
-                onClose={handleCloseDocument}
-                selected={selectedDocs}
-                setSelected={setSelectedDocs}
-              />
-
-              {/* Scrollable Document List */}
-              <Box
+          {/* Document Generation Section */}
+          <Box sx={{ px: isCollapsed ? 1 : 2, mt: 0.3 }}>
+            {!isCollapsed && (
+              <Typography
+                variant="caption"
                 sx={{
-                  maxHeight: "112px",
-                  overflowY: "auto",
-                  mb: 1,
-                  pr: "8px",
-                  mr: "-16px",
-                  "&::-webkit-scrollbar": { width: "6px" },
-                  "&::-webkit-scrollbar-thumb": {
-                    backgroundColor: "#3EA3FF",
-                    borderRadius: "3px",
-                  },
-                  "&::-webkit-scrollbar-track": {
-                    backgroundColor: "transparent",
-                  },
+                  px: 2,
+                  color: "#9E9E9E",
+                  fontSize: "11px",
+                  fontWeight: 500,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.5px",
+                  mb: 0.5,
+                  display: "block",
                 }}
               >
-                <List sx={{ py: 0 }}>
-                  {/* Static documents always visible */}
-                  {staticDocs.map((label) => {
-                    const icon = documentItems.find(
-                      (doc) => doc.label === label
-                    )?.icon || <GTM />;
-                    const isSelected = selected === label;
-                    return (
+                Document Generation
+              </Typography>
+            )}
+
+            <List sx={{ mt: 0.2, pb: 0 }}>
+              {documentGenerationItems.map((item) => (
+                <Box key={item.text}>
+                  <ListItem disablePadding>
+                    <Tooltip
+                      title={isCollapsed ? item.text : ""}
+                      placement="right"
+                    >
                       <ListItemButton
-                        key={label}
-                        onClick={() => handleDocumentClick(label)}
-                        sx={getButtonStyles(isSelected)}
+                        onClick={() => handleMenuClick(item.text, true)}
+                        sx={{
+                          borderRadius: 1,
+                          mb: 0.2,
+                          py: 0.4,
+                          backgroundColor: "transparent",
+                          position: "relative",
+                          justifyContent: isCollapsed ? "center" : "flex-start",
+                          "&:hover": {
+                            backgroundColor: "#F5F5F5",
+                          },
+                          "&::before":
+                            selectedItem === item.text ||
+                              selectedParent === item.text
+                              ? {
+                                content: '""',
+                                position: "absolute",
+                                left: -8,
+                                top: "50%",
+                                transform: "translateY(-50%)",
+                                width: "4px",
+                                height: "20px",
+                                backgroundColor: "#3EA3FF",
+                                borderRadius: "0 4px 4px 0",
+                              }
+                              : {},
+                        }}
                       >
-                        <ListItemIcon
+                        {renderIcon(item.icon, item.text, true)}
+
+                        {!isCollapsed && (
+                          <>
+                            <ListItemText
+                              primary={item.text}
+                              primaryTypographyProps={{
+                                fontSize: "14px",
+                                fontWeight: 500,
+                                color:
+                                  selectedItem === item.text ||
+                                    selectedParent === item.text
+                                    ? "#3EA3FF"
+                                    : "#000000",
+                              }}
+                            />
+                            {openMenus[item.text] ? (
+                              <ExpandMoreIcon
+                                sx={{
+                                  fontSize: 18,
+                                  color:
+                                    selectedItem === item.text ||
+                                      selectedParent === item.text
+                                      ? "#3EA3FF"
+                                      : "#757575",
+                                }}
+                              />
+                            ) : (
+                              <ChevronRightIcon
+                                sx={{
+                                  fontSize: 18,
+                                  color:
+                                    selectedItem === item.text ||
+                                      selectedParent === item.text
+                                      ? "#3EA3FF"
+                                      : "#757575",
+                                }}
+                              />
+                            )}
+                          </>
+                        )}
+                      </ListItemButton>
+                    </Tooltip>
+                  </ListItem>
+                  {!isCollapsed && (
+                    <Collapse
+                      in={openMenus[item.text]}
+                      timeout="auto"
+                      unmountOnExit
+                    >
+                      <List
+                        component="div"
+                        disablePadding
+                        sx={{ position: "relative" }}
+                      >
+                        <Box
                           sx={{
-                            minWidth: "32px",
-                            "& svg": {
-                              width: 20,
-                              height: 20,
-                              filter: getIconFilter(label, isSelected),
-                            },
-                          }}
-                        >
-                          {icon}
-                        </ListItemIcon>
-                        <ListItemText
-                          primary={label}
-                          primaryTypographyProps={{
-                            fontSize: "14px",
-                            color: isSelected ? "#FFF" : "#000",
+                            position: "absolute",
+                            left: 32,
+                            top: 0,
+                            bottom: 0,
+                            width: "2px",
+                            backgroundColor: "#D2E9FF",
                           }}
                         />
-                      </ListItemButton>
-                    );
-                  })}
+                        {item.subItems.map((subItem, index) => (
+                          <ListItem key={subItem} disablePadding>
+                            <ListItemButton
+                              onClick={() =>
+                                handleSubmenuClick(subItem, item.text, true)
+                              }
+                              sx={{
+                                pl: 2,
+                                py: 0.4,
+                                borderRadius: "4px",
+                                mb:
+                                  index === item.subItems.length - 1 ? 0.2 : 0,
+                                ml: "38px",
+                                mr: 2,
+                                backgroundColor:
+                                  selectedItem === subItem
+                                    ? "#3EA3FF"
+                                    : "transparent",
+                                position: "relative",
+                                "&:hover": {
+                                  backgroundColor:
+                                    selectedItem === subItem
+                                      ? "#3EA3FF"
+                                      : "#F5F5F5",
+                                },
+                              }}
+                            >
+                              <ListItemText
+                                primary={subItem}
+                                primaryTypographyProps={{
+                                  fontSize: "13px",
+                                  fontWeight:
+                                    selectedItem === subItem ? 600 : 400,
+                                  color:
+                                    selectedItem === subItem
+                                      ? "#FFFFFF"
+                                      : "#000000",
+                                }}
+                              />
+                            </ListItemButton>
+                          </ListItem>
+                        ))}
+                      </List>
+                    </Collapse>
+                  )}
+                </Box>
+              ))}
+            </List>
+          </Box>
 
-                  {/* Dynamic documents */}
-                  {selectedDocs.map((label) => {
-                    const icon = documentItems.find(
-                      (doc) => doc.label === label
-                    )?.icon || <GTM />;
-                    const isSelected = selected === label;
-                    return (
-                      <ListItemButton
-                        key={label}
-                        onClick={() => handleDocumentClick(label)}
-                        sx={getButtonStyles(isSelected)}
-                      >
-                        <ListItemIcon
-                          sx={{
-                            minWidth: "32px",
-                            "& svg": {
-                              width: 20,
-                              height: 20,
-                              filter: getIconFilter(label, isSelected),
-                            },
-                          }}
-                        >
-                          {icon}
-                        </ListItemIcon>
-                        <ListItemText
-                          primary={label}
-                          primaryTypographyProps={{
-                            fontSize: "14px",
-                            color: isSelected ? "#FFF" : "#000",
-                          }}
-                        />
-                      </ListItemButton>
-                    );
-                  })}
-                </List>
-              </Box>
-            </Box>
+          {/* Divider */}
+          <Box sx={{ my: 0.5 }}>
+            <Box sx={{ borderTop: "1px solid #E0E0E0" }} />
+          </Box>
 
-            <Divider
-              sx={{
-                my: 0,
-                marginTop: "-15px",
-                mx: "-16px",
-                borderColor: "#E0E0E0",
-                flexShrink: 0,
-              }}
-            />
-
-            {/* Tools */}
-            <Box
-              sx={{
-                flex: 1,
-                display: "flex",
-                flexDirection: "column",
-                minHeight: 0,
-                position: "relative",
-                zIndex: 10,
-              }}
-            >
-              {/* Fixed Header */}
+          {/* Tools Section */}
+          <Box sx={{ px: isCollapsed ? 1 : 2, mt: 0.3 }}>
+            {!isCollapsed && (
               <Typography
+                variant="caption"
                 sx={{
-                  color: "#202224",
-                  opacity: 0.6,
-                  fontSize: "12px",
-                  letterSpacing: "0.257px",
-                  mb: 1,
-                  backgroundColor: "#FFF",
-                  zIndex: 1,
-                  flexShrink: 0,
+                  px: 2,
+                  color: "#9E9E9E",
+                  fontSize: "11px",
+                  fontWeight: 500,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.5px",
                 }}
               >
                 Tools
               </Typography>
-
-              {/* Tools List */}
-              <Box
-                sx={{
-                  flex: 1,
-                  overflowY: "auto",
-                  pr: "8px",
-                  mr: "-16px",
-                  minHeight: 0,
-                  "&::-webkit-scrollbar": { width: "6px" },
-                  "&::-webkit-scrollbar-thumb": {
-                    backgroundColor: "#3EA3FF",
-                    borderRadius: "3px",
-                  },
-                  "&::-webkit-scrollbar-track": {
-                    backgroundColor: "transparent",
-                  },
-                }}
-              >
-                <List sx={{ py: 0 }}>
-                  {toolItems.map((item) => {
-                    const isSelected = selected === item.label;
-                    return (
-                      <React.Fragment key={item.label}>
-                        <ListItemButton
-                          onClick={() => {
-                            if (item.label === "Scheduler") {
-                              setSchedulerOpen((prev) => !prev);
-                            } else {
-                              handleToolClick(item.label);
-                              setSchedulerOpen(false);
-                            }
-                          }}
-                          sx={getButtonStyles(isSelected)}
-                        >
-                          <ListItemIcon
-                            sx={{
-                              minWidth: "32px",
-                              "& svg": {
-                                width: 20,
-                                height: 20,
-                                filter: getIconFilter(item.label, isSelected),
-                              },
-                            }}
-                          >
-                            {item.icon}
-                          </ListItemIcon>
-                          <ListItemText
-                            primary={item.label}
-                            primaryTypographyProps={{
-                              fontSize: "14px",
-                              color: isSelected ? "#FFF" : "#000",
-                            }}
-                          />
-                          {item.label === "Scheduler" && (
-                            <Box sx={{ ml: "auto" }}>
-                              {schedulerOpen ? (
-                                <ExpandLessIcon
+            )}
+            <List sx={{ mt: 0.2, pb: 0 }}>
+              {toolsItems.map((item) => (
+                <Box key={item.text}>
+                  <ListItem disablePadding>
+                    <Tooltip
+                      title={isCollapsed ? item.text : ""}
+                      placement="right"
+                    >
+                      <ListItemButton
+                        onClick={() =>
+                          item.subItems
+                            ? handleMenuClick(item.text, true)
+                            : handleSubmenuClick(item.text, "", false)
+                        }
+                        sx={{
+                          borderRadius: 1,
+                          mb: 0.2,
+                          py: 0.4,
+                          backgroundColor:
+                            isCollapsed ||
+                              !(selectedItem === item.text && !item.subItems)
+                              ? "transparent"
+                              : "#3EA3FF",
+                          position: "relative",
+                          justifyContent: isCollapsed ? "center" : "flex-start",
+                          "&:hover": {
+                            backgroundColor:
+                              selectedItem === item.text &&
+                                !item.subItems &&
+                                !isCollapsed
+                                ? "#3EA3FF"
+                                : "#F5F5F5",
+                          },
+                          "&::before":
+                            selectedItem === item.text ||
+                              selectedParent === item.text
+                              ? {
+                                content: '""',
+                                position: "absolute",
+                                left: -8,
+                                top: "50%",
+                                transform: "translateY(-50%)",
+                                width: "4px",
+                                height: "20px",
+                                backgroundColor: "#3EA3FF",
+                                borderRadius: "0 4px 4px 0",
+                              }
+                              : {},
+                        }}
+                      >
+                        {renderIcon(item.icon, item.text, !!item.subItems)}
+                        {!isCollapsed && (
+                          <>
+                            <ListItemText
+                              primary={item.text}
+                              primaryTypographyProps={{
+                                fontSize: "14px",
+                                fontWeight: 500,
+                                color:
+                                  selectedItem === item.text && !item.subItems
+                                    ? "#FFFFFF"
+                                    : selectedItem === item.text ||
+                                      selectedParent === item.text
+                                      ? "#3EA3FF"
+                                      : "#000000",
+                              }}
+                            />
+                            {item.subItems &&
+                              (openMenus[item.text] ? (
+                                <ExpandMoreIcon
                                   sx={{
-                                    fontSize: "18px",
-                                    color: isSelected ? "#FFF" : "#000",
+                                    fontSize: 18,
+                                    color:
+                                      selectedItem === item.text ||
+                                        selectedParent === item.text
+                                        ? "#3EA3FF"
+                                        : "#757575",
                                   }}
                                 />
                               ) : (
-                                <ExpandMoreIcon
+                                <ChevronRightIcon
                                   sx={{
-                                    fontSize: "18px",
-                                    color: isSelected ? "#FFF" : "#000",
-                                  }}
-                                />
-                              )}
-                            </Box>
-                          )}
-                        </ListItemButton>
-
-                        {item.label === "Scheduler" && (
-                          <Collapse
-                            in={schedulerOpen}
-                            timeout="auto"
-                            unmountOnExit
-                          >
-                            <List sx={{ pl: 4, py: 0 }}>
-                              <ListItemButton
-                                onClick={() => {
-                                  handleToolClick("LinkedIn");
-                                }}
-                                sx={{
-                                  borderRadius: "8px",
-                                  mb: 0.5,
-                                  backgroundColor:
-                                    selected === "LinkedIn"
-                                      ? "#E3F2FD"
-                                      : "transparent",
-                                  "&:hover": {
-                                    backgroundColor:
-                                      selected === "LinkedIn"
-                                        ? "#E3F2FD"
-                                        : "rgba(62,163,255,0.1)",
-                                  },
-                                }}
-                              >
-                                <ListItemText
-                                  primary="LinkedIn"
-                                  primaryTypographyProps={{
-                                    fontSize: "14px",
+                                    fontSize: 18,
                                     color:
-                                      selected === "LinkedIn"
+                                      selectedItem === item.text ||
+                                        selectedParent === item.text
                                         ? "#3EA3FF"
-                                        : "#000",
-                                    fontWeight:
-                                      selected === "LinkedIn" ? 500 : 400,
+                                        : "#757575",
                                   }}
                                 />
-                              </ListItemButton>
-                              <ListItemButton
-                                onClick={() => {
-                                  handleToolClick("Calendar");
-                                }}
-                                sx={{
-                                  borderRadius: "8px",
-                                  mb: 0.5,
-                                  backgroundColor:
-                                    selected === "Calendar"
-                                      ? "#E3F2FD"
-                                      : "transparent",
-                                  "&:hover": {
-                                    backgroundColor:
-                                      selected === "Calendar"
-                                        ? "#E3F2FD"
-                                        : "rgba(62,163,255,0.1)",
-                                  },
-                                }}
-                              >
-                                <ListItemText
-                                  primary="Calendar"
-                                  primaryTypographyProps={{
-                                    fontSize: "14px",
-                                    color:
-                                      selected === "Calendar"
-                                        ? "#3EA3FF"
-                                        : "#000",
-                                    fontWeight:
-                                      selected === "Calendar" ? 500 : 400,
-                                  }}
-                                />
-                              </ListItemButton>
-                            </List>
-                          </Collapse>
+                              ))}
+                          </>
                         )}
-                      </React.Fragment>
-                    );
-                  })}
-                </List>
-              </Box>
-            </Box>
-          </>
-        )}
-
-        {/* feedback section */}
-        {!isCollapsed && (
-          <>
-            <Divider
-              sx={{ my: 0, mx: "-16px", borderColor: "#E0E0E0", flexShrink: 0 }}
-            />
-            <Box
-              sx={{ flexShrink: 0, position: "relative", zIndex: 10, mt: 1 }}
-            >
-              <List sx={{ py: 0 }}>
-                {feedbackItems.map((item) => {
-                  const isSelected = selected === item.label;
-                  return (
-                    <ListItemButton
-                      key={item.label}
-                      onClick={() => {
-                        setSelected(item.label);
-                        const route = feedbackRoutes[item.label];
-                        if (route) {
-                          router.push(route);
-                        }
-                      }}
-                      sx={getButtonStyles(isSelected)}
+                      </ListItemButton>
+                    </Tooltip>
+                  </ListItem>
+                  {!isCollapsed && item.subItems && (
+                    <Collapse
+                      in={openMenus[item.text]}
+                      timeout="auto"
+                      unmountOnExit
                     >
-                      <ListItemIcon
-                        sx={{
-                          minWidth: "32px",
-                          "& svg": {
-                            width: 22,
-                            height: 22,
-                            filter: getIconFilter(item.label, isSelected),
-                          },
-                        }}
+                      <List
+                        component="div"
+                        disablePadding
+                        sx={{ position: "relative" }}
                       >
-                        {item.icon}
-                      </ListItemIcon>
-                      <ListItemText
-                        primary={item.label}
-                        primaryTypographyProps={{
-                          fontSize: "14px",
-                          color: isSelected ? "#FFF" : "#000",
-                        }}
-                      />
-                    </ListItemButton>
-                  );
-                })}
-              </List>
-            </Box>
-          </>
-        )}
+                        <Box
+                          sx={{
+                            position: "absolute",
+                            left: 32,
+                            top: 0,
+                            bottom: 0,
+                            width: "2px",
+                            backgroundColor: "#D2E9FF",
+                          }}
+                        />
+                        {item.subItems.map((subItem, index) => (
+                          <ListItem key={subItem} disablePadding>
+                            <ListItemButton
+                              onClick={() =>
+                                handleSubmenuClick(subItem, item.text, false)
+                              }
+                              sx={{
+                                pl: 2,
+                                py: 0.4,
+                                borderRadius: "4px",
+                                mb:
+                                  index === item.subItems.length - 1 ? 0.2 : 0,
+                                ml: "38px",
+                                mr: 2,
+                                backgroundColor:
+                                  selectedItem === subItem
+                                    ? "#3EA3FF"
+                                    : "transparent",
+                                position: "relative",
+                                "&:hover": {
+                                  backgroundColor:
+                                    selectedItem === subItem
+                                      ? "#3EA3FF"
+                                      : "#F5F5F5",
+                                },
+                              }}
+                            >
+                              <ListItemText
+                                primary={subItem}
+                                primaryTypographyProps={{
+                                  fontSize: "13px",
+                                  fontWeight:
+                                    selectedItem === subItem ? 600 : 400,
+                                  color:
+                                    selectedItem === subItem
+                                      ? "#FFFFFF"
+                                      : "#000000",
+                                }}
+                              />
+                            </ListItemButton>
+                          </ListItem>
+                        ))}
+                      </List>
+                    </Collapse>
+                  )}
+                </Box>
+              ))}
+            </List>
+          </Box>
 
-        {/* Collapsed view - only icons */}
-        {isCollapsed && (
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 1, mt: 2 }}>
-            {documentItems.slice(0, 3).map((item) => {
-              const isSelected = selected === item.label;
-              return (
-                <IconButton
-                  key={item.label}
-                  onClick={() => handleDocumentClick(item.label)}
-                  sx={{
-                    borderRadius: "8px",
-                    backgroundColor: isSelected ? "#3EA3FF" : "transparent",
-                    position: "relative",
-                    "&:hover": {
-                      backgroundColor: isSelected
-                        ? "#3EA3FF"
-                        : "rgba(62,163,255,0.1)",
-                    },
-                    "&::before": {
-                      content: '""',
-                      position: "absolute",
-                      left: "-16px",
-                      top: 0,
-                      height: "100%",
-                      width: isSelected ? "4px" : "0px",
-                      backgroundColor: "#3EA3FF",
-                      borderRadius: "0 4px 4px 0",
-                    },
-                  }}
+          {/* Divider */}
+          <Box sx={{ my: 0.5 }}>
+            <Box sx={{ borderTop: "1px solid #E0E0E0" }} />
+          </Box>
+
+          {/* User Feedback Section */}
+          <Box sx={{ px: isCollapsed ? 1 : 2, mb: 0.5 }}>
+            {!isCollapsed && (
+              <Typography
+                variant="caption"
+                sx={{
+                  px: 2,
+                  color: "#9E9E9E",
+                  fontSize: "11px",
+                  fontWeight: 500,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.5px",
+                }}
+              >
+                User Feedback
+              </Typography>
+            )}
+            <List sx={{ mt: 0.2, pb: 0 }}>
+              <ListItem disablePadding>
+                <Tooltip
+                  title={isCollapsed ? "Feedback" : ""}
+                  placement="right"
                 >
-                  <Box
+                  <ListItemButton
+                    onClick={() => handleSubmenuClick("Feedback", "", false)}
                     sx={{
-                      "& svg": {
-                        width: 21,
-                        height: 21,
-                        filter: getIconFilter(item.label, isSelected),
+                      borderRadius: 1,
+                      mb: 0.2,
+                      py: 0.4,
+                      backgroundColor:
+                        isCollapsed || selectedItem !== "Feedback"
+                          ? "transparent"
+                          : "#3EA3FF",
+                      position: "relative",
+                      justifyContent: isCollapsed ? "center" : "flex-start",
+                      "&:hover": {
+                        backgroundColor:
+                          selectedItem === "Feedback" && !isCollapsed
+                            ? "#3EA3FF"
+                            : "#F5F5F5",
                       },
+                      "&::before":
+                        selectedItem === "Feedback"
+                          ? {
+                            content: '""',
+                            position: "absolute",
+                            left: -8,
+                            top: "50%",
+                            transform: "translateY(-50%)",
+                            width: "4px",
+                            height: "20px",
+                            backgroundColor: "#3EA3FF",
+                            borderRadius: "0 4px 4px 0",
+                          }
+                          : {},
                     }}
                   >
-                    {item.icon}
-                  </Box>
-                </IconButton>
-              );
-            })}
+                    <Box
+                      component={FeedbackIcon}
+                      sx={{
+                        fontSize: 20,
+                        mr: isCollapsed ? 0 : 2,
+                        color:
+                          isCollapsed && selectedItem === "Feedback"
+                            ? "#3EA3FF"
+                            : selectedItem === "Feedback"
+                              ? "#FFFFFF"
+                              : "#000000",
+                        "& path": {
+                          fill:
+                            isCollapsed && selectedItem === "Feedback"
+                              ? "#3EA3FF"
+                              : selectedItem === "Feedback"
+                                ? "#FFFFFF"
+                                : "#000000",
+                        },
+                      }}
+                    />
+                    {!isCollapsed && (
+                      <ListItemText
+                        primary="Feedback"
+                        primaryTypographyProps={{
+                          fontSize: "14px",
+                          fontWeight: 500,
+                          color:
+                            selectedItem === "Feedback" ? "#FFFFFF" : "#000000",
+                        }}
+                      />
+                    )}
+                  </ListItemButton>
+                </Tooltip>
+              </ListItem>
+            </List>
+          </Box>
+        </Box>
+
+        {/* Divider before bottom fixed section */}
+        <Box sx={{ borderTop: "1px solid #E0E0E0" }} />
+
+        {/* Bottom Project Info - Fixed at bottom */}
+        {!isCollapsed && (
+          <Box
+            sx={{
+              // px: 2,
+              // py: 1,
+            }}
+          >
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                px: 2,
+                py: 1,
+                cursor: "pointer",
+                "&:hover": {
+                  backgroundColor: "#F5F5F5",
+                  borderRadius: 1,
+                },
+              }}
+              onClick={handleOpen}
+            >
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                <Box
+                  sx={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: "50%",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                    background: "linear-gradient(135deg, #1e3a8a 0%, #1e40af 50%, #3b82f6 100%)",
+                    fontSize: "0.875rem",
+                    fontWeight: 700,
+                    color: "#FFF",
+                    boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+                  }}
+                >
+                  {currentProject?.organization_name
+                    ? getOrganizationInitials(currentProject.organization_name)
+                    : "CP"}
+                </Box>
+                <Box>
+                  <Typography
+                    sx={{
+                      fontSize: "15px",
+                      fontWeight: 600,
+                      color: "#1a1a1a",
+                      lineHeight: 1.4,
+                      letterSpacing: "-0.01em",
+                    }}
+                  >
+                    {currentProject?.organization_name || "Create Project"}
+                  </Typography>
+                  <Typography
+                    sx={{
+                      fontSize: "12px",
+                      color: "#757575",
+                      lineHeight: 1.4,
+                      fontWeight: 400,
+                    }}
+                  >
+                    Basic plan
+                  </Typography>
+                </Box>
+              </Box>
+              <Box
+                sx={{
+                  width: 28,
+                  height: 28,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "pointer",
+                  borderRadius: "50%",
+                  border: "1.5px solid #e0e0e0",
+                  backgroundColor: "#fff",
+                  "&:hover": {
+                    backgroundColor: "#f5f5f5",
+                    borderColor: "#bdbdbd",
+                  },
+                }}
+              >
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#616161"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <polyline points="18 15 12 9 6 15" />
+                </svg>
+              </Box>
+            </Box>
+          </Box>
+        )}
+
+        {isCollapsed && (
+          <Box
+            sx={{
+              p: 2,
+              display: "flex",
+              justifyContent: "center",
+            }}
+          >
+            <Box
+              sx={{
+                width: 40,
+                height: 40,
+                borderRadius: "50%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: "linear-gradient(135deg, #1e3a8a 0%, #1e40af 50%, #3b82f6 100%)",
+                fontSize: "0.875rem",
+                fontWeight: 700,
+                color: "#FFF",
+                cursor: "pointer",
+                boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+                "&:hover": {
+                  opacity: 0.9,
+                },
+              }}
+              onClick={handleOpen}
+            >
+              {currentProject?.organization_name
+                ? getOrganizationInitials(currentProject.organization_name)
+                : "CP"}
+            </Box>
           </Box>
         )}
       </Box>
 
-      {/* Bottom Section */}
-      {!isCollapsed && (
+      {/* Create Project Modal */}
+      <Modal open={open} onClose={handleClose}>
         <Box
           sx={{
-            // p: 2,
-            marginLeft: "30px",
-            display: "flex",
-            alignItems: "center",
-            borderTop: "1px solid #E0E0E0",
-            flexShrink: 0,
-            position: "relative",
-            zIndex: 1,
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            p: 3,
+            width: 400,
           }}
         >
-          <Avatar
-            sx={{
-              width: 36,
-              height: 36,
-              mr: 1.5,
-              background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-              fontSize: "0.875rem",
-              fontWeight: 600,
-            }}
-          >
-            {currentProject?.organization_name
-              ? getOrganizationInitials(currentProject.organization_name)
-              : "KS"}
-          </Avatar>
-          <Box
-            onClick={handleOpen}
-            sx={{
-              cursor: "pointer",
-              p: 1,
-              borderRadius: "8px",
-              flex: 1,
-              "&:hover": { backgroundColor: "#f5f5f5" },
-            }}
-          >
-            <Typography
-              sx={{
-                fontSize: "14px",
-                fontWeight: 500,
-                color: "#000",
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-              }}
-            >
-              {currentProject?.organization_name || "Create Project"}
-            </Typography>
-            <Typography sx={{ fontSize: "12px", color: "#555", opacity: 0.7 }}>
-              Basic Plan
-            </Typography>
-          </Box>
-
-          <Modal open={open} onClose={handleClose}>
-            <Box
-              sx={{
-                position: "absolute",
-                top: "50%",
-                left: "50%",
-                transform: "translate(-50%, -50%)",
-                p: 3,
-                width: 400,
-              }}
-            >
-              <CreateProject onCreate={handleOpen} onClose={handleClose} />
-            </Box>
-          </Modal>
+          <CreateProject onCreate={handleOpen} onClose={handleClose} />
         </Box>
-      )}
-
-      {isCollapsed && (
-        <Box
-          sx={{
-            p: 2,
-            display: "flex",
-            justifyContent: "center",
-            borderTop: "1px solid #E0E0E0",
-            flexShrink: 0,
-          }}
-        >
-          <Avatar
-            sx={{
-              width: 36,
-              height: 36,
-              background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-              fontSize: "0.875rem",
-              fontWeight: 600,
-            }}
-          >
-            {currentProject?.organization_name
-              ? getOrganizationInitials(currentProject.organization_name)
-              : "KS"}
-          </Avatar>
-        </Box>
-      )}
-    </Box>
+      </Modal>
+    </Drawer>
   );
 };
 
 export default Sidebar;
-
-

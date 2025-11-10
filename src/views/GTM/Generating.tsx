@@ -11,11 +11,71 @@ const Generating: React.FC<GeneratingProps> = ({ wsUrl, onComplete }) => {
   const [displayedContent, setDisplayedContent] = useState("Waiting for Document Generation...");
   const [progress, setProgress] = useState(0);
   const [isComplete, setIsComplete] = useState(false);
+  const [autoScroll, setAutoScroll] = useState(true); // Track auto-scroll state
   
   const pendingQueue = useRef<string[]>([]);
   const typingInterval = useRef<NodeJS.Timeout | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const hasCalledComplete = useRef(false); // Prevent duplicate calls
+  const contentRef = useRef<HTMLDivElement>(null); // Ref for auto-scroll
+  const lastScrollTop = useRef(0); // Track last scroll position
+  const isUserScrolling = useRef(false); // Track if user is actively scrolling
+  const scrollTimeout = useRef<NodeJS.Timeout | null>(null);
+
+  // Check if user is at the bottom of the scroll container
+  const isAtBottom = () => {
+    if (!contentRef.current) return false;
+    const { scrollTop, scrollHeight, clientHeight } = contentRef.current;
+    // Consider "at bottom" if within 50px of the bottom
+    return scrollHeight - scrollTop - clientHeight < 50;
+  };
+
+  // Handle manual scroll by user
+  const handleScroll = () => {
+    if (!contentRef.current) return;
+    
+    const currentScrollTop = contentRef.current.scrollTop;
+    const scrollingUp = currentScrollTop < lastScrollTop.current;
+    
+    // Mark as user scrolling
+    isUserScrolling.current = true;
+    
+    // Clear previous timeout
+    if (scrollTimeout.current) {
+      clearTimeout(scrollTimeout.current);
+    }
+    
+    // If user scrolled up, immediately disable auto-scroll
+    if (scrollingUp) {
+      setAutoScroll(false);
+    } else {
+      // If scrolling down, check if at bottom
+      const atBottom = isAtBottom();
+      if (atBottom) {
+        setAutoScroll(true);
+      }
+    }
+    
+    lastScrollTop.current = currentScrollTop;
+    
+    // Reset user scrolling flag after scroll ends
+    scrollTimeout.current = setTimeout(() => {
+      isUserScrolling.current = false;
+    }, 150);
+  };
+
+  // Auto-scroll effect - only scrolls if autoScroll is true and user is not scrolling
+  useEffect(() => {
+    if (autoScroll && !isUserScrolling.current && contentRef.current) {
+      // Use requestAnimationFrame for smoother scroll
+      requestAnimationFrame(() => {
+        if (contentRef.current) {
+          contentRef.current.scrollTop = contentRef.current.scrollHeight;
+          lastScrollTop.current = contentRef.current.scrollTop;
+        }
+      });
+    }
+  }, [displayedContent, autoScroll]);
 
   // Typing effect function
   const startTyping = (text: string) => {
@@ -130,6 +190,9 @@ const Generating: React.FC<GeneratingProps> = ({ wsUrl, onComplete }) => {
       if (typingInterval.current) {
         clearInterval(typingInterval.current);
       }
+      if (scrollTimeout.current) {
+        clearTimeout(scrollTimeout.current);
+      }
       if (ws.readyState === WebSocket.OPEN) {
         ws.close();
       }
@@ -176,6 +239,8 @@ const Generating: React.FC<GeneratingProps> = ({ wsUrl, onComplete }) => {
 
         {/* Content Display Area */}
         <div
+          ref={contentRef}
+          onScroll={handleScroll}
           style={{
             flex: 1,
             overflowY: 'auto',
