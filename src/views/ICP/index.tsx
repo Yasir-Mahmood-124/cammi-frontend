@@ -641,7 +641,7 @@ const ICPPage: React.FC = () => {
                     currentQuestionId={questions[currentQuestionIndex].id}
                     answeredIds={answeredIds}
                     onItemClick={handleItemClick}
-                    isClickable={true}
+                    isClickable={false}
                   />
                 </Box>
               </Box>
