@@ -181,7 +181,10 @@ const UserInput: React.FC<UserInputProps> = ({
     const combinedLoading = isLoading || isRefining || isAddingQuestion;
 
     return (
-        <Box sx={{ width: '100%', maxWidth: '700px', height: "100%", maxHeight: "505px" }}>
+        <Box sx={{ 
+            width: '100%', 
+            maxWidth: '700px',  
+            }}>
             <Box
                 sx={{
                     backgroundColor: '#FAFAFA',
@@ -189,8 +192,8 @@ const UserInput: React.FC<UserInputProps> = ({
                     borderRadius: '8px',
                     padding: '11px',
                     marginBottom: '11px',
-                    height: "100%",
-                    maxHeight: '483px',
+                    height: "100vh",
+                    maxHeight: '450px',
                     overflowY: 'auto',
                     overflowX: 'hidden',
                     '&::-webkit-scrollbar': {

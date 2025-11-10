@@ -54,7 +54,7 @@ const InputTakerUpdated: React.FC<InputTakerProps> = ({
   };
 
   return (
-    <div style={{ width: '100%', padding: '20px', fontFamily: 'Poppins, sans-serif' }}>
+    <div style={{ width: '100%', padding: '20px', fontFamily: 'Poppins, sans-serif', marginTop: '-18px' }}>
       <h2 style={{ 
         fontSize: '20px', 
         fontWeight: 600, 
