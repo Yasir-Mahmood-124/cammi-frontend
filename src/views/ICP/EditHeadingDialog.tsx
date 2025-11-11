@@ -8,236 +8,253 @@ import {
   DialogActions,
   Button,
   TextField,
-  MenuItem,
-  Select,
   FormControl,
-  InputLabel,
-  Box,
+  Select,
+  MenuItem,
   CircularProgress,
+  Box,
 } from "@mui/material";
-import { sectionsData } from "./data";
+import {
+  unifiedHeadingData,
+  getDocumentTypeDisplayName,
+} from "./data";
 
-
-interface EditHeadingDialogProps {
+interface UnifiedEditHeadingDialogProps {
   open: boolean;
   onClose: () => void;
-  document_type: string;
+  documentType: string; // 'gtm', 'icp', 'kmf', 'bs', 'sr'
+  projectId?: string; // Optional, can be retrieved from localStorage
+  sessionId?: string; // Optional, can be retrieved from cookies
 }
 
-const EditHeadingDialog: React.FC<EditHeadingDialogProps> = ({
+const UnifiedEditHeadingDialog: React.FC<UnifiedEditHeadingDialogProps> = ({
   open,
   onClose,
-  document_type,
+  documentType,
+  projectId,
+  sessionId,
 }) => {
-  const [headingLevel, setHeadingLevel] = useState("");
-  const [headingText, setHeadingText] = useState("");
+  const [mainHeading, setMainHeading] = useState("");
+  const [subHeading, setSubHeading] = useState("");
+  const [prompt, setPrompt] = useState("");
   const [loading, setLoading] = useState(false);
-  const [snackbarOpen, setSnackbarOpen] = useState(false);
-  const [snackbarMsg, setSnackbarMsg] = useState("");
-  const [snackbarSeverity, setSnackbarSeverity] = useState<
-    "success" | "error" | "info" | "warning"
-  >("info");
 
   const socketRef = useRef<WebSocket | null>(null);
 
-  const capitalizedDocType =
-    document_type.charAt(0).toUpperCase() + document_type.slice(1).toLowerCase();
+  const normalizedDocType = documentType.toLowerCase();
+  const documentData = unifiedHeadingData[normalizedDocType];
+  const isMultiLevel = Object.keys(documentData || {}).length > 1;
 
-  // ✅ Reset fields when closed
+  // Reset fields when dialog closes
   useEffect(() => {
     if (!open) {
-      setHeadingLevel("");
-      setHeadingText("");
+      setMainHeading("");
+      setSubHeading("");
+      setPrompt("");
     }
   }, [open]);
 
-  const currentSection = sectionsData.find(
-    (section) => section.section.toLowerCase() === document_type.toLowerCase()
-  );
+  // Auto-select main heading for single-level documents (icp, kmf, bs, sr)
+  useEffect(() => {
+    if (open && documentData && !isMultiLevel) {
+      const firstKey = Object.keys(documentData)[0];
+      setMainHeading(firstKey);
+    }
+  }, [open, documentData, isMultiLevel]);
 
-  // ✅ Listen for backend messages — only after socket is connected
-  const attachMessageListener = (socket: WebSocket) => {
-    socket.onmessage = (event: MessageEvent) => {
-      // console.log("📩 Received from backend:", event.data);
+  const handleSubmit = async () => {
+    if (!mainHeading || !subHeading || !prompt) return;
 
-      try {
-        const msg = JSON.parse(event.data);
-        if (
-          msg.action === "sendMessage" &&
-          msg.body === "Document generated successfully!"
-        ) {
-          // console.log("✅ Document generation complete!");
-          setLoading(false);
-          setSnackbarMsg("✅ Your document is ready!");
-          setSnackbarSeverity("success");
-          setSnackbarOpen(true);
-          onClose();
-          socket.close();
-        }
-      } catch (err) {
-        // console.error("❌ Error parsing message:", err);
-      }
-    };
+    setLoading(true);
+    try {
+      // Get token from cookies
+      const token =
+        sessionId ||
+        document.cookie
+          .split("; ")
+          .find((row) => row.startsWith("token="))
+          ?.split("=")[1];
 
-    socket.onerror = (err) => {
-      // console.error("❌ WebSocket error:", err);
-      setSnackbarMsg("⚠️ WebSocket connection failed");
-      setSnackbarSeverity("error");
-      setSnackbarOpen(true);
-      setLoading(false);
-    };
+      if (!token) throw new Error("Session ID not found in cookies");
 
-    socket.onclose = () => {
-      // console.log("🔌 WebSocket disconnected");
-      setLoading(false);
-    };
-  };
+      // Get project ID from localStorage or props
+      const storedProject =
+        typeof window !== "undefined"
+          ? localStorage.getItem("currentProject")
+          : null;
+      const finalProjectId =
+        projectId ||
+        (storedProject ? JSON.parse(storedProject).project_id : "");
 
-// 🔹 Handle form submission
-const handleSubmit = async () => {
-  if (!headingLevel || !headingText) return;
-  setLoading(true);
+      const wsUrl = `wss://ybkbmzlbbd.execute-api.us-east-1.amazonaws.com/prod/?session_id=${token}`;
+      const ws = new WebSocket(wsUrl);
+      socketRef.current = ws;
 
-  try {
-    const token = document.cookie
-      .split("; ")
-      .find((row) => row.startsWith("token="))
-      ?.split("=")[1];
-    if (!token) throw new Error("Session ID not found in cookies");
+      ws.onopen = () => {
+        const message = {
+          action: "editHeading",
+          session_id: token,
+          project_id: finalProjectId,
+          document_type: normalizedDocType,
+          heading: isMultiLevel ? mainHeading : normalizedDocType,
+          subheading: subHeading,
+          prompt: prompt,
+        };
 
-    const storedProject =
-      typeof window !== "undefined"
-        ? localStorage.getItem("currentProject")
-        : null;
-    const projectId = storedProject ? JSON.parse(storedProject).project_id : "";
-
-    const wsUrl = `wss://ybkbmzlbbd.execute-api.us-east-1.amazonaws.com/prod/?session_id=${token}`;
-    const ws = new WebSocket(wsUrl);
-    socketRef.current = ws;
-
-    ws.onopen = () => {
-      // console.log("✅ WebSocket connected successfully");
-
-      const message = {
-        action: "editHeading",
-        session_id: token,
-        project_id: projectId,
-        document_type: document_type.toLowerCase(), // ✅ All lowercase now
-        heading: document_type.toLowerCase(),        // ✅ Same lowercase
-        subheading: headingLevel,
-        prompt: headingText,
+        ws.send(JSON.stringify(message));
       };
 
-      ws.send(JSON.stringify(message));
-      // console.log("📤 Sent editHeading message:", message);
-    };
-
-    ws.onmessage = (event) => {
-      // console.log("📩 Received from backend:", event.data);
-      try {
-        const msg = JSON.parse(event.data);
-        if (
-          msg.action === "sendMessage" &&
-          msg.body === "Document generated successfully!"
-        ) {
-          setLoading(false);
-          setSnackbarMsg("✅ Your document is ready!");
-          setSnackbarSeverity("success");
-          setSnackbarOpen(true);
-          onClose();
-          ws.close();
+      ws.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data);
+          if (
+            msg.action === "sendMessage" &&
+            msg.body.trim() === "Document generated successfully!"
+          ) {
+            setLoading(false);
+            onClose();
+            ws.close();
+          }
+        } catch (err) {
+          console.error("Error parsing message:", err);
         }
-      } catch (err) {
-        // console.error("❌ Error parsing message:", err);
-      }
-    };
+      };
 
-    ws.onerror = (err) => {
-      // console.error("❌ WebSocket error:", err);
-      setSnackbarMsg("⚠️ WebSocket connection failed");
-      setSnackbarSeverity("error");
-      setSnackbarOpen(true);
-      setLoading(false);
-    };
+      ws.onerror = (err) => {
+        console.error("WebSocket error:", err);
+        setLoading(false);
+      };
 
-    ws.onclose = () => {
-      // console.log("🔌 WebSocket disconnected");
+      ws.onclose = () => {
+        setLoading(false);
+      };
+    } catch (error) {
+      console.error("Error:", error);
       setLoading(false);
-    };
-  } catch (error) {
-    // console.error("❌ Error:", error);
-    setSnackbarMsg("❌ Failed to send edit request");
-    setSnackbarSeverity("error");
-    setSnackbarOpen(true);
-    setLoading(false);
+    }
+  };
+
+  if (!documentData) {
+    return null; // or show error message
   }
-};
-
 
   return (
-    <>
-      <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ fontWeight: 600, fontSize: "1.2rem" }}>
-          Edit Your Document ({capitalizedDocType})
-        </DialogTitle>
+    <Dialog
+      open={open}
+      onClose={!loading ? onClose : undefined}
+      fullWidth
+      maxWidth="sm"
+    >
+      <DialogTitle sx={{ fontWeight: 700, color: "primary.main" }}>
+        Edit {getDocumentTypeDisplayName(documentType)} Document
+      </DialogTitle>
 
-        <DialogContent>
-          <Box sx={{ mt: 2 }}>
-            {/* Heading Selection */}
-            <FormControl fullWidth sx={{ mb: 2 }}>
-              <InputLabel shrink>Heading</InputLabel>
-              <Select
-                value={headingLevel}
-                label="Heading"
-                onChange={(e) => setHeadingLevel(e.target.value)}
-                displayEmpty
-                sx={{ "& .MuiSelect-select": { py: 1.5 } }}
-              >
-                <MenuItem value="" disabled>
-                  Select a heading
+      <DialogContent
+        sx={{ display: "flex", flexDirection: "column", gap: 3, mt: 1 }}
+      >
+        {/* Main Heading - Only show for multi-level documents (GTM) */}
+        {isMultiLevel && (
+          <FormControl fullWidth>
+            <Select
+              displayEmpty
+              value={mainHeading}
+              onChange={(e) => {
+                setMainHeading(e.target.value);
+                setSubHeading(""); // Reset sub heading when main heading changes
+              }}
+              disabled={loading}
+              sx={{
+                borderRadius: 2,
+                "& fieldset": { borderColor: "#ccc" },
+                "&:hover fieldset": { borderColor: "primary.main" },
+                "&.Mui-focused fieldset": { borderColor: "primary.main" },
+              }}
+            >
+              <MenuItem value="" disabled>
+                Select Main Heading
+              </MenuItem>
+              {Object.keys(documentData).map((heading) => (
+                <MenuItem key={heading} value={heading}>
+                  {heading}
                 </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        )}
 
-                {currentSection ? (
-                  currentSection.items.map((item) => (
-                    <MenuItem key={item.title} value={item.title}>
-                      {item.title}
-                    </MenuItem>
-                  ))
-                ) : (
-                  <MenuItem disabled>No headings available</MenuItem>
-                )}
-              </Select>
-            </FormControl>
-
-            {/* Heading Text */}
-            <TextField
-              label="Heading Text"
-              fullWidth
-              value={headingText}
-              onChange={(e) => setHeadingText(e.target.value)}
-              placeholder="Enter new heading text"
-              variant="outlined"
-              InputLabelProps={{ shrink: true }}
-            />
-          </Box>
-        </DialogContent>
-
-        <DialogActions>
-          <Button onClick={onClose} color="error" disabled={loading}>
-            Cancel
-          </Button>
-          <Button
-            onClick={handleSubmit}
-            variant="contained"
-            color="primary"
-            disabled={!headingText || !headingLevel || loading}
+        {/* Sub Heading */}
+        <FormControl fullWidth>
+          <Select
+            displayEmpty
+            value={subHeading}
+            onChange={(e) => setSubHeading(e.target.value)}
+            disabled={!mainHeading || loading}
+            sx={{
+              borderRadius: 2,
+              "& fieldset": { borderColor: "#ccc" },
+              "&:hover fieldset": { borderColor: "primary.main" },
+              "&.Mui-focused fieldset": { borderColor: "primary.main" },
+            }}
           >
-            {loading ? <CircularProgress size={20} /> : "Submit"}
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </>
+            <MenuItem value="" disabled>
+              {isMultiLevel ? "Select Sub Heading" : "Select Heading"}
+            </MenuItem>
+            {mainHeading &&
+              documentData[mainHeading]?.map((sub) => (
+                <MenuItem key={sub} value={sub}>
+                  {sub}
+                </MenuItem>
+              ))}
+          </Select>
+        </FormControl>
+
+        {/* Prompt */}
+        <TextField
+          placeholder="Enter your prompt..."
+          multiline
+          rows={4}
+          fullWidth
+          value={prompt}
+          onChange={(e) => setPrompt(e.target.value)}
+          disabled={loading}
+          variant="outlined"
+          sx={{
+            borderRadius: 2,
+            "& fieldset": { borderColor: "#ccc" },
+            "&:hover fieldset": { borderColor: "primary.main" },
+            "&.Mui-focused fieldset": { borderColor: "primary.main" },
+          }}
+        />
+      </DialogContent>
+
+      <DialogActions sx={{ justifyContent: "space-between", px: 3, pb: 2 }}>
+        <Button
+          onClick={onClose}
+          disabled={loading}
+          variant="outlined"
+          color="secondary"
+        >
+          Cancel
+        </Button>
+
+        <Button
+          onClick={handleSubmit}
+          disabled={!mainHeading || !subHeading || !prompt || loading}
+          variant="contained"
+          color="primary"
+        >
+          {loading ? (
+            <Box display="flex" alignItems="center" gap={1}>
+              <CircularProgress size={20} color="inherit" />
+              Processing...
+            </Box>
+          ) : (
+            "Submit"
+          )}
+        </Button>
+      </DialogActions>
+    </Dialog>
   );
 };
 
-export default EditHeadingDialog;
+export default UnifiedEditHeadingDialog;

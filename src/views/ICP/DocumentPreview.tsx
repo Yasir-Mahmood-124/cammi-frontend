@@ -680,7 +680,7 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ docxBase64, fileName,
             setOpenEditDialog(false);
             fetchLatestDocument();
           }}
-          document_type={documentType}
+          documentType={documentType}
         />
 
         {/* Submit for Review Button */}

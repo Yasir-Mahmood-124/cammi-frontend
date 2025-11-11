@@ -139,7 +139,7 @@ export const gtmWebSocketMiddleware: Middleware = (store) => (next) => (action) 
       unsubscribeMessage = null;
       unsubscribeError = null;
       unsubscribeClose = null;
-    }
+    } 
     currentGenerationUrl = null;
   }
 
