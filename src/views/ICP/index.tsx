@@ -32,6 +32,8 @@ import {
   setShouldFetchAll,
   setShowDocumentPreview,
   setCompletionMessageReceived,
+  setCurrentQuestionIndex,
+  setAnsweredIds,
 } from "@/redux/services/icp/icpSlice";
 import Cookies from "js-cookie";
 import toast, { Toaster } from "react-hot-toast";
@@ -53,6 +55,8 @@ const ICPPage: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const documentFetchTriggered = useRef(false);
   const mountRecoveryTriggered = useRef(false);
+  const hasCheckedForRefetch = useRef(false);
+  const refetchTimestamp = useRef(Date.now());
 
   // Get state from Redux
   const {
@@ -79,26 +83,6 @@ const ICPPage: React.FC = () => {
     useUploadTextFileMutation();
   const [getDocxFile, { isLoading: isDownloading }] = useGetDocxFileMutation();
 
-  // ==================== CONSOLE LOG ALL REDUX STATE ON MOUNT ====================
-  // useEffect(() => {
-  //   console.log("╔════════════════════════════════════════════════════════════╗");
-  //   console.log("║           🔄 ICPPage Component Mounted                      ║");
-  //   console.log("╚════════════════════════════════════════════════════════════╝");
-  //   console.log("📦 [Redux State] Complete ICP State:");
-  //   console.log("  ├─ isGenerating:", isGenerating);
-  //   console.log("  ├─ generatingProgress:", generatingProgress + "%");
-  //   console.log("  ├─ generatingContent length:", generatingContent.length, "chars");
-  //   console.log("  ├─ displayedContent length:", displayedContent.length, "chars");
-  //   console.log("  ├─ hasReceivedCompletionMessage:", hasReceivedCompletionMessage);
-  //   console.log("  ├─ docxBase64 exists:", !!docxBase64);
-  //   console.log("  ├─ fileName:", fileName);
-  //   console.log("  ├─ showDocumentPreview:", showDocumentPreview);
-  //   console.log("  ├─ view:", view);
-  //   console.log("  ├─ projectId:", projectId);
-  //   console.log("  └─ wsUrl:", wsUrl);
-  //   console.log("════════════════════════════════════════════════════════════");
-  // }, []);
-
   // Get project_id from localStorage on component mount
   useEffect(() => {
     const currentProjectStr = localStorage.getItem("currentProject");
@@ -106,11 +90,10 @@ const ICPPage: React.FC = () => {
       try {
         const currentProject: CurrentProject = JSON.parse(currentProjectStr);
         if (currentProject.project_id !== projectId) {
-          // console.log("📝 [Project] Setting project ID:", currentProject.project_id);
           dispatch(setProjectId(currentProject.project_id));
         }
       } catch (error) {
-        // console.error("❌ [Project] Error parsing currentProject:", error);
+        console.error("❌ [ICP Project] Error parsing currentProject:", error);
       }
     }
   }, [dispatch, projectId]);
@@ -120,20 +103,123 @@ const ICPPage: React.FC = () => {
     if (!wsUrl) {
       const websocketUrl =
         "wss://91vm5ilj37.execute-api.us-east-1.amazonaws.com/dev";
-      // console.log("🔗 [WebSocket] Setting upload WebSocket URL");
       dispatch(setWsUrl(websocketUrl));
     }
   }, [dispatch, wsUrl]);
 
+  // 🔥 RTK Query for unanswered questions
+  const {
+    data: unansweredData,
+    isLoading: isLoadingUnanswered,
+    isError: isErrorUnanswered,
+  } = useGet_unanswered_questionsQuery(
+    {
+      project_id: projectId,
+      document_type: "icp",
+      _timestamp: refetchTimestamp.current,
+    } as any,
+    {
+      skip: !shouldFetchUnanswered || !projectId,
+      refetchOnMountOrArgChange: 0.1,
+    }
+  );
+
+  // 🔥 RTK Query for all questions (answered)
+  const {
+    data: allQuestionsData,
+    isLoading: isLoadingAll,
+    isError: isErrorAll,
+  } = useGetQuestionsQuery(
+    {
+      project_id: projectId,
+      document_type: "icp",
+      _timestamp: refetchTimestamp.current,
+    } as any,
+    {
+      skip: !shouldFetchAll || !projectId,
+      refetchOnMountOrArgChange: 0.1,
+    }
+  );
+
+  // 🔥 FIXED: Cleanup state when unmounting
+  useEffect(() => {
+    return () => {
+      console.log("🧹 [ICP Unmount] Cleaning up for fresh fetch on return");
+      
+      // Only clear if not generating or showing document
+      if (!isGenerating && !showDocumentPreview) {
+        // If user was on questions view, prepare for refetch
+        if (view === "questions" && questions.length > 0) {
+          console.log("📋 [ICP Unmount] Was on questions - will refetch on return");
+          dispatch(setQuestions([]));
+          dispatch(setCurrentQuestionIndex(0));
+          dispatch(setAnsweredIds([]));
+          dispatch(setShouldFetchUnanswered(false));
+          hasCheckedForRefetch.current = false;
+          refetchTimestamp.current = Date.now();
+        }
+        
+        // 🔥 FIX: If user was on preview, mark for refetch but DON'T clear view
+        if (view === "preview" && questions.length > 0) {
+          console.log("📋 [ICP Unmount] Was on preview - will refetch on return");
+          dispatch(setQuestions([])); // Clear questions to trigger fresh fetch
+          dispatch(setShouldFetchAll(false));
+          hasCheckedForRefetch.current = false;
+          refetchTimestamp.current = Date.now();
+        }
+      }
+    };
+  }, [dispatch, isGenerating, showDocumentPreview, view, questions.length]);
+
+  // 🔥 FIXED: On mount, check if we need to refetch questions
+  useEffect(() => {
+    // Prevent duplicate checks on the same mount
+    if (hasCheckedForRefetch.current) {
+      return;
+    }
+
+    // Only refetch if we have a projectId and not in a critical state
+    if (projectId && !isGenerating && !showDocumentPreview) {
+      // 🔥 FIX Issue 1: Only auto-trigger if NOT on initial view
+      // This prevents auto-clicking "No" when first landing on the page
+      if (view === "questions" && questions.length === 0) {
+        // User is on questions view but no questions - fetch them
+        console.log("📋 [ICP Mount] On questions view - fetching unanswered questions");
+        hasCheckedForRefetch.current = true;
+        refetchTimestamp.current = Date.now();
+        
+        setTimeout(() => {
+          dispatch(setShouldFetchUnanswered(true));
+        }, 100);
+      } else if (view === "preview" && questions.length === 0) {
+        // 🔥 FIX Issue 2: User is on preview but no questions - fetch all answered
+        console.log("📋 [ICP Mount] On preview view - fetching all answered questions");
+        hasCheckedForRefetch.current = true;
+        refetchTimestamp.current = Date.now();
+        
+        setTimeout(() => {
+          dispatch(setShouldFetchAll(true));
+        }, 100);
+      }
+      // 🔥 DO NOT auto-fetch if view is "initial" - let user click Yes/No
+    }
+  }, [projectId, view, dispatch, isGenerating, showDocumentPreview, questions.length]);
+
+  // 🔥 Safety check - Reset currentQuestionIndex if out of bounds
+  useEffect(() => {
+    if (questions.length > 0 && currentQuestionIndex >= questions.length) {
+      console.log("⚠️ [ICP Safety] currentQuestionIndex out of bounds, resetting to 0");
+      dispatch(setCurrentQuestionIndex(0));
+    }
+  }, [questions.length, currentQuestionIndex, dispatch]);
+
   // Fetch document function
   const handleGenerationComplete = useCallback(async () => {
     if (documentFetchTriggered.current) {
-      // console.log("⏭️ [Document] Fetch already triggered, skipping...");
       return;
     }
 
     documentFetchTriggered.current = true;
-    // console.log("📥 [Document] Starting document fetch...");
 
     try {
       const savedToken = Cookies.get("token");
@@ -141,17 +227,11 @@ const ICPPage: React.FC = () => {
         localStorage.getItem("currentProject") || "{}"
       ).project_id;
 
-      // console.log("📤 [Document] Fetching with:", { project_id, document_type: "icp" });
-
       const response = await getDocxFile({
         session_id: savedToken || "",
         document_type: "icp",
         project_id: project_id,
       }).unwrap();
-
-      // console.log("✅ [Document] Fetch successful!");
-      // console.log("  ├─ fileName:", response.fileName);
-      // console.log("  └─ docxBase64 length:", response.docxBase64?.length || 0);
 
       dispatch(
         setDocumentData({
@@ -162,15 +242,11 @@ const ICPPage: React.FC = () => {
 
       toast.success("Document ready for preview!");
     } catch (error: any) {
-      // console.error("❌ [Document] Fetch failed:", error);
-      // console.error("  ├─ Status:", error?.status);
-      // console.error("  └─ Message:", error?.data?.message || error?.message);
-
+      console.error("❌ [ICP Document] Fetch failed:", error);
       toast.error("Failed to fetch document. Please try again.");
-      documentFetchTriggered.current = false; // Reset on error to allow retry
+      documentFetchTriggered.current = false;
     }
   }, [dispatch, getDocxFile]);
-
 
   // ==================== MOUNT RECOVERY WITH WEBSOCKET RE-CONNECTION (ENHANCED) ====================
   useEffect(() => {
@@ -192,7 +268,6 @@ const ICPPage: React.FC = () => {
       "╚════════════════════════════════════════════════════════════╝"
     );
 
-    // 🧩 Scenario 1: Document already fetched and available
     if (docxBase64 && fileName) {
       console.log("✅ [Recovery] Document already available in Redux");
       if (!showDocumentPreview) {
@@ -201,7 +276,6 @@ const ICPPage: React.FC = () => {
       return;
     }
 
-    // 🧩 Scenario 2: Completion message received but no document yet - FETCH IT!
     if (hasReceivedCompletionMessage && !docxBase64) {
       console.log(
         "🎯 [Recovery] Completion message found - fetching document!"
@@ -212,7 +286,6 @@ const ICPPage: React.FC = () => {
       return;
     }
 
-    // 🧩 Scenario 3: Generation in progress - RE-ESTABLISH WEBSOCKET CONNECTION
     if (isGenerating && !hasReceivedCompletionMessage && wsUrl) {
       console.log(
         "⚡ [Recovery] Generation active - restoring progress and WebSocket"
@@ -223,9 +296,7 @@ const ICPPage: React.FC = () => {
 
       mountRecoveryTriggered.current = true;
 
-      // 🔄 Re-trigger the middleware by toggling isGenerating
       setTimeout(() => {
-        // dispatch(setIsGenerating(false));
         setTimeout(() => {
           dispatch(setIsGenerating(true));
         }, 100);
@@ -233,7 +304,6 @@ const ICPPage: React.FC = () => {
       return;
     }
 
-    // 🧩 Scenario 4: Stale generation state (no wsUrl but isGenerating true)
     if (isGenerating && !wsUrl) {
       console.log(
         "⚠️ [Recovery] Stale generation state detected - resetting..."
@@ -243,7 +313,6 @@ const ICPPage: React.FC = () => {
       return;
     }
 
-    // 🧩 Scenario 5: No active generation
     if (!isGenerating) {
       console.log("✅ [Recovery] No active generation, normal state");
       return;
@@ -251,13 +320,11 @@ const ICPPage: React.FC = () => {
 
     console.log("ℹ️ [Recovery] No specific recovery action required");
 
-    // 🧹 CLEANUP — allows this effect to run again when user revisits this page
     return () => {
       console.log("🧹 [Cleanup] Resetting mount recovery flag for next mount");
-      mountRecoveryTriggered.current = true;
+      mountRecoveryTriggered.current = false;
     };
   }, [
-    // Dependencies to handle re-mounts properly:
     docxBase64,
     fileName,
     showDocumentPreview,
@@ -265,6 +332,8 @@ const ICPPage: React.FC = () => {
     isGenerating,
     generatingProgress,
     wsUrl,
+    dispatch,
+    handleGenerationComplete,
   ]);
 
   // Watch for completion message flag changes (backup)
@@ -274,45 +343,14 @@ const ICPPage: React.FC = () => {
       !docxBase64 &&
       !documentFetchTriggered.current
     ) {
-      // console.log("🎯 [Watch] Completion message flag detected - fetching document");
       handleGenerationComplete();
     }
   }, [hasReceivedCompletionMessage, docxBase64, handleGenerationComplete]);
 
-  // RTK Query for unanswered questions
-  const {
-    data: unansweredData,
-    isLoading: isLoadingUnanswered,
-    isError: isErrorUnanswered,
-  } = useGet_unanswered_questionsQuery(
-    {
-      project_id: projectId,
-      document_type: "icp",
-    },
-    {
-      skip: !shouldFetchUnanswered || !projectId,
-    }
-  );
-
-  // RTK Query for all questions (answered)
-  const {
-    data: allQuestionsData,
-    isLoading: isLoadingAll,
-    isError: isErrorAll,
-  } = useGetQuestionsQuery(
-    {
-      project_id: projectId,
-      document_type: "icp",
-    },
-    {
-      skip: !shouldFetchAll || !projectId,
-    }
-  );
-
   // Handle unanswered questions response
   useEffect(() => {
     if (unansweredData) {
-      toast.loading("Checking for unanswered questions...");
+      console.log("📥 [ICP API Response] Unanswered questions received:", unansweredData);
 
       if (
         unansweredData.missing_questions &&
@@ -325,19 +363,19 @@ const ICPPage: React.FC = () => {
             answer: "",
           }));
 
+        console.log(`✅ [ICP] Found ${formattedQuestions.length} unanswered questions`);
         dispatch(setQuestions(formattedQuestions));
         dispatch(setView("questions"));
         dispatch(setShouldFetchUnanswered(false));
 
-        toast.dismiss();
         toast.success(
           `${formattedQuestions.length} unanswered question(s) found. Please provide answers.`
         );
       } else {
+        console.log("✅ [ICP] No unanswered questions, fetching all answered questions");
         dispatch(setShouldFetchUnanswered(false));
         dispatch(setShouldFetchAll(true));
 
-        toast.dismiss();
         toast.success(
           "No unanswered questions found. Fetching all answered ones..."
         );
@@ -348,7 +386,7 @@ const ICPPage: React.FC = () => {
   // Handle all questions (answered) response
   useEffect(() => {
     if (allQuestionsData && allQuestionsData.questions) {
-      toast.loading("Loading all answered questions...");
+      console.log("📥 [ICP API Response] All questions received for preview:", allQuestionsData);
 
       const formattedQuestions: Question[] = allQuestionsData.questions.map(
         (q, index) => ({
@@ -358,11 +396,11 @@ const ICPPage: React.FC = () => {
         })
       );
 
+      console.log(`✅ [ICP] Loaded ${formattedQuestions.length} answered questions for preview`);
       dispatch(setQuestions(formattedQuestions));
       dispatch(setView("preview"));
       dispatch(setShouldFetchAll(false));
 
-      toast.dismiss();
       toast.success("All answered questions loaded successfully!");
     }
   }, [allQuestionsData, dispatch]);
@@ -376,6 +414,9 @@ const ICPPage: React.FC = () => {
   };
 
   const handleNoClick = () => {
+    console.log("📋 [ICP] User clicked No - fetching fresh unanswered questions");
+    hasCheckedForRefetch.current = false;
+    refetchTimestamp.current = Date.now();
     dispatch(setShouldFetchUnanswered(true));
   };
 
@@ -426,9 +467,15 @@ const ICPPage: React.FC = () => {
           dispatch(setView("questions"));
           toast("Some questions need answers. Please review them.");
         } else {
+          console.log("📋 [ICP] All questions answered - fetching for preview");
+          dispatch(setQuestions([]));
+          refetchTimestamp.current = Date.now();
           dispatch(setShouldFetchAll(true));
         }
       } else {
+        console.log("📋 [ICP] Processing complete - fetching for preview");
+        dispatch(setQuestions([]));
+        refetchTimestamp.current = Date.now();
         dispatch(setShouldFetchAll(true));
         toast.success("Processing complete — moving to preview.");
       }
@@ -461,8 +508,11 @@ const ICPPage: React.FC = () => {
       if (currentQuestionIndex < questions.length - 1) {
         dispatch(nextQuestion());
       } else {
-        toast.success("All questions answered! Previewing your responses...");
-        dispatch(setView("preview"));
+        console.log("📋 [ICP] All questions answered - fetching fresh data for preview");
+        toast.success("All questions answered! Loading preview...");
+        dispatch(setQuestions([]));
+        refetchTimestamp.current = Date.now();
+        dispatch(setShouldFetchAll(true));
       }
     } else {
       toast.error("Please provide an answer before confirming!");
@@ -483,13 +533,8 @@ const ICPPage: React.FC = () => {
 
   const handleGenerateDocument = async () => {
     try {
-      // Reset flags
       documentFetchTriggered.current = false;
       mountRecoveryTriggered.current = false;
-
-      // console.log("╔════════════════════════════════════════════════════════════╗");
-      // console.log("║           🚀 Starting Document Generation                  ║");
-      // console.log("╚════════════════════════════════════════════════════════════╝");
 
       const dynamicFileName = "businessidea.txt";
       const savedToken = Cookies.get("token");
@@ -511,7 +556,6 @@ const ICPPage: React.FC = () => {
         document_type: "icp",
       };
 
-      // console.log("📤 [Upload] Uploading answers...");
       const uploadPromise = uploadTextFile(payload).unwrap();
 
       await toast.promise(uploadPromise, {
@@ -523,14 +567,10 @@ const ICPPage: React.FC = () => {
 
       const websocketUrl = `wss://4iqvtvmxle.execute-api.us-east-1.amazonaws.com/prod/?session_id=${savedToken}`;
 
-      // console.log("🔗 [WebSocket] Setting generation WebSocket URL");
-      // console.log("🔄 [Redux] Setting isGenerating to true");
-      // console.log("🌐 [Info] Global WebSocket middleware will handle all messages");
-
       dispatch(setWsUrl(websocketUrl));
-      dispatch(setIsGenerating(true)); // This triggers the global middleware!
+      dispatch(setIsGenerating(true));
     } catch (err: any) {
-      // console.error("❌ [Upload] Error:", err);
+      console.error("❌ [ICP Upload] Error:", err);
       toast.error("Upload failed. Please try again.");
     }
   };
@@ -558,7 +598,6 @@ const ICPPage: React.FC = () => {
   }
 
   if (showDocumentPreview && docxBase64) {
-    // console.log("📄 [Render] Showing DocumentPreview component");
     return (
       <DocumentPreview
         docxBase64={docxBase64}
@@ -567,8 +606,6 @@ const ICPPage: React.FC = () => {
       />
     );
   }
-
-  // console.log("🎨 [Render] Main layout - isGenerating:", isGenerating);
 
   return (
     <Box
@@ -648,7 +685,24 @@ const ICPPage: React.FC = () => {
             </Box>
           )}
 
-          {view === "preview" && (
+          {/* 🔥 Show loading state while fetching preview data */}
+          {view === "preview" && questions.length === 0 && isLoadingAll && (
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                height: "50vh",
+              }}
+            >
+              <div style={{ fontFamily: "Poppins", color: "#666" }}>
+                Loading preview...
+              </div>
+            </Box>
+          )}
+
+          {/* 🔥 Only show preview when we have questions from API */}
+          {view === "preview" && questions.length > 0 && (
             <Box
               sx={{
                 width: "100%",
