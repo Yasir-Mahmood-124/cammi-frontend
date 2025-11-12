@@ -382,6 +382,7 @@ interface UploadDocumentProps {
   document_type: string;
   wsUrl: string;
   onUploadComplete?: (data: any) => void;
+  onUploadInterrupted?: () => void; // 🔥 NEW: Callback when upload is interrupted
 }
 
 const DocumentIcon = () => (
@@ -397,28 +398,24 @@ const UploadDocument: React.FC<UploadDocumentProps> = ({
   document_type,
   wsUrl,
   onUploadComplete,
+  onUploadInterrupted, // 🔥 NEW
 }) => {
   const [fileName, setFileName] = useState<string | null>(null);
   const [fileText, setFileText] = useState<string>("");
   const [isUploading, setIsUploading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   
-  // 🔥 Track if component is mounted
   const isMounted = useRef(true);
-  // 🔥 Store cleanup function
   const cleanupRef = useRef<(() => void) | null>(null);
 
-  // 🔥 FIXED: Connect to WebSocket on mount with proper cleanup
+  // 🔥 Connect to WebSocket on mount with proper cleanup
   useEffect(() => {
     isMounted.current = true;
     console.log('🔌 [Upload] Setting up WebSocket for:', wsUrl);
     
-    // Connect to WebSocket
     wsClient.connect(wsUrl);
 
-    // 🔥 Register message handler and store cleanup function
     cleanupRef.current = wsClient.onMessage((data: any) => {
-      // 🔥 Only process if component is still mounted
       if (!isMounted.current) {
         console.log('⚠️ [Upload] Component unmounted, ignoring message');
         return;
@@ -439,18 +436,23 @@ const UploadDocument: React.FC<UploadDocumentProps> = ({
       }
     });
 
-    // 🔥 CRITICAL: Cleanup on unmount
+    // 🔥 Cleanup on unmount
     return () => {
       console.log('🧹 [Upload] Cleaning up component');
       isMounted.current = false;
       
-      // Remove this component's message listener
+      // 🔥 If upload was in progress, notify parent
+      if (isUploading && onUploadInterrupted) {
+        console.log('⚠️ [Upload] Upload interrupted - notifying parent');
+        onUploadInterrupted();
+      }
+      
       if (cleanupRef.current) {
         cleanupRef.current();
         cleanupRef.current = null;
       }
     };
-  }, [wsUrl, onUploadComplete]);
+  }, [wsUrl, onUploadComplete, isUploading, onUploadInterrupted]);
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     if (!event.target.files || event.target.files.length === 0) {
@@ -509,7 +511,6 @@ const UploadDocument: React.FC<UploadDocumentProps> = ({
       return;
     }
 
-    // Convert to bytes to measure size
     const encoder = new TextEncoder();
     const encoded = encoder.encode(fileText);
     const MAX_SIZE = 90 * 1024;
@@ -535,7 +536,6 @@ const UploadDocument: React.FC<UploadDocumentProps> = ({
     setError("");
     
     try {
-      // 🔥 Ensure connection before sending
       if (!wsClient.isConnected()) {
         console.log('⚠️ [Upload] WebSocket not connected, reconnecting...');
         wsClient.connect(wsUrl);
@@ -706,7 +706,6 @@ const styles: { [key: string]: React.CSSProperties } = {
   },
 };
 
-// Add keyframes for spinner animation
 if (typeof document !== 'undefined') {
   const style = document.createElement('style');
   style.textContent = `

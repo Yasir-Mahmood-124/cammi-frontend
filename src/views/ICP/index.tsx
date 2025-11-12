@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useCallback } from "react";
+import React, { useEffect, useRef, useCallback, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Box, Button } from "@mui/material";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
@@ -57,6 +57,9 @@ const ICPPage: React.FC = () => {
   const mountRecoveryTriggered = useRef(false);
   const hasCheckedForRefetch = useRef(false);
   const refetchTimestamp = useRef(Date.now());
+  
+  // 🔥 NEW: Track if upload was interrupted
+  const [wasUploadInterrupted, setWasUploadInterrupted] = useState(false);
 
   // Get state from Redux
   const {
@@ -82,6 +85,23 @@ const ICPPage: React.FC = () => {
   const [uploadTextFile, { isLoading: isUploading }] =
     useUploadTextFileMutation();
   const [getDocxFile, { isLoading: isDownloading }] = useGetDocxFileMutation();
+
+  // 🔥 NEW: Handle interrupted upload on mount
+  useEffect(() => {
+    // Check if upload was interrupted
+    if (wasUploadInterrupted) {
+      console.log("⚠️ [ICP] Upload was interrupted - showing message");
+      
+      // Show interruption message
+      toast.error(
+        "Document analysis was interrupted due to page navigation or refresh. Please upload again.",
+        { duration: 5000 }
+      );
+      
+      // Reset the flag
+      setWasUploadInterrupted(false);
+    }
+  }, []); // Run only on mount
 
   // Get project_id from localStorage on component mount
   useEffect(() => {
@@ -151,6 +171,10 @@ const ICPPage: React.FC = () => {
   useEffect(() => {
     return () => {
       console.log("🧹 [ICP Unmount] Cleaning up for fresh fetch on return");
+
+      // 🔥 NEW: Dismiss analyzing toast immediately when leaving page
+      toast.dismiss("analyzing-doc");
+      console.log("🧹 [ICP Unmount] Dismissed analyzing toast");
 
       // Only clear if not generating or showing document
       if (!isGenerating && !showDocumentPreview) {
@@ -443,7 +467,6 @@ const ICPPage: React.FC = () => {
   const allQuestionsAnswered =
     questions.length > 0 && questions.every((q) => q.answer.trim() !== "");
 
-
   const handleYesClick = () => {
     console.log("📤 [ICP] User clicked Yes - preparing upload view");
 
@@ -463,6 +486,12 @@ const ICPPage: React.FC = () => {
     dispatch(setShouldFetchUnanswered(true));
   };
 
+  // 🔥 NEW: Handle upload interruption
+  const handleUploadInterrupted = () => {
+    console.log("⚠️ [ICP] Upload interrupted - setting flag");
+    setWasUploadInterrupted(true);
+  };
+
   // 🔥 FIXED: Handle upload complete with proper toast management
   const handleUploadComplete = (data: any) => {
     if (data.status === "processing_started") {
@@ -471,7 +500,7 @@ const ICPPage: React.FC = () => {
 
     if (data.status === "analyzing_document") {
       // 🔥 FIXED: Use toast.loading with unique ID to prevent duplicates
-      toast.loading("Analyzing your document...", { id: "analyzing-doc" });
+      toast.loading("Analyzing your document...", { id: "analyzing-doc", duration: Infinity });
       return;
     }
 
@@ -698,6 +727,7 @@ const ICPPage: React.FC = () => {
               document_type="icp"
               wsUrl={wsUrl}
               onUploadComplete={handleUploadComplete}
+              onUploadInterrupted={handleUploadInterrupted}
             />
           )}
 
