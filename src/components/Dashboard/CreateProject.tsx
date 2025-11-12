@@ -14,6 +14,7 @@ import {
   FormControlLabel,
   Radio,
 } from "@mui/material";
+import { useDispatch } from "react-redux"; // ✅ Import useDispatch
 import Cookies from "js-cookie";
 import toast from "react-hot-toast";
 import {
@@ -21,6 +22,7 @@ import {
   useGetSpecificOrganizationsQuery,
   useGetSpecificProjectsQuery,
 } from "../../redux/services/projects/projectApi";
+import { resetAllStates } from "@/redux/actions/resetActions"; // ✅ Import reset action
 import PrimaryButton from "../ui/PrimaryButton";
 
 interface CreateProjectProps {
@@ -29,6 +31,7 @@ interface CreateProjectProps {
 }
 
 export default function CreateProject({ onCreate, onClose }: CreateProjectProps) {
+  const dispatch = useDispatch(); // ✅ Initialize dispatch
   const session_id = Cookies.get("token") || "";
 
   const [mode, setMode] = useState<
@@ -94,6 +97,7 @@ export default function CreateProject({ onCreate, onClose }: CreateProjectProps)
 
   const handleSubmit = async () => {
     try {
+      // ==================== CREATE NEW ====================
       if (mode === "createNew") {
         if (!organization || !project)
           return toast.error("Please enter organization and project name");
@@ -104,9 +108,10 @@ export default function CreateProject({ onCreate, onClose }: CreateProjectProps)
           project_name: project,
         }).unwrap();
 
-        saveAndNotify(response, organization, project);
+        saveAndNotify(response, organization, project, "created");
       }
 
+      // ==================== CREATE IN EXISTING ====================
       if (mode === "createExisting") {
         if (!orgData?.organizations?.length)
           return toast.error(
@@ -127,9 +132,10 @@ export default function CreateProject({ onCreate, onClose }: CreateProjectProps)
           project_name: project,
         }).unwrap();
 
-        saveAndNotify(response, orgName, project);
+        saveAndNotify(response, orgName, project, "created");
       }
 
+      // ==================== SELECT EXISTING ====================
       if (mode === "selectExisting") {
         if (!orgData?.organizations?.length)
           return toast.error(
@@ -145,6 +151,10 @@ export default function CreateProject({ onCreate, onClose }: CreateProjectProps)
         const projectName = projectData?.projects.find(
           (p: any) => p.id === selectedProjectId
         )?.project_name;
+
+        // ✅ Reset all Redux states before switching project
+        console.log("🧹 [Select Existing Project] Resetting all Redux states...");
+        dispatch(resetAllStates() as any);
 
         localStorage.setItem(
           "currentProject",
@@ -166,6 +176,12 @@ export default function CreateProject({ onCreate, onClose }: CreateProjectProps)
           project: projectName,
         });
 
+        // Reset form state
+        setOrganization("");
+        setProject("");
+        setSelectedOrgId("");
+        setSelectedProjectId("");
+
         // Close modal after successful selection
         if (onClose) {
           onClose();
@@ -179,8 +195,13 @@ export default function CreateProject({ onCreate, onClose }: CreateProjectProps)
   const saveAndNotify = (
     response: any,
     orgName: string,
-    projectName: string
+    projectName: string,
+    action: "created" | "selected"
   ) => {
+    // ✅ Reset all Redux states before setting new project
+    console.log(`🧹 [${action === "created" ? "Create" : "Select"} Project] Resetting all Redux states...`);
+    dispatch(resetAllStates() as any);
+
     localStorage.setItem(
       "currentProject",
       JSON.stringify({
@@ -194,13 +215,19 @@ export default function CreateProject({ onCreate, onClose }: CreateProjectProps)
     // Trigger UI updates
     triggerProjectUpdate();
 
-    toast.success("Project created successfully!");
+    // ✅ Show appropriate success message
+    if (action === "created") {
+      toast.success("Project created successfully!");
+    } else {
+      toast.success("Project selected successfully!");
+    }
 
     onCreate({
       project: projectName,
       organization: orgName,
     });
 
+    // Reset form state
     setOrganization("");
     setProject("");
     setSelectedOrgId("");
@@ -436,7 +463,7 @@ export default function CreateProject({ onCreate, onClose }: CreateProjectProps)
         )}
 
         <PrimaryButton
-          text="Create Project"
+          text={mode === "selectExisting" ? "Select Project" : "Create Project"}
           onClick={handleSubmit}
           loading={creating}
           sx={{ mt: 1, mx: "auto", display: "block" }}

@@ -21,8 +21,10 @@ import {
   Logout as LogoutIcon,
 } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
+import { useDispatch } from 'react-redux';
 import { useLogoutMutation } from '@/redux/services/auth/authApi';
-import { useUpdateTotalCreditsMutation } from '@/redux/services/credits/credits'; // ✅ Import the mutation
+import { useUpdateTotalCreditsMutation } from '@/redux/services/credits/credits';
+import { resetAllStates } from '@/redux/actions/resetActions'; // ✅ Import centralized reset action
 import Cookies from 'js-cookie';
 import { ProfileSettingsModal } from './ProfileSettingsModal';
 
@@ -42,6 +44,7 @@ interface CurrentProject {
 
 const TopBar: React.FC = () => {
   const router = useRouter();
+  const dispatch = useDispatch();
   const [user, setUser] = useState<User | null>(null);
   const [currentProject, setCurrentProject] = useState<CurrentProject | null>(null);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -50,7 +53,7 @@ const TopBar: React.FC = () => {
   const isDropdownOpen = Boolean(anchorEl);
 
   const [logout, { isLoading: isLoggingOut }] = useLogoutMutation();
-  const [updateTotalCredits] = useUpdateTotalCreditsMutation(); // ✅ Initialize mutation
+  const [updateTotalCredits] = useUpdateTotalCreditsMutation();
 
   // 🔹 Function to load current project
   const loadCurrentProject = () => {
@@ -102,7 +105,7 @@ const TopBar: React.FC = () => {
   // 🔹 Fetch credits every 30 seconds
   useEffect(() => {
     const fetchCredits = async () => {
-      const session_id = Cookies.get('token'); // assuming token = session_id
+      const session_id = Cookies.get('token');
       if (!session_id) return;
 
       try {
@@ -156,6 +159,9 @@ const TopBar: React.FC = () => {
     const token = Cookies.get('token');
 
     if (!token) {
+      // ✅ Reset all Redux states and disconnect WebSocket
+      dispatch(resetAllStates() as any);
+      
       localStorage.clear();
       Cookies.remove('token');
       router.push('/');
@@ -168,9 +174,15 @@ const TopBar: React.FC = () => {
     } catch (error) {
       console.error('Logout failed:', error);
     } finally {
+      // ✅ Reset all Redux states and disconnect WebSocket
+      dispatch(resetAllStates() as any);
+      
+      // Clear local storage and cookies
       localStorage.removeItem('user');
       localStorage.removeItem('currentProject');
       Cookies.remove('token');
+      
+      // Navigate to login
       router.push('/');
     }
   };
@@ -317,7 +329,6 @@ const TopBar: React.FC = () => {
       <ProfileSettingsModal
         open={profileSettingsOpen}
         onClose={handleProfileSettingsClose}
-        // user={user}
       />
     </>
   );

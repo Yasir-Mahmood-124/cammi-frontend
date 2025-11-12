@@ -32,6 +32,8 @@ import {
   setShouldFetchAll,
   setShowDocumentPreview,
   setCompletionMessageReceived,
+  setCurrentQuestionIndex,
+  setAnsweredIds,
 } from "@/redux/services/gtm/gtmSlice";
 import Cookies from "js-cookie";
 import toast, { Toaster } from "react-hot-toast";
@@ -53,6 +55,8 @@ const GTMPage: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const documentFetchTriggered = useRef(false);
   const mountRecoveryTriggered = useRef(false);
+  const previewFetchTriggered = useRef(false);
+  const hasInitialFetchHappened = useRef(false); // Track if initial fetch happened
 
   // Get state from Redux
   const {
@@ -96,6 +100,83 @@ const GTMPage: React.FC = () => {
     }
   }, [dispatch, projectId]);
 
+  // 🔥 RTK Query for unanswered questions with refetch function
+  const {
+    data: unansweredData,
+    isLoading: isLoadingUnanswered,
+    isError: isErrorUnanswered,
+    refetch: refetchUnanswered, // 🔥 GET THE REFETCH FUNCTION
+  } = useGet_unanswered_questionsQuery(
+    {
+      project_id: projectId,
+      document_type: "gtm",
+    },
+    {
+      skip: !shouldFetchUnanswered || !projectId,
+      refetchOnMountOrArgChange: true, // 🔥 ALWAYS REFETCH ON MOUNT
+    }
+  );
+
+  // 🔥 RTK Query for all questions (answered) with refetch function
+  const {
+    data: allQuestionsData,
+    isLoading: isLoadingAll,
+    isError: isErrorAll,
+    refetch: refetchAllQuestions, // 🔥 GET THE REFETCH FUNCTION
+  } = useGetQuestionsQuery(
+    {
+      project_id: projectId,
+      document_type: "gtm",
+    },
+    {
+      skip: !shouldFetchAll || !projectId,
+      refetchOnMountOrArgChange: true, // 🔥 ALWAYS REFETCH ON MOUNT
+    }
+  );
+
+  // 🔥 NEW: Cleanup state when unmounting (user leaves the page)
+  useEffect(() => {
+    return () => {
+      console.log("🧹 [GTM Unmount] Clearing state for fresh fetch on return");
+      // Only clear if not generating or showing document
+      if (!isGenerating && !showDocumentPreview) {
+        dispatch(setQuestions([]));
+        dispatch(setCurrentQuestionIndex(0));
+        dispatch(setAnsweredIds([]));
+        dispatch(setShouldFetchUnanswered(false));
+        dispatch(setShouldFetchAll(false));
+        hasInitialFetchHappened.current = false; // Reset flag
+      }
+    };
+  }, [dispatch, isGenerating, showDocumentPreview]);
+
+  // 🔥 MODIFIED: Force refetch on every mount
+  useEffect(() => {
+    // Only fetch if we have a projectId and not in a critical state
+    if (projectId && !isGenerating && !showDocumentPreview) {
+      console.log("📋 [GTM Mount] Force refetching latest unanswered questions from API (bypassing cache)");
+      
+      // Small delay to ensure cleanup is complete
+      setTimeout(() => {
+        dispatch(setShouldFetchUnanswered(true));
+        
+        // 🔥 FORCE REFETCH - This bypasses RTK Query cache
+        setTimeout(() => {
+          console.log("🔄 [GTM Refetch] Manually triggering refetch to bypass cache");
+          refetchUnanswered();
+        }, 200);
+      }, 100);
+    }
+  }, [projectId, dispatch, refetchUnanswered]); // Add refetchUnanswered to dependencies
+
+  // 🔥 Safety check - Reset currentQuestionIndex if out of bounds
+  useEffect(() => {
+    if (questions.length > 0 && currentQuestionIndex >= questions.length) {
+      console.log("⚠️ [GTM Safety] currentQuestionIndex out of bounds, resetting to 0");
+      dispatch(setCurrentQuestionIndex(0));
+    }
+  }, [questions.length, currentQuestionIndex, dispatch]);
+
   // Fetch document function
   const handleGenerationComplete = useCallback(async () => {
     if (documentFetchTriggered.current) {
@@ -130,46 +211,6 @@ const GTMPage: React.FC = () => {
       documentFetchTriggered.current = false; // Reset on error to allow retry
     }
   }, [dispatch, getDocxFile]);
-
-  // // ==================== SIMPLE MOUNT RECOVERY ====================
-  // useEffect(() => {
-  //   if (mountRecoveryTriggered.current) {
-  //     return;
-  //   }
-
-  //   // Scenario 1: Document already fetched and available
-  //   if (docxBase64 && fileName) {
-  //     if (!showDocumentPreview) {
-  //       dispatch(setShowDocumentPreview(true));
-  //     }
-  //     mountRecoveryTriggered.current = true;
-  //     return;
-  //   }
-
-  //   // Scenario 2: Completion message received but no document yet - FETCH IT!
-  //   if (hasReceivedCompletionMessage && !docxBase64) {
-  //     mountRecoveryTriggered.current = true;
-
-  //     setTimeout(() => {
-  //       handleGenerationComplete();
-  //     }, 1000);
-  //     return;
-  //   }
-
-  //   // Scenario 3: Generation in progress - global middleware is handling it
-  //   if (isGenerating && generatingProgress >= 0 && !hasReceivedCompletionMessage) {
-  //     mountRecoveryTriggered.current = true;
-  //     return;
-  //   }
-
-  //   // Scenario 4: No active generation
-  //   if (!isGenerating) {
-  //     mountRecoveryTriggered.current = true;
-  //     return;
-  //   }
-
-  //   mountRecoveryTriggered.current = true;
-  // }, []); // Run only once on mount
 
   // ==================== MOUNT RECOVERY WITH WEBSOCKET RE-CONNECTION (ENHANCED) ====================
   useEffect(() => {
@@ -224,7 +265,6 @@ const GTMPage: React.FC = () => {
 
       // 🔄 Re-trigger the middleware by toggling isGenerating
       setTimeout(() => {
-        // dispatch(setIsGenerating(false));
         setTimeout(() => {
           dispatch(setIsGenerating(true));
         }, 100);
@@ -253,7 +293,7 @@ const GTMPage: React.FC = () => {
     // 🧹 CLEANUP — allows this effect to run again when user revisits this page
     return () => {
       console.log("🧹 [Cleanup] Resetting mount recovery flag for next mount");
-      mountRecoveryTriggered.current = true;
+      mountRecoveryTriggered.current = false;
     };
   }, [
     // Dependencies to handle re-mounts properly:
@@ -264,6 +304,8 @@ const GTMPage: React.FC = () => {
     isGenerating,
     generatingProgress,
     wsUrl,
+    dispatch,
+    handleGenerationComplete,
   ]);
 
   // Watch for completion message flag changes (backup)
@@ -277,40 +319,10 @@ const GTMPage: React.FC = () => {
     }
   }, [hasReceivedCompletionMessage, docxBase64, handleGenerationComplete]);
 
-  // RTK Query for unanswered questions
-  const {
-    data: unansweredData,
-    isLoading: isLoadingUnanswered,
-    isError: isErrorUnanswered,
-  } = useGet_unanswered_questionsQuery(
-    {
-      project_id: projectId,
-      document_type: "gtm",
-    },
-    {
-      skip: !shouldFetchUnanswered || !projectId,
-    }
-  );
-
-  // RTK Query for all questions (answered)
-  const {
-    data: allQuestionsData,
-    isLoading: isLoadingAll,
-    isError: isErrorAll,
-  } = useGetQuestionsQuery(
-    {
-      project_id: projectId,
-      document_type: "gtm",
-    },
-    {
-      skip: !shouldFetchAll || !projectId,
-    }
-  );
-
   // Handle unanswered questions response
   useEffect(() => {
     if (unansweredData) {
-      toast.loading("Checking for unanswered questions...");
+      console.log("📥 [GTM API Response] Unanswered questions received:", unansweredData);
 
       if (
         unansweredData.missing_questions &&
@@ -323,19 +335,19 @@ const GTMPage: React.FC = () => {
             answer: "",
           }));
 
+        console.log(`✅ [GTM] Found ${formattedQuestions.length} unanswered questions`);
         dispatch(setQuestions(formattedQuestions));
         dispatch(setView("questions"));
         dispatch(setShouldFetchUnanswered(false));
 
-        toast.dismiss();
         toast.success(
-          `${formattedQuestions.length} unanswered question(s) found. Please provide answers.`
+          "Unanswered questions loaded successfully!"
         );
       } else {
+        console.log("✅ [GTM] No unanswered questions, fetching all answered questions");
         dispatch(setShouldFetchUnanswered(false));
         dispatch(setShouldFetchAll(true));
 
-        toast.dismiss();
         toast.success(
           "No unanswered questions found. Fetching all answered ones..."
         );
@@ -346,7 +358,7 @@ const GTMPage: React.FC = () => {
   // Handle all questions (answered) response
   useEffect(() => {
     if (allQuestionsData && allQuestionsData.questions) {
-      toast.loading("Loading all answered questions...");
+      console.log("📥 [GTM API Response] All questions received:", allQuestionsData);
 
       const formattedQuestions: Question[] = allQuestionsData.questions.map(
         (q, index) => ({
@@ -356,14 +368,27 @@ const GTMPage: React.FC = () => {
         })
       );
 
+      console.log(`✅ [GTM] Loaded ${formattedQuestions.length} answered questions`);
       dispatch(setQuestions(formattedQuestions));
       dispatch(setView("preview"));
       dispatch(setShouldFetchAll(false));
 
-      toast.dismiss();
       toast.success("All answered questions loaded successfully!");
     }
   }, [allQuestionsData, dispatch]);
+
+  // 🔥 When transitioning to preview, always fetch from API
+  const handleShowPreview = useCallback(() => {
+    console.log("📋 [GTM Preview] Triggering API fetch for preview");
+    previewFetchTriggered.current = false; // Reset flag
+    dispatch(setShouldFetchAll(true));
+    
+    // 🔥 Force refetch for preview
+    setTimeout(() => {
+      console.log("🔄 [GTM Preview Refetch] Manually triggering refetch to bypass cache");
+      refetchAllQuestions();
+    }, 200);
+  }, [dispatch, refetchAllQuestions]);
 
   // Check if all questions are answered
   const allQuestionsAnswered =
@@ -416,8 +441,9 @@ const GTMPage: React.FC = () => {
       if (currentQuestionIndex < questions.length - 1) {
         dispatch(nextQuestion());
       } else {
-        toast.success("All questions answered! Previewing your responses...");
-        dispatch(setView("preview"));
+        toast.success("All questions answered! Loading preview...");
+        // 🔥 Always fetch from API when showing preview
+        handleShowPreview();
       }
     } else {
       toast.error("Please provide an answer before confirming!");
@@ -481,6 +507,10 @@ const GTMPage: React.FC = () => {
   const isError = isErrorUnanswered || isErrorAll;
   const showButton = view === "questions" || view === "preview";
 
+  // 🔥 Safety check for current question
+  const currentQuestion = questions[currentQuestionIndex];
+  const hasValidCurrentQuestion = currentQuestion !== undefined;
+
   if (isError) {
     return (
       <Box
@@ -533,7 +563,8 @@ const GTMPage: React.FC = () => {
         </Box>
       ) : (
         <>
-          {view === "questions" && questions.length > 0 && (
+          {/* 🔥 Safety check for questions and currentQuestionIndex */}
+          {view === "questions" && questions.length > 0 && hasValidCurrentQuestion && (
             <Box sx={{ width: "100%", maxWidth: "1200px" }}>
               <Box
                 sx={{
@@ -545,11 +576,11 @@ const GTMPage: React.FC = () => {
                   maxHeight: "500px",
                 }}
               >
-                <Box sx={{ flex: 1, height: "100vh" }}>
+                <Box sx={{ flex: 1 }}>
                   <UserInput
-                    number={questions[currentQuestionIndex].id}
-                    question={questions[currentQuestionIndex].question}
-                    answer={questions[currentQuestionIndex].answer}
+                    number={currentQuestion.id}
+                    question={currentQuestion.question}
+                    answer={currentQuestion.answer}
                     documentType="gtm"
                     isLoading={isRefining}
                     onGenerate={handleGenerate}
@@ -561,17 +592,17 @@ const GTMPage: React.FC = () => {
                 <Box sx={{ flex: "0 0 300px", height: "100%" }}>
                   <InputTakerUpdated
                     items={questions}
-                    currentQuestionId={questions[currentQuestionIndex].id}
+                    currentQuestionId={currentQuestion.id}
                     answeredIds={answeredIds}
                     onItemClick={handleItemClick}
-                    isClickable={true}
+                    isClickable={false}
                   />
                 </Box>
               </Box>
             </Box>
           )}
 
-          {view === "preview" && (
+          {view === "preview" && questions.length > 0 && (
             <Box
               sx={{
                 width: "100%",
@@ -606,7 +637,7 @@ const GTMPage: React.FC = () => {
           )}
 
           {showButton && (
-            <Box sx={{ position: "fixed", bottom: "25px", right: "60px" }}>
+            <Box sx={{ position: "fixed", bottom: "35px", right: "70px" }}>
               <Button
                 variant="contained"
                 endIcon={<ArrowForwardIcon sx={{ fontSize: "14px" }} />}
