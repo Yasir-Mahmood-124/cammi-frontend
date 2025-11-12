@@ -98,14 +98,20 @@ const ICPPage: React.FC = () => {
     }
   }, [dispatch, projectId]);
 
-  // Setup WebSocket URL for upload
+  // 🔥 FIXED: Setup WebSocket URL for upload - reset when view changes to upload or initial
   useEffect(() => {
-    if (!wsUrl) {
-      const websocketUrl =
+    // Set upload WebSocket URL when on initial or upload view
+    if (view === "initial" || view === "upload") {
+      const uploadWebSocketUrl =
         "wss://91vm5ilj37.execute-api.us-east-1.amazonaws.com/dev";
-      dispatch(setWsUrl(websocketUrl));
+
+      // Only update if it's currently set to generation URL
+      if (!wsUrl || wsUrl.includes("4iqvtvmxle")) {
+        console.log("🔗 [ICP] Setting upload WebSocket URL");
+        dispatch(setWsUrl(uploadWebSocketUrl));
+      }
     }
-  }, [dispatch, wsUrl]);
+  }, [view, wsUrl, dispatch]);
 
   // 🔥 RTK Query for unanswered questions
   const {
@@ -141,16 +147,18 @@ const ICPPage: React.FC = () => {
     }
   );
 
-  // 🔥 FIXED: Cleanup state when unmounting
+  // 🔥 Cleanup state when unmounting
   useEffect(() => {
     return () => {
       console.log("🧹 [ICP Unmount] Cleaning up for fresh fetch on return");
-      
+
       // Only clear if not generating or showing document
       if (!isGenerating && !showDocumentPreview) {
         // If user was on questions view, prepare for refetch
         if (view === "questions" && questions.length > 0) {
-          console.log("📋 [ICP Unmount] Was on questions - will refetch on return");
+          console.log(
+            "📋 [ICP Unmount] Was on questions - will refetch on return"
+          );
           dispatch(setQuestions([]));
           dispatch(setCurrentQuestionIndex(0));
           dispatch(setAnsweredIds([]));
@@ -158,11 +166,13 @@ const ICPPage: React.FC = () => {
           hasCheckedForRefetch.current = false;
           refetchTimestamp.current = Date.now();
         }
-        
-        // 🔥 FIX: If user was on preview, mark for refetch but DON'T clear view
+
+        // If user was on preview, mark for refetch but DON'T clear view
         if (view === "preview" && questions.length > 0) {
-          console.log("📋 [ICP Unmount] Was on preview - will refetch on return");
-          dispatch(setQuestions([])); // Clear questions to trigger fresh fetch
+          console.log(
+            "📋 [ICP Unmount] Was on preview - will refetch on return"
+          );
+          dispatch(setQuestions([]));
           dispatch(setShouldFetchAll(false));
           hasCheckedForRefetch.current = false;
           refetchTimestamp.current = Date.now();
@@ -171,7 +181,7 @@ const ICPPage: React.FC = () => {
     };
   }, [dispatch, isGenerating, showDocumentPreview, view, questions.length]);
 
-  // 🔥 FIXED: On mount, check if we need to refetch questions
+  // 🔥 On mount, check if we need to refetch questions
   useEffect(() => {
     // Prevent duplicate checks on the same mount
     if (hasCheckedForRefetch.current) {
@@ -180,35 +190,47 @@ const ICPPage: React.FC = () => {
 
     // Only refetch if we have a projectId and not in a critical state
     if (projectId && !isGenerating && !showDocumentPreview) {
-      // 🔥 FIX Issue 1: Only auto-trigger if NOT on initial view
-      // This prevents auto-clicking "No" when first landing on the page
+      // Only auto-trigger if NOT on initial view
       if (view === "questions" && questions.length === 0) {
         // User is on questions view but no questions - fetch them
-        console.log("📋 [ICP Mount] On questions view - fetching unanswered questions");
+        console.log(
+          "📋 [ICP Mount] On questions view - fetching unanswered questions"
+        );
         hasCheckedForRefetch.current = true;
         refetchTimestamp.current = Date.now();
-        
+
         setTimeout(() => {
           dispatch(setShouldFetchUnanswered(true));
         }, 100);
       } else if (view === "preview" && questions.length === 0) {
-        // 🔥 FIX Issue 2: User is on preview but no questions - fetch all answered
-        console.log("📋 [ICP Mount] On preview view - fetching all answered questions");
+        // User is on preview but no questions - fetch all answered
+        console.log(
+          "📋 [ICP Mount] On preview view - fetching all answered questions"
+        );
         hasCheckedForRefetch.current = true;
         refetchTimestamp.current = Date.now();
-        
+
         setTimeout(() => {
           dispatch(setShouldFetchAll(true));
         }, 100);
       }
-      // 🔥 DO NOT auto-fetch if view is "initial" - let user click Yes/No
+      // DO NOT auto-fetch if view is "initial" - let user click Yes/No
     }
-  }, [projectId, view, dispatch, isGenerating, showDocumentPreview, questions.length]);
+  }, [
+    projectId,
+    view,
+    dispatch,
+    isGenerating,
+    showDocumentPreview,
+    questions.length,
+  ]);
 
   // 🔥 Safety check - Reset currentQuestionIndex if out of bounds
   useEffect(() => {
     if (questions.length > 0 && currentQuestionIndex >= questions.length) {
-      console.log("⚠️ [ICP Safety] currentQuestionIndex out of bounds, resetting to 0");
+      console.log(
+        "⚠️ [ICP Safety] currentQuestionIndex out of bounds, resetting to 0"
+      );
       dispatch(setCurrentQuestionIndex(0));
     }
   }, [questions.length, currentQuestionIndex, dispatch]);
@@ -347,10 +369,13 @@ const ICPPage: React.FC = () => {
     }
   }, [hasReceivedCompletionMessage, docxBase64, handleGenerationComplete]);
 
-  // Handle unanswered questions response
+  // 🔥 FIXED: Handle unanswered questions response
   useEffect(() => {
     if (unansweredData) {
-      console.log("📥 [ICP API Response] Unanswered questions received:", unansweredData);
+      console.log(
+        "📥 [ICP API Response] Unanswered questions received:",
+        unansweredData
+      );
 
       if (
         unansweredData.missing_questions &&
@@ -363,7 +388,9 @@ const ICPPage: React.FC = () => {
             answer: "",
           }));
 
-        console.log(`✅ [ICP] Found ${formattedQuestions.length} unanswered questions`);
+        console.log(
+          `✅ [ICP] Found ${formattedQuestions.length} unanswered questions`
+        );
         dispatch(setQuestions(formattedQuestions));
         dispatch(setView("questions"));
         dispatch(setShouldFetchUnanswered(false));
@@ -372,21 +399,23 @@ const ICPPage: React.FC = () => {
           `${formattedQuestions.length} unanswered question(s) found. Please provide answers.`
         );
       } else {
-        console.log("✅ [ICP] No unanswered questions, fetching all answered questions");
+        // 🔥 FIXED: No toast here - just silently fetch all answered questions
+        console.log(
+          "✅ [ICP] No unanswered questions, fetching all answered questions"
+        );
         dispatch(setShouldFetchUnanswered(false));
         dispatch(setShouldFetchAll(true));
-
-        toast.success(
-          "No unanswered questions found. Fetching all answered ones..."
-        );
       }
     }
   }, [unansweredData, dispatch]);
 
-  // Handle all questions (answered) response
+  // 🔥 FIXED: Handle all questions (answered) response
   useEffect(() => {
     if (allQuestionsData && allQuestionsData.questions) {
-      console.log("📥 [ICP API Response] All questions received for preview:", allQuestionsData);
+      console.log(
+        "📥 [ICP API Response] All questions received for preview:",
+        allQuestionsData
+      );
 
       const formattedQuestions: Question[] = allQuestionsData.questions.map(
         (q, index) => ({
@@ -396,12 +425,17 @@ const ICPPage: React.FC = () => {
         })
       );
 
-      console.log(`✅ [ICP] Loaded ${formattedQuestions.length} answered questions for preview`);
+      console.log(
+        `✅ [ICP] Loaded ${formattedQuestions.length} answered questions for preview`
+      );
       dispatch(setQuestions(formattedQuestions));
       dispatch(setView("preview"));
       dispatch(setShouldFetchAll(false));
 
-      toast.success("All answered questions loaded successfully!");
+      // 🔥 FIXED: Only show toast if we have questions (meaningful result)
+      if (formattedQuestions.length > 0) {
+        toast.success("Processing complete! Preview ready.");
+      }
     }
   }, [allQuestionsData, dispatch]);
 
@@ -409,28 +443,42 @@ const ICPPage: React.FC = () => {
   const allQuestionsAnswered =
     questions.length > 0 && questions.every((q) => q.answer.trim() !== "");
 
+
   const handleYesClick = () => {
+    console.log("📤 [ICP] User clicked Yes - preparing upload view");
+
+    // 🔥 FIXED: Ensure upload WebSocket URL is set
+    const uploadWebSocketUrl =
+      "wss://91vm5ilj37.execute-api.us-east-1.amazonaws.com/dev";
+    dispatch(setWsUrl(uploadWebSocketUrl));
     dispatch(setView("upload"));
   };
 
   const handleNoClick = () => {
-    console.log("📋 [ICP] User clicked No - fetching fresh unanswered questions");
+    console.log(
+      "📋 [ICP] User clicked No - fetching fresh unanswered questions"
+    );
     hasCheckedForRefetch.current = false;
     refetchTimestamp.current = Date.now();
     dispatch(setShouldFetchUnanswered(true));
   };
 
+  // 🔥 FIXED: Handle upload complete with proper toast management
   const handleUploadComplete = (data: any) => {
     if (data.status === "processing_started") {
       return;
     }
 
     if (data.status === "analyzing_document") {
-      toast("Analyzing your document...");
+      // 🔥 FIXED: Use toast.loading with unique ID to prevent duplicates
+      toast.loading("Analyzing your document...", { id: "analyzing-doc" });
       return;
     }
 
     if (data.status === "questions_need_answers" && data.not_found_questions) {
+      // 🔥 Dismiss analyzing toast
+      toast.dismiss("analyzing-doc");
+
       const formattedQuestions: Question[] = data.not_found_questions.map(
         (item: any, index: number) => {
           const questionText = item.question || item.question_text || item;
@@ -447,11 +495,13 @@ const ICPPage: React.FC = () => {
 
       dispatch(setQuestions(formattedQuestions));
       dispatch(setView("questions"));
+      toast.success("Some questions need answers. Please review them.");
       return;
     }
 
     if (data.status === "processing_complete") {
-      toast.success("Processing complete!");
+      // 🔥 Dismiss analyzing toast
+      toast.dismiss("analyzing-doc");
 
       if (data.results) {
         const notFoundQuestions = Object.entries(data.results)
@@ -465,24 +515,26 @@ const ICPPage: React.FC = () => {
         if (notFoundQuestions.length > 0) {
           dispatch(setQuestions(notFoundQuestions));
           dispatch(setView("questions"));
-          toast("Some questions need answers. Please review them.");
+          toast.success("Some questions need answers. Please review them.");
         } else {
+          // 🔥 FIXED: Don't show toast here - let the effect handle it
           console.log("📋 [ICP] All questions answered - fetching for preview");
           dispatch(setQuestions([]));
           refetchTimestamp.current = Date.now();
           dispatch(setShouldFetchAll(true));
         }
       } else {
+        // 🔥 FIXED: Don't show toast here - let the effect handle it
         console.log("📋 [ICP] Processing complete - fetching for preview");
         dispatch(setQuestions([]));
         refetchTimestamp.current = Date.now();
         dispatch(setShouldFetchAll(true));
-        toast.success("Processing complete — moving to preview.");
       }
       return;
     }
 
     if (data.message === "Forbidden" || data.status === "error") {
+      toast.dismiss("analyzing-doc");
       toast.error(
         `WebSocket Error: ${data.message || "Something went wrong."}`
       );
@@ -508,7 +560,9 @@ const ICPPage: React.FC = () => {
       if (currentQuestionIndex < questions.length - 1) {
         dispatch(nextQuestion());
       } else {
-        console.log("📋 [ICP] All questions answered - fetching fresh data for preview");
+        console.log(
+          "📋 [ICP] All questions answered - fetching fresh data for preview"
+        );
         toast.success("All questions answered! Loading preview...");
         dispatch(setQuestions([]));
         refetchTimestamp.current = Date.now();
@@ -685,7 +739,7 @@ const ICPPage: React.FC = () => {
             </Box>
           )}
 
-          {/* 🔥 Show loading state while fetching preview data */}
+          {/* Show loading state while fetching preview data */}
           {view === "preview" && questions.length === 0 && isLoadingAll && (
             <Box
               sx={{
@@ -701,7 +755,7 @@ const ICPPage: React.FC = () => {
             </Box>
           )}
 
-          {/* 🔥 Only show preview when we have questions from API */}
+          {/* Only show preview when we have questions from API */}
           {view === "preview" && questions.length > 0 && (
             <Box
               sx={{
