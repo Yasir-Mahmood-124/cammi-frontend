@@ -16,6 +16,7 @@ import {
 import { UpperWave, LowerWave, Google } from "@/assests/icons";
 import Image from "next/image";
 import Logo from "@/assests/images/Logo.png";
+import { useDispatch } from "react-redux"; // ✅ Import useDispatch
 import { useLoginMutation } from "@/redux/services/auth/authApi";
 import { toast } from "@/utils/toast";
 import Visibility from "@mui/icons-material/Visibility";
@@ -23,11 +24,13 @@ import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import Cookies from "js-cookie";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useLazyGoogleLoginQuery } from "@/redux/services/auth/googleApi";
+import { resetAllStates } from "@/redux/actions/resetActions"; // ✅ Import reset action
 import NextLink from "next/link";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const dispatch = useDispatch(); // ✅ Initialize dispatch
   const [login, { isLoading }] = useLoginMutation();
   const [googleLogin] = useLazyGoogleLoginQuery();
   const [showPassword, setShowPassword] = useState(false);
@@ -60,6 +63,10 @@ const Login = () => {
         // If we have session_id, process the Google login
         if (sessionId && email) {
           setIsProcessingGoogle(true);
+
+          // ✅ Reset all Redux states before setting new session
+          console.log("🧹 [Google Login] Resetting all Redux states...");
+          dispatch(resetAllStates() as any);
 
           // Store session_id as token in cookies (same as manual login)
           Cookies.set("token", sessionId, { expires: 7, secure: true });
@@ -98,7 +105,7 @@ const Login = () => {
     };
 
     handleGoogleCallback();
-  }, [searchParams, router]);
+  }, [searchParams, router, dispatch]); // ✅ Add dispatch to dependencies
 
   const handleClick = async () => {
     try {
@@ -125,6 +132,10 @@ const Login = () => {
     try {
       const res = await login({ email, password }).unwrap();
 
+      // ✅ Reset all Redux states before setting new session
+      console.log("🧹 [Manual Login] Resetting all Redux states...");
+      dispatch(resetAllStates() as any);
+
       toast(res.message || "Login successful!", { variant: "success" });
 
       Cookies.set("token", res.token, { expires: 7, secure: true });
@@ -134,7 +145,6 @@ const Login = () => {
         JSON.stringify(res.onboarding_status)
       );
       localStorage.setItem("user", JSON.stringify(res.user));
-
 
       if (res.onboarding_status === true) {
         router.push("/onboarding");
