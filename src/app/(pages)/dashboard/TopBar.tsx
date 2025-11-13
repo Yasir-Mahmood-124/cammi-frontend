@@ -26,12 +26,13 @@ import { useLogoutMutation } from '@/redux/services/auth/authApi';
 import { useUpdateTotalCreditsMutation } from '@/redux/services/credits/credits';
 import { resetAllStates } from '@/redux/actions/resetActions'; // ✅ Import centralized reset action
 import Cookies from 'js-cookie';
-import { ProfileSettingsModal } from './ProfileSettingsModal';
+import ProfileSettingsModal from './ProfileSettingsModal';
 
 interface User {
   email: string;
   id: string;
   name: string;
+  picture: string | null; // ✅ Added picture field
   token?: string;
 }
 
@@ -142,7 +143,7 @@ const TopBar: React.FC = () => {
 
   const handleProfileSettingsClose = () => {
     setProfileSettingsOpen(false);
-    // Refresh user data after modal closes
+    // ✅ Refresh user data after modal closes to get updated picture
     const storedUser = localStorage.getItem('user');
     if (storedUser) {
       try {
@@ -229,16 +230,20 @@ const TopBar: React.FC = () => {
 
           {/* Right side - User Info and Dropdown */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            {/* ✅ Updated Avatar to show picture if available */}
             <Avatar
+              src={user.picture || undefined} // Show picture if available
               sx={{
                 width: 40,
                 height: 40,
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                background: user.picture 
+                  ? 'transparent' 
+                  : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                 fontSize: '0.875rem',
                 fontWeight: 600,
               }}
             >
-              {getInitials(user.name)}
+              {!user.picture && getInitials(user.name)} {/* Show initials only if no picture */}
             </Avatar>
 
             <Box sx={{ display: 'flex', flexDirection: 'column' }}>
