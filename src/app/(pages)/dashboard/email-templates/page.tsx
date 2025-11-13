@@ -3,10 +3,7 @@ import ComingSoon from "@/components/ComingSoon";
 
 const page = () => {
   return (
-    <ComingSoon
-      headingName="Email Templates"
-      description="Access anywhere, anytime"
-    />
+    <ComingSoon />
   );
 };
 
