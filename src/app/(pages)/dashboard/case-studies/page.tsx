@@ -3,10 +3,7 @@ import ComingSoon from "@/components/ComingSoon";
 
 const page = () => {
   return (
-    <ComingSoon
-      headingName="Case Studies"
-      description="Access anywhere, anytime"
-    />
+    <ComingSoon />
   );
 };
 
