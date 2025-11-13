@@ -1,3 +1,4 @@
+// src/redux/services/settings/profileSettings.ts
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
 // 🔹 Define request body type
