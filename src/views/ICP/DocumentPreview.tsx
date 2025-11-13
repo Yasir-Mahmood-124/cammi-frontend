@@ -32,6 +32,8 @@ interface TableOfContentsItem {
 
 const DocumentPreview: React.FC<DocumentPreviewProps> = ({ docxBase64, fileName, documentType }) => {
   const dispatch = useDispatch<AppDispatch>();
+  
+  const [currentDocxBase64, setCurrentDocxBase64] = useState<string>(docxBase64);
   const [tableOfContents, setTableOfContents] = useState<TableOfContentsItem[]>([]);
   const [activeSection, setActiveSection] = useState<string>('');
   const [documentHtml, setDocumentHtml] = useState<string>('');
@@ -57,26 +59,24 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ docxBase64, fileName,
   };
 
   useEffect(() => {
+    setCurrentDocxBase64(docxBase64);
+  }, [docxBase64]);
+
+  useEffect(() => {
     const parseDocx = async () => {
       try {
-        // Dynamically import mammoth
         const mammoth = await import('mammoth');
         
-        // Convert base64 to array buffer
-        const binaryString = atob(docxBase64);
+        const binaryString = atob(currentDocxBase64);
         const bytes = new Uint8Array(binaryString.length);
         for (let i = 0; i < binaryString.length; i++) {
           bytes[i] = binaryString.charCodeAt(i);
         }
         
-        // Convert to HTML
         const result = await mammoth.convertToHtml({ arrayBuffer: bytes.buffer });
-        
-        // Extract plain text
         const textResult = await mammoth.extractRawText({ arrayBuffer: bytes.buffer });
         setDocumentText(textResult.value);
         
-        // Parse HTML and add IDs to headings
         const parser = new DOMParser();
         const doc = parser.parseFromString(result.value, 'text/html');
         const headings = doc.querySelectorAll('h1, h2, h3, h4, h5, h6');
@@ -91,7 +91,6 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ docxBase64, fileName,
           toc.push({ id, text, level });
         });
         
-        // Get updated HTML with IDs
         setDocumentHtml(doc.body.innerHTML);
         setTableOfContents(toc);
         
@@ -101,22 +100,20 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ docxBase64, fileName,
         
         setIsLoading(false);
       } catch (error) {
-        // console.error('Error parsing DOCX:', error);
+        console.error('Error parsing DOCX:', error);
         setIsLoading(false);
       }
     };
 
     parseDocx();
-  }, [docxBase64]);
+  }, [currentDocxBase64]);
 
-  // Track scroll position to update active section
   useEffect(() => {
     const handleScroll = () => {
       if (!contentRef.current) return;
 
-      const scrollPosition = contentRef.current.scrollTop + 100; // offset for better UX
+      const scrollPosition = contentRef.current.scrollTop + 100;
 
-      // Find which heading is currently in view
       for (let i = tableOfContents.length - 1; i >= 0; i--) {
         const element = contentRef.current.querySelector(`#${tableOfContents[i].id}`) as HTMLElement;
         if (element && element.offsetTop <= scrollPosition) {
@@ -146,30 +143,61 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ docxBase64, fileName,
     handleMenuClose();
 
     if (format === 'DOCx') {
-      handleDownloadDocx();
+      await handleDownloadDocx(); // Make it async
     } else if (format === 'PDF') {
       await handleDownloadPdf();
     }
   };
 
-  const handleDownloadDocx = () => {
-    const binaryString = atob(docxBase64);
-    const bytes = new Uint8Array(binaryString.length);
-    for (let i = 0; i < binaryString.length; i++) {
-      bytes[i] = binaryString.charCodeAt(i);
+  // ✅ UPDATED: Always fetch fresh from server
+  const handleDownloadDocx = async () => {
+    try {
+      toast.loading('Preparing document...', { id: 'docx-download' });
+
+      const savedToken = Cookies.get("token");
+      const project_id = JSON.parse(
+        localStorage.getItem("currentProject") || "{}"
+      ).project_id;
+
+      console.log('🔄 Fetching latest DOCX from server...');
+
+      // Fetch fresh document from server
+      const response = await getDocxFile({
+        session_id: savedToken || "",
+        document_type: documentType,
+        project_id: project_id,
+      }).unwrap();
+
+      console.log('✅ Latest DOCX received from server');
+
+      // Update state with latest version
+      setCurrentDocxBase64(response.docxBase64);
+
+      // Convert and download
+      const binaryString = atob(response.docxBase64);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      
+      const blob = new Blob([bytes], { 
+        type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' 
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName || 'document.docx';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      toast.success('Document downloaded!', { id: 'docx-download' });
+      console.log('✅ DOCX downloaded successfully');
+    } catch (error) {
+      console.error('❌ Failed to download DOCX:', error);
+      toast.error('Failed to download document', { id: 'docx-download' });
     }
-    
-    const blob = new Blob([bytes], { 
-      type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' 
-    });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = fileName || 'document.docx';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
   };
 
   const handleDownloadPdf = async () => {
@@ -182,12 +210,9 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ docxBase64, fileName,
       const response = await downloadPdf({
         session_id: savedToken || '',
         project_id: project_id,
-        document_type: documentType, // Use prop
+        document_type: documentType,
       }).unwrap();
 
-      // console.log("📄 PDF Response:", response);
-
-      // Optimized base64 to blob conversion
       const byteCharacters = atob(response.base64_pdf);
       const byteArrays = [];
       for (let i = 0; i < byteCharacters.length; i++) {
@@ -206,10 +231,8 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ docxBase64, fileName,
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
-
-      // console.log('✅ PDF downloaded successfully');
     } catch (error) {
-      // console.error('❌ Failed to download PDF:', error);
+      console.error('❌ Failed to download PDF:', error);
     }
   };
 
@@ -227,14 +250,13 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ docxBase64, fileName,
       const response = await sendReview({
         session_id: savedToken || '',
         project_id: project_id,
-        document_type: documentType, // Use prop
+        document_type: documentType,
         document_text: documentText,
       }).unwrap();
 
-      // console.log('✅ Document submitted for review:', response);
       toast.success('Document submitted for review successfully!');
     } catch (error) {
-      // console.error('❌ Failed to submit for review:', error);
+      console.error('❌ Failed to submit for review:', error);
       toast.error('Failed to submit document for review');
     }
   };
@@ -244,10 +266,8 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ docxBase64, fileName,
     console.log(`║           💾 Saving ${documentTypeLabels[documentType]} Document & Resetting State         ║`);
     console.log("╚════════════════════════════════════════════════════════════╝");
     
-    // Show success toast
     toast.success("Document saved successfully!");
     
-    // Reset the appropriate Redux state based on documentType
     if (documentType === 'icp') {
       dispatch(resetIcp());
     } else if (documentType === 'kmf') {
@@ -287,34 +307,36 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ docxBase64, fileName,
         localStorage.getItem("currentProject") || "{}"
       ).project_id;
 
+      console.log('🔄 Fetching latest document after edit...');
+
       const response = await getDocxFile({
         session_id: savedToken || "",
-        document_type: documentType, // Use prop
+        document_type: documentType,
         project_id: project_id,
       }).unwrap();
+
+      console.log('✅ Latest document received');
+
+      setCurrentDocxBase64(response.docxBase64);
 
       setIsLoading(true);
       setDocumentHtml("");
       setTableOfContents([]);
       setDocumentText("");
 
-      // Decode DOCX base64
       const binaryString = atob(response.docxBase64);
       const bytes = new Uint8Array(binaryString.length);
       for (let i = 0; i < binaryString.length; i++) {
         bytes[i] = binaryString.charCodeAt(i);
       }
 
-      // Dynamically import mammoth
       const mammoth = await import("mammoth");
 
-      // Convert DOCX to HTML + text
       const result = await mammoth.convertToHtml({ arrayBuffer: bytes.buffer });
       const textResult = await mammoth.extractRawText({ arrayBuffer: bytes.buffer });
 
       setDocumentText(textResult.value);
 
-      // Parse the new HTML to extract headings
       const parser = new DOMParser();
       const doc = parser.parseFromString(result.value, "text/html");
       const headings = doc.querySelectorAll("h1, h2, h3, h4, h5, h6");
@@ -328,14 +350,13 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ docxBase64, fileName,
         toc.push({ id, text, level });
       });
 
-      // Update states
       setDocumentHtml(doc.body.innerHTML);
       setTableOfContents(toc);
       if (toc.length > 0) setActiveSection(toc[0].id);
 
-      // console.log("✅ Document refreshed successfully");
+      console.log("✅ Document refreshed successfully");
     } catch (error) {
-      // console.error("❌ Failed to refresh document:", error);
+      console.error("❌ Failed to refresh document:", error);
     } finally {
       setIsLoading(false);
     }
@@ -573,7 +594,7 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ docxBase64, fileName,
               padding: '2px'
             }} />}
             onClick={handleDownloadClick}
-            disabled={isPdfLoading}
+            disabled={isPdfLoading || isDownloading}
             sx={{
               fontFamily: 'Poppins',
               fontSize: '13px',
@@ -594,7 +615,7 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ docxBase64, fileName,
               },
             }}
           >
-            {isPdfLoading ? 'Downloading...' : 'Download'}
+            {isPdfLoading || isDownloading ? 'Downloading...' : 'Download'}
           </Button>
 
           <Menu
