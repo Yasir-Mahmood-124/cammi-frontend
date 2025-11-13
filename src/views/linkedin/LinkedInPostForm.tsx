@@ -573,15 +573,6 @@ const handleRefine = async () => {
                   {/* Right Side Icons and Post Button */}
                   <Box sx={{ display: "flex", gap: 1.5, alignItems: "center" }}>
                     <IconButton
-                      sx={{
-                        bgcolor: "transparent",
-                        "&:hover": { bgcolor: "#f5f5f5" },
-                      }}
-                    >
-                      <AttachFile sx={{ fontSize: 22, color: "#666" }} />
-                    </IconButton>
-
-                    <IconButton
                       component="label"
                       sx={{
                         bgcolor: "transparent",
