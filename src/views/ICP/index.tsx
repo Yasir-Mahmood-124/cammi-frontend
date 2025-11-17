@@ -465,7 +465,7 @@ const ICPPage: React.FC = () => {
 
   // Check if all questions are answered
   const allQuestionsAnswered =
-    questions.length > 0 && questions.every((q) => q.answer.trim() !== "");
+    questions.length > 0 && questions.every((q: Question) => q.answer.trim() !== "");
 
   const handleYesClick = () => {
     console.log("📤 [ICP] User clicked Yes - preparing upload view");
