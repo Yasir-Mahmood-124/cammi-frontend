@@ -13,18 +13,82 @@ interface InputTakerProps {
   currentQuestionId: number;
   answeredIds: number[];
   onItemClick?: (id: number) => void;
-  isClickable?: boolean; // New prop to control clickability
+  isClickable?: boolean;
 }
+
+// Question to Short Form mapping
+const questionMapping: { [key: string]: string } = {
+  // ICP Questions
+  "Could you share the name of your business?": "Business Name",
+  "If you had to explain your business in just a few sentences, how would you put it?": "Business Concept",
+  "Who's buying from you right now—who's your main customer?": "Current Customer",
+  "What are the top 3 wins you're aiming for in the next 12 months?": "12-Month Goals",
+  "What's making it tough to find or convert the right customers?": "Customer Challenges",
+  "Have you figured out who your dream customers or industries are yet?": "Best-Fit Customers",
+  
+  // KMF Questions
+  "What industry would you say your business fits into?": "Industry",
+  "What's the big goal you're working toward with your business?": "Business Goal",
+  "Who are you hoping to reach—who's your ideal customer?": "Target Customer",
+  "In the simplest way possible, how do you help your customers?": "Value Proposition",
+  "Where do you see your business going in the long run?": "Long-Term Vision",
+  "What pain points or challenges does your business solve for people?": "Problems Solved",
+  "What are the main products or services you're offering?": "Core Offerings",
+  "What sets you apart from others doing similar things?": "Unique Differentiator",
+  "What kind of personality should your brand have? Professional? Friendly? Bold? Something else?": "Brand Tone",
+  "Are there other values or themes you want people to connect with your brand?": "Brand Values",
+  
+  // SR Questions
+  "What's the main benefit customers get from using your platform?": "Value Proposition",
+  "How does your business make money? Subscription? Pay-per-use? Freemium?": "Business Model",
+  "Where are most of your customers located—what's your main market?": "Geographic Focus",
+  "Where does your pricing fall—are you budget-friendly, mid-range, or premium?": "Pricing Position",
+  "What kind of budget are you working with for marketing?": "Marketing Budget",
+  "Where are you at right now—just starting out, growing, scaling?": "Development Stage",
+  "What's most important to you when it comes to building your user base?": "User Priorities",
+  "What are you hoping to achieve with your marketing efforts?": "Marketing Objectives",
+  "When are you thinking of kicking this project off?": "Start Date",
+  "What's the big milestone or finish line you're working toward?": "End Date/Milestone",
+  
+  // BS Questions
+  "Which customers are cool with being featured publicly?": "Approved Customers",
+  "Got any links to customer video content we can use?": "Customer Videos",
+  "Can you share links to any customer success stories or case studies?": "Case Studies",
+  "What are some great quotes from happy customers you'd like to feature?": "Customer Quotes",
+  "Do you have customer logos or other visuals we can showcase?": "Customer Logos",
+  "What wins or achievements are you really proud of and want to show off?": "Achievements",
+  "Who's going to be the voice and face representing your business?": "Spokesperson",
+  "What's their role or title?": "Spokesperson Title",
+  "Can you share your logo, product screenshots, or other brand visuals?": "Brand Assets",
+  
+  // GTM Questions
+  "What's the one big thing you want to accomplish this year?": "One-Year Goal",
+  "Fast forward three years—where do you see your business?": "Three-Year Vision",
+  "What's your main priority right now in the short term?": "Short-Term Focus",
+  "Tell us about your customers—who are they and where do they hang out?": "Customer Location",
+  "What makes you different from everyone else in your space?": "Unique Factor",
+  "What marketing tools or resources do you already have on hand?": "Marketing Tools",
+  "What would you say are your biggest strengths, weaknesses, opportunities, and threats?": "SWOT",
+  "Walk us through what you're offering—what's your product or service all about?": "Product/Service",
+  
+  // Common Questions
+  "Who else is out there offering something similar to what you're doing?": "Competitors",
+};
 
 const InputTakerUpdated: React.FC<InputTakerProps> = ({ 
   items, 
   currentQuestionId,
   answeredIds,
   onItemClick,
-  isClickable = true // Default to clickable
+  isClickable = true
 }) => {
   const itemRefs = useRef<{ [key: number]: HTMLDivElement | null }>({});
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Helper function to get the display text for a question
+  const getDisplayQuestion = (question: string): string => {
+    return questionMapping[question] || question;
+  };
 
   // Auto-scroll to current question with more context (showing ~4 questions)
   useEffect(() => {
@@ -34,11 +98,8 @@ const InputTakerUpdated: React.FC<InputTakerProps> = ({
       const itemRect = currentItemRef.getBoundingClientRect();
       const containerRect = container.getBoundingClientRect();
       
-      // Calculate the scroll position to center the current item with more context
-      // Each item is ~55px height + 12px gap = 67px per item
-      // To show 4 items, we need about 268px visible area
-      const itemHeight = 67; // 55px height + 12px gap
-      const scrollOffset = itemHeight * 1.5; // Offset to show more context above
+      const itemHeight = 67;
+      const scrollOffset = itemHeight * 1.5;
       
       const scrollTop = currentItemRef.offsetTop - container.offsetTop - scrollOffset;
       
@@ -96,6 +157,7 @@ const InputTakerUpdated: React.FC<InputTakerProps> = ({
             const isAnswered = answeredIds.includes(item.id);
             const isCurrent = item.id === currentQuestionId;
             const isActive = isAnswered || isCurrent;
+            const displayQuestion = getDisplayQuestion(item.question);
 
             return (
               <div
@@ -151,7 +213,7 @@ const InputTakerUpdated: React.FC<InputTakerProps> = ({
                       whiteSpace: 'nowrap',
                       marginBottom: '2px'
                     }}>
-                      {truncateText(item.question, 20)}
+                      {truncateText(displayQuestion, 20)}
                     </div>
                     <div style={{
                       fontSize: '10px',
