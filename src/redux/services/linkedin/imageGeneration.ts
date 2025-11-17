@@ -1,11 +1,20 @@
+// src/redux/services/linkedin/imageGeneration.ts
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
-// Define the request and response types for better TypeScript safety
-export interface ImageGenerationRequest {
-  session_id: string;
-  prompt: string;
+// Define image type
+export interface ImageData {
+  mime_type: string;
+  data: string; // base64 data URL
 }
 
+// Define the request type (prompt and images are optional)
+export interface ImageGenerationRequest {
+  session_id: string;
+  prompt?: string;
+  images?: ImageData[];
+}
+
+// Define the response type
 export interface ImageGenerationResponse {
   session_id: string;
   remaining_credits: number;
@@ -32,5 +41,5 @@ export const imageGenerationApi = createApi({
   }),
 });
 
-// Export the auto-generated hook for using the mutation in components
+// Export the auto-generated hook
 export const { useGenerateImageMutation } = imageGenerationApi;

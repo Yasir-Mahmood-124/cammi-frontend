@@ -45,6 +45,7 @@ import { kmfWebSocketMiddleware } from "./middleware/kmfWebSocketMiddleware";
 import { bsWebSocketMiddleware } from "./middleware/bsWebSocketMiddleware";
 import { srWebSocketMiddleware } from "./middleware/srWebSocketMiddleware";
 import { gtmWebSocketMiddleware } from "./middleware/gtmWebSocketMiddleware";
+import { getSpecificDocumentApi } from "./services/document/getSpecificDocument";
 
 // ==================== REDUX PERSIST CONFIGURATION ====================
 
@@ -201,6 +202,7 @@ const rootReducer = combineReducers({
   [creditsApi.reducerPath]: creditsApi.reducer,
   [documentParsingApi.reducerPath]: documentParsingApi.reducer,
   [profileSettingsApi.reducerPath]: profileSettingsApi.reducer,
+  [getSpecificDocumentApi.reducerPath]: getSpecificDocumentApi.reducer,
 });
 
 // ==================== STORE CONFIGURATION ====================
@@ -248,7 +250,8 @@ export const store = configureStore({
       .concat(documentsApi.middleware)
       .concat(creditsApi.middleware)
       .concat(documentParsingApi.middleware)
-      .concat(profileSettingsApi.middleware),
+      .concat(profileSettingsApi.middleware)
+      .concat(getSpecificDocumentApi.middleware),
 });
 
 export const persistor = persistStore(store);
