@@ -14,12 +14,7 @@ import {
   Tooltip,
   Modal,
 } from "@mui/material";
-import {
-  ChevronRight as ChevronRightIcon,
-  ExpandMore as ExpandMoreIcon,
-  MenuOpen as MenuOpenIcon,
-  Menu as MenuIcon,
-} from "@mui/icons-material";
+
 import { useRouter, usePathname } from "next/navigation";
 import toast from "react-hot-toast";
 
@@ -36,6 +31,9 @@ import {
   FeedbackIcon,
   Logo,
   CollapseIcon,
+  ClosedTab,
+  OpenTab,
+  CammiHead,
 } from "@/assests/icons";
 import CreateProject from "./CreateProject";
 
@@ -247,6 +245,15 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
     setSelectedItem(itemName);
     setSelectedParent(parentName);
 
+    // Close all open menus except the parent of the selected item
+    if (parentName) {
+      // If there's a parent, keep only that parent open
+      setOpenMenus({ [parentName]: true });
+    } else {
+      // If no parent (Dashboard, Feedback), close all menus
+      setOpenMenus({});
+    }
+
     // Navigate based on the route
     const route =
       documentRoutes[itemName] ||
@@ -346,16 +353,16 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
       isCollapsed && (isSelected || isParentSelected)
         ? "#3EA3FF"
         : isSelected && !hasSubItems
-          ? "#FFFFFF"
-          : isSelected || isParentSelected
-            ? "#3EA3FF"
-            : "#000000";
+        ? "#FFFFFF"
+        : isSelected || isParentSelected
+        ? "#3EA3FF"
+        : "#000000";
 
     return (
       <Box
         component={IconComponent}
         sx={{
-          width: 20,
+          width: 24,
           height: 20,
           mr: isCollapsed ? 0 : 1.5,
           "& path": {
@@ -388,9 +395,9 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
         {/* Logo and Toggle Button */}
         <Box
           sx={{
-            px: isCollapsed ? 1 : 3,
-            pt: 1.5,
-            pb: 0.8,
+            px: isCollapsed ? 1 : 2,
+            pt: 1,
+            pb: 0.5,
             display: "flex",
             alignItems: "center",
             justifyContent: isCollapsed ? "center" : "space-between",
@@ -412,30 +419,36 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
           )}
           <IconButton
             onClick={toggleSidebar}
-            size="small"
             sx={{
+              padding: isCollapsed ? "3px" : "6px",
+              borderRadius: isCollapsed ? "10px" : "8px",
               color: "#757575",
+              transition: "background-color 0.2s ease",
               "&:hover": {
-                backgroundColor: "#F5F5F5",
+                backgroundColor: "#F0F0F0",
               },
             }}
           >
             {isCollapsed ? (
-              <MenuIcon sx={{ fontSize: 20 }} />
-
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <CammiHead />
+              </Box>
             ) : (
               <Box
                 component={CollapseIcon}
-                alt="Cammi Logo"
+                alt="Collapse Icon"
                 sx={{
-                  // height: 50,
-                  // width: 50,
                   display: "flex",
                   alignItems: "center",
-                  color: "#000",
-                  // marginLeft: "100px",
-                  marginRight: "-16px"
-
+                  justifyContent: "center",
+                  width: 20,
+                  height: 20,
                 }}
               />
             )}
@@ -466,16 +479,13 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
           {/* Main Menu */}
           <List sx={{ px: isCollapsed ? 1 : 2, pt: 0, pb: 0 }}>
             <ListItem disablePadding>
-              <Tooltip
-                title={isCollapsed ? "Dashboard" : ""}
-                placement="right"
-              >
+              <Tooltip title={isCollapsed ? "Dashboard" : ""} placement="right">
                 <ListItemButton
                   onClick={() => handleSubmenuClick("Dashboard", "", false)}
                   sx={{
                     borderRadius: 1,
                     mb: 0.2,
-                    py: 0.4,
+                    py: 0.3,
                     backgroundColor:
                       isCollapsed || selectedItem !== "Dashboard"
                         ? "transparent"
@@ -491,16 +501,16 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
                     "&::before":
                       selectedItem === "Dashboard"
                         ? {
-                          content: '""',
-                          position: "absolute",
-                          left: -8,
-                          top: "50%",
-                          transform: "translateY(-50%)",
-                          width: "4px",
-                          height: "20px",
-                          backgroundColor: "#3EA3FF",
-                          borderRadius: "0 4px 4px 0",
-                        }
+                            content: '""',
+                            position: "absolute",
+                            left: -8,
+                            top: "50%",
+                            transform: "translateY(-50%)",
+                            width: "4px",
+                            height: "20px",
+                            backgroundColor: "#3EA3FF",
+                            borderRadius: "0 4px 4px 0",
+                          }
                         : {},
                   }}
                 >
@@ -513,15 +523,15 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
                         isCollapsed && selectedItem === "Dashboard"
                           ? "#3EA3FF"
                           : selectedItem === "Dashboard"
-                            ? "#FFFFFF"
-                            : "#000000",
+                          ? "#FFFFFF"
+                          : "#000000",
                       "& path": {
                         fill:
                           isCollapsed && selectedItem === "Dashboard"
                             ? "#3EA3FF"
                             : selectedItem === "Dashboard"
-                              ? "#FFFFFF"
-                              : "#000000",
+                            ? "#FFFFFF"
+                            : "#000000",
                       },
                     }}
                   />
@@ -542,12 +552,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
           </List>
 
           {/* Divider */}
-          <Box sx={{ my: 0.5 }}>
+          <Box sx={{ my: 0.3 }}>
             <Box sx={{ borderTop: "1px solid #E0E0E0" }} />
           </Box>
 
           {/* Document Generation Section */}
-          <Box sx={{ px: isCollapsed ? 1 : 2, mt: 0.3 }}>
+          <Box sx={{ px: isCollapsed ? 1 : 2, mt: 0.2 }}>
             {!isCollapsed && (
               <Typography
                 variant="caption"
@@ -558,7 +568,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
                   fontWeight: 500,
                   textTransform: "uppercase",
                   letterSpacing: "0.5px",
-                  mb: 0.5,
+                  mb: 0.3,
                   display: "block",
                 }}
               >
@@ -566,7 +576,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
               </Typography>
             )}
 
-            <List sx={{ mt: 0.2, pb: 0 }}>
+            <List sx={{ mt: 0.1, pb: 0 }}>
               {documentGenerationItems.map((item) => (
                 <Box key={item.text}>
                   <ListItem disablePadding>
@@ -578,8 +588,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
                         onClick={() => handleMenuClick(item.text, true)}
                         sx={{
                           borderRadius: 1,
-                          mb: 0.2,
-                          py: 0.4,
+                          mb: 0.15,
+                          py: 0.3,
                           backgroundColor: "transparent",
                           position: "relative",
                           justifyContent: isCollapsed ? "center" : "flex-start",
@@ -588,18 +598,18 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
                           },
                           "&::before":
                             selectedItem === item.text ||
-                              selectedParent === item.text
+                            selectedParent === item.text
                               ? {
-                                content: '""',
-                                position: "absolute",
-                                left: -8,
-                                top: "50%",
-                                transform: "translateY(-50%)",
-                                width: "4px",
-                                height: "20px",
-                                backgroundColor: "#3EA3FF",
-                                borderRadius: "0 4px 4px 0",
-                              }
+                                  content: '""',
+                                  position: "absolute",
+                                  left: -8,
+                                  top: "50%",
+                                  transform: "translateY(-50%)",
+                                  width: "4px",
+                                  height: "20px",
+                                  backgroundColor: "#3EA3FF",
+                                  borderRadius: "0 4px 4px 0",
+                                }
                               : {},
                         }}
                       >
@@ -614,33 +624,45 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
                                 fontWeight: 500,
                                 color:
                                   selectedItem === item.text ||
-                                    selectedParent === item.text
+                                  selectedParent === item.text
                                     ? "#3EA3FF"
                                     : "#000000",
                               }}
                             />
                             {openMenus[item.text] ? (
-                              <ExpandMoreIcon
+                              <Box
                                 sx={{
-                                  fontSize: 18,
+                                  width: 18,
+                                  height: 18,
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
                                   color:
                                     selectedItem === item.text ||
-                                      selectedParent === item.text
+                                    selectedParent === item.text
                                       ? "#3EA3FF"
                                       : "#757575",
                                 }}
-                              />
+                              >
+                                <OpenTab />
+                              </Box>
                             ) : (
-                              <ChevronRightIcon
+                              <Box
                                 sx={{
-                                  fontSize: 18,
+                                  width: 18,
+                                  height: 18,
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
                                   color:
                                     selectedItem === item.text ||
-                                      selectedParent === item.text
+                                    selectedParent === item.text
                                       ? "#3EA3FF"
                                       : "#757575",
                                 }}
-                              />
+                              >
+                                <ClosedTab />
+                              </Box>
                             )}
                           </>
                         )}
@@ -675,13 +697,13 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
                                 handleSubmenuClick(subItem, item.text, true)
                               }
                               sx={{
-                                pl: 2,
-                                py: 0.4,
+                                pl: 1.5,
+                                py: 0.3,
                                 borderRadius: "4px",
                                 mb:
-                                  index === item.subItems.length - 1 ? 0.2 : 0,
+                                  index === item.subItems.length - 1 ? 0.15 : 0,
                                 ml: "38px",
-                                mr: 2,
+                                mr: 1,
                                 backgroundColor:
                                   selectedItem === subItem
                                     ? "#3EA3FF"
@@ -698,13 +720,14 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
                               <ListItemText
                                 primary={subItem}
                                 primaryTypographyProps={{
-                                  fontSize: "13px",
+                                  fontSize: "12px",
                                   fontWeight:
                                     selectedItem === subItem ? 600 : 400,
                                   color:
                                     selectedItem === subItem
                                       ? "#FFFFFF"
                                       : "#000000",
+                                  whiteSpace: "nowrap",
                                 }}
                               />
                             </ListItemButton>
@@ -719,12 +742,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
           </Box>
 
           {/* Divider */}
-          <Box sx={{ my: 0.5 }}>
+          <Box sx={{ my: 0.3 }}>
             <Box sx={{ borderTop: "1px solid #E0E0E0" }} />
           </Box>
 
           {/* Tools Section */}
-          <Box sx={{ px: isCollapsed ? 1 : 2, mt: 0.3 }}>
+          <Box sx={{ px: isCollapsed ? 1 : 2, mt: 0.2 }}>
             {!isCollapsed && (
               <Typography
                 variant="caption"
@@ -735,12 +758,13 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
                   fontWeight: 500,
                   textTransform: "uppercase",
                   letterSpacing: "0.5px",
+                  mb: 0.3,
                 }}
               >
                 Tools
               </Typography>
             )}
-            <List sx={{ mt: 0.2, pb: 0 }}>
+            <List sx={{ mt: 0.1, pb: 0 }}>
               {toolsItems.map((item) => (
                 <Box key={item.text}>
                   <ListItem disablePadding>
@@ -756,11 +780,11 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
                         }
                         sx={{
                           borderRadius: 1,
-                          mb: 0.2,
-                          py: 0.4,
+                          mb: 0.15,
+                          py: 0.3,
                           backgroundColor:
                             isCollapsed ||
-                              !(selectedItem === item.text && !item.subItems)
+                            !(selectedItem === item.text && !item.subItems)
                               ? "transparent"
                               : "#3EA3FF",
                           position: "relative",
@@ -768,25 +792,25 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
                           "&:hover": {
                             backgroundColor:
                               selectedItem === item.text &&
-                                !item.subItems &&
-                                !isCollapsed
+                              !item.subItems &&
+                              !isCollapsed
                                 ? "#3EA3FF"
                                 : "#F5F5F5",
                           },
                           "&::before":
                             selectedItem === item.text ||
-                              selectedParent === item.text
+                            selectedParent === item.text
                               ? {
-                                content: '""',
-                                position: "absolute",
-                                left: -8,
-                                top: "50%",
-                                transform: "translateY(-50%)",
-                                width: "4px",
-                                height: "20px",
-                                backgroundColor: "#3EA3FF",
-                                borderRadius: "0 4px 4px 0",
-                              }
+                                  content: '""',
+                                  position: "absolute",
+                                  left: -8,
+                                  top: "50%",
+                                  transform: "translateY(-50%)",
+                                  width: "4px",
+                                  height: "20px",
+                                  backgroundColor: "#3EA3FF",
+                                  borderRadius: "0 4px 4px 0",
+                                }
                               : {},
                         }}
                       >
@@ -803,33 +827,45 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
                                     ? "#FFFFFF"
                                     : selectedItem === item.text ||
                                       selectedParent === item.text
-                                      ? "#3EA3FF"
-                                      : "#000000",
+                                    ? "#3EA3FF"
+                                    : "#000000",
                               }}
                             />
                             {item.subItems &&
                               (openMenus[item.text] ? (
-                                <ExpandMoreIcon
+                                <Box
                                   sx={{
-                                    fontSize: 18,
+                                    width: 18,
+                                    height: 18,
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
                                     color:
                                       selectedItem === item.text ||
-                                        selectedParent === item.text
+                                      selectedParent === item.text
                                         ? "#3EA3FF"
                                         : "#757575",
                                   }}
-                                />
+                                >
+                                  <OpenTab />
+                                </Box>
                               ) : (
-                                <ChevronRightIcon
+                                <Box
                                   sx={{
-                                    fontSize: 18,
+                                    width: 18,
+                                    height: 18,
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
                                     color:
                                       selectedItem === item.text ||
-                                        selectedParent === item.text
+                                      selectedParent === item.text
                                         ? "#3EA3FF"
                                         : "#757575",
                                   }}
-                                />
+                                >
+                                  <ClosedTab />
+                                </Box>
                               ))}
                           </>
                         )}
@@ -864,13 +900,13 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
                                 handleSubmenuClick(subItem, item.text, false)
                               }
                               sx={{
-                                pl: 2,
-                                py: 0.4,
+                                pl: 1.5,
+                                py: 0.3,
                                 borderRadius: "4px",
                                 mb:
-                                  index === item.subItems.length - 1 ? 0.2 : 0,
+                                  index === item.subItems.length - 1 ? 0.15 : 0,
                                 ml: "38px",
-                                mr: 2,
+                                mr: 1,
                                 backgroundColor:
                                   selectedItem === subItem
                                     ? "#3EA3FF"
@@ -887,13 +923,14 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
                               <ListItemText
                                 primary={subItem}
                                 primaryTypographyProps={{
-                                  fontSize: "13px",
+                                  fontSize: "12px",
                                   fontWeight:
                                     selectedItem === subItem ? 600 : 400,
                                   color:
                                     selectedItem === subItem
                                       ? "#FFFFFF"
                                       : "#000000",
+                                  whiteSpace: "nowrap",
                                 }}
                               />
                             </ListItemButton>
@@ -908,12 +945,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
           </Box>
 
           {/* Divider */}
-          <Box sx={{ my: 0.5 }}>
+          <Box sx={{ my: 0.3 }}>
             <Box sx={{ borderTop: "1px solid #E0E0E0" }} />
           </Box>
 
           {/* User Feedback Section */}
-          <Box sx={{ px: isCollapsed ? 1 : 2, mb: 0.5 }}>
+          <Box sx={{ px: isCollapsed ? 1 : 2, mb: 0.3 }}>
             {!isCollapsed && (
               <Typography
                 variant="caption"
@@ -924,12 +961,13 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
                   fontWeight: 500,
                   textTransform: "uppercase",
                   letterSpacing: "0.5px",
+                  mb: 0.3,
                 }}
               >
                 User Feedback
               </Typography>
             )}
-            <List sx={{ mt: 0.2, pb: 0 }}>
+            <List sx={{ mt: 0.1, pb: 0 }}>
               <ListItem disablePadding>
                 <Tooltip
                   title={isCollapsed ? "Feedback" : ""}
@@ -939,8 +977,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
                     onClick={() => handleSubmenuClick("Feedback", "", false)}
                     sx={{
                       borderRadius: 1,
-                      mb: 0.2,
-                      py: 0.4,
+                      mb: 0.15,
+                      py: 0.3,
                       backgroundColor:
                         isCollapsed || selectedItem !== "Feedback"
                           ? "transparent"
@@ -956,16 +994,16 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
                       "&::before":
                         selectedItem === "Feedback"
                           ? {
-                            content: '""',
-                            position: "absolute",
-                            left: -8,
-                            top: "50%",
-                            transform: "translateY(-50%)",
-                            width: "4px",
-                            height: "20px",
-                            backgroundColor: "#3EA3FF",
-                            borderRadius: "0 4px 4px 0",
-                          }
+                              content: '""',
+                              position: "absolute",
+                              left: -8,
+                              top: "50%",
+                              transform: "translateY(-50%)",
+                              width: "4px",
+                              height: "20px",
+                              backgroundColor: "#3EA3FF",
+                              borderRadius: "0 4px 4px 0",
+                            }
                           : {},
                     }}
                   >
@@ -978,15 +1016,15 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
                           isCollapsed && selectedItem === "Feedback"
                             ? "#3EA3FF"
                             : selectedItem === "Feedback"
-                              ? "#FFFFFF"
-                              : "#000000",
+                            ? "#FFFFFF"
+                            : "#000000",
                         "& path": {
                           fill:
                             isCollapsed && selectedItem === "Feedback"
                               ? "#3EA3FF"
                               : selectedItem === "Feedback"
-                                ? "#FFFFFF"
-                                : "#000000",
+                              ? "#FFFFFF"
+                              : "#000000",
                         },
                       }}
                     />
@@ -1014,10 +1052,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
         {/* Bottom Project Info - Fixed at bottom */}
         {!isCollapsed && (
           <Box
-            sx={{
-              // px: 2,
-              // py: 1,
-            }}
+            sx={
+              {
+                // px: 2,
+                // py: 1,
+              }
+            }
           >
             <Box
               sx={{
@@ -1025,7 +1065,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
                 alignItems: "center",
                 justifyContent: "space-between",
                 px: 2,
-                py: 1,
+                py: 0.8,
                 cursor: "pointer",
                 "&:hover": {
                   backgroundColor: "#F5F5F5",
@@ -1044,7 +1084,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
                     alignItems: "center",
                     justifyContent: "center",
                     flexShrink: 0,
-                    background: "linear-gradient(135deg, #1e3a8a 0%, #1e40af 50%, #3b82f6 100%)",
+                    background:
+                      "linear-gradient(135deg, #1e3a8a 0%, #1e40af 50%, #3b82f6 100%)",
                     fontSize: "0.875rem",
                     fontWeight: 700,
                     color: "#FFF",
@@ -1088,7 +1129,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
                   justifyContent: "center",
                   cursor: "pointer",
                   borderRadius: "50%",
-                  border: "1.5px solid #e0e0e0",
+                  border: "1px solid #5C5C5C",
                   backgroundColor: "#fff",
                   "&:hover": {
                     backgroundColor: "#f5f5f5",
@@ -1101,7 +1142,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
                   height="14"
                   viewBox="0 0 24 24"
                   fill="none"
-                  stroke="#616161"
+                  stroke="#565656"
                   strokeWidth="2.5"
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -1116,7 +1157,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
         {isCollapsed && (
           <Box
             sx={{
-              p: 2,
+              p: 1.5,
               display: "flex",
               justifyContent: "center",
             }}
@@ -1129,7 +1170,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                background: "linear-gradient(135deg, #1e3a8a 0%, #1e40af 50%, #3b82f6 100%)",
+                background:
+                  "linear-gradient(135deg, #1e3a8a 0%, #1e40af 50%, #3b82f6 100%)",
                 fontSize: "0.875rem",
                 fontWeight: 700,
                 color: "#FFF",
