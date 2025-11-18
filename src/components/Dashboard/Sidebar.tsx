@@ -217,16 +217,27 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
       setIsCollapsed(false);
     }
     if (hasSubItems) {
+      const isCurrentlyOpen = openMenus[itemName];
+      
       setOpenMenus((prev) => {
         const newState: { [key: string]: boolean } = {};
         Object.keys(prev).forEach((key) => {
           newState[key] = false;
         });
+        // Toggle the clicked menu
         newState[itemName] = !prev[itemName];
         return newState;
       });
-      setSelectedItem(itemName);
-      setSelectedParent("");
+      
+      // If closing the menu (was open), deselect it
+      // If opening the menu (was closed), select it
+      if (isCurrentlyOpen) {
+        setSelectedItem("");
+        setSelectedParent("");
+      } else {
+        setSelectedItem(itemName);
+        setSelectedParent("");
+      }
     }
   };
 
@@ -435,6 +446,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
+                  width: 34,
+                  height: 34,
+                  "& svg": {
+                    width: "100%",
+                    height: "100%",
+                  },
                 }}
               >
                 <CammiHead />
