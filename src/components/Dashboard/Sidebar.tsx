@@ -446,12 +446,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  width: 34,
-                  height: 34,
-                  "& svg": {
-                    width: "100%",
-                    height: "100%",
-                  },
                 }}
               >
                 <CammiHead />
