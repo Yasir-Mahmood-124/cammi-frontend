@@ -143,13 +143,12 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ docxBase64, fileName,
     handleMenuClose();
 
     if (format === 'DOCx') {
-      await handleDownloadDocx(); // Make it async
+      await handleDownloadDocx();
     } else if (format === 'PDF') {
       await handleDownloadPdf();
     }
   };
 
-  // ✅ UPDATED: Always fetch fresh from server
   const handleDownloadDocx = async () => {
     try {
       toast.loading('Preparing document...', { id: 'docx-download' });
@@ -161,7 +160,6 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ docxBase64, fileName,
 
       console.log('🔄 Fetching latest DOCX from server...');
 
-      // Fetch fresh document from server
       const response = await getDocxFile({
         session_id: savedToken || "",
         document_type: documentType,
@@ -170,10 +168,8 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ docxBase64, fileName,
 
       console.log('✅ Latest DOCX received from server');
 
-      // Update state with latest version
       setCurrentDocxBase64(response.docxBase64);
 
-      // Convert and download
       const binaryString = atob(response.docxBase64);
       const bytes = new Uint8Array(binaryString.length);
       for (let i = 0; i < binaryString.length; i++) {
@@ -378,7 +374,7 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ docxBase64, fileName,
 
   return (
     <Box sx={{ 
-      height: '100vh', 
+      height: '100%', 
       display: 'flex', 
       flexDirection: 'column',
       backgroundColor: '#EFF1F5',
@@ -386,13 +382,13 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ docxBase64, fileName,
     }}>
       {/* Header */}
       <Box sx={{ 
-        padding: '20px 40px',
+        padding: '16px 40px',
         backgroundColor: '#EFF1F5',
-        borderBottom: '1px solid #E0E0E0'
+        flexShrink: 0
       }}>
         <Typography sx={{ 
           fontFamily: 'Poppins',
-          fontSize: '24px',
+          fontSize: '20px',
           fontWeight: 600,
           color: '#333',
           textAlign: 'center'
@@ -406,7 +402,7 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ docxBase64, fileName,
         flex: 1,
         display: 'flex',
         gap: '20px',
-        padding: '20px 40px',
+        padding: '16px 40px',
         overflow: 'hidden',
         minHeight: 0
       }}>
@@ -415,71 +411,80 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ docxBase64, fileName,
           width: '280px',
           backgroundColor: '#FFFFFF',
           borderRadius: '12px',
-          padding: '20px',
+          padding: '16px',
           boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
           display: 'flex',
           flexDirection: 'column',
-          overflow: 'hidden'
+          overflow: 'hidden',
+          flexShrink: 0
         }}>
           <Typography sx={{ 
             fontFamily: 'Poppins',
             fontSize: '14px',
             fontWeight: 600,
             color: '#333',
-            marginBottom: '16px',
-            paddingBottom: '12px',
+            marginBottom: '12px',
+            paddingBottom: '10px',
             borderBottom: '2px solid #3EA3FF'
           }}>
             Document tabs
           </Typography>
           
-          <Box sx={{ 
-            flex: 1,
-            overflowY: 'auto',
-            '&::-webkit-scrollbar': {
-              width: '6px',
-            },
-            '&::-webkit-scrollbar-track': {
-              backgroundColor: '#F5F5F5',
-              borderRadius: '3px',
-            },
-            '&::-webkit-scrollbar-thumb': {
-              backgroundColor: '#CCCCCC',
-              borderRadius: '3px',
-              '&:hover': {
-                backgroundColor: '#AAAAAA',
+          <Box 
+            id="toc-container"
+            sx={{ 
+              flex: 1,
+              overflowY: 'auto',
+              direction: 'rtl',
+              paddingLeft: '12px',
+              '&::-webkit-scrollbar': {
+                width: '6px',
               },
-            },
-          }}>
-            {tableOfContents.map((item) => (
-              <Box
-                key={item.id}
-                onClick={() => scrollToSection(item.id)}
-                sx={{
-                  padding: '10px 12px',
-                  paddingLeft: `${12 + (item.level - 1) * 16}px`,
-                  marginBottom: '4px',
-                  cursor: 'pointer',
-                  borderRadius: '6px',
-                  backgroundColor: activeSection === item.id ? '#E3F2FD' : 'transparent',
-                  borderLeft: activeSection === item.id ? '3px solid #3EA3FF' : '3px solid transparent',
-                  transition: 'all 0.2s ease',
-                  '&:hover': {
-                    backgroundColor: '#F5F5F5',
-                  },
-                }}
-              >
-                <Typography sx={{
-                  fontFamily: 'Poppins',
-                  fontSize: item.level === 1 ? '13px' : '12px',
-                  fontWeight: item.level === 1 ? 600 : 400,
-                  color: activeSection === item.id ? '#3EA3FF' : '#555',
-                  lineHeight: '1.4',
-                }}>
-                  {item.text}
-                </Typography>
-              </Box>
-            ))}
+              '&::-webkit-scrollbar-track': {
+                backgroundColor: '#F5F5F5',
+                borderRadius: '3px',
+              },
+              '&::-webkit-scrollbar-thumb': {
+                backgroundColor: '#CCCCCC',
+                borderRadius: '3px',
+                '&:hover': {
+                  backgroundColor: '#AAAAAA',
+                },
+              },
+            }}>
+            <Box sx={{ direction: 'ltr' }}>
+              {tableOfContents.map((item) => (
+                <Box
+                  key={item.id}
+                  id={`toc-${item.id}`}
+                  onClick={() => scrollToSection(item.id)}
+                  sx={{
+                    padding: '10px 12px',
+                    paddingLeft: `${12 + (item.level - 1) * 16}px`,
+                    marginBottom: '4px',
+                    marginLeft: '8px',
+                    cursor: 'pointer',
+                    borderRadius: '6px',
+                    backgroundColor: 'transparent',
+                    transition: 'background-color 0.2s ease',
+                    '&:hover': {
+                      backgroundColor: '#F5F5F5',
+                    },
+                  }}
+                >
+                  <Typography sx={{
+                    fontFamily: 'Poppins',
+                    fontSize: item.level === 1 ? '13px' : '12px',
+                    fontWeight: item.level === 1 ? 600 : 400,
+                    color: activeSection === item.id ? '#3EA3FF' : '#555',
+                    lineHeight: '1.4',
+                    transition: 'color 0.2s ease',
+                  }}>
+                    {item.text}
+                  </Typography>
+                </Box>
+              ))}
+            </Box>
           </Box>
         </Box>
 
@@ -490,77 +495,80 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ docxBase64, fileName,
             flex: 1,
             backgroundColor: '#FFFFFF',
             borderRadius: '12px',
-            padding: '40px',
+            padding: '24px',
+            paddingRight: '28px',
             boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
             overflowY: 'auto',
             position: 'relative',
             '&::-webkit-scrollbar': {
-              width: '8px',
+              width: '10px',
             },
             '&::-webkit-scrollbar-track': {
-              backgroundColor: '#F5F5F5',
-              borderRadius: '4px',
+              backgroundColor: '#D9D9D9',
+              borderRadius: '6px',
             },
             '&::-webkit-scrollbar-thumb': {
-              backgroundColor: '#CCCCCC',
-              borderRadius: '4px',
+              backgroundColor: '#FFFFFF',
+              borderRadius: '6px',
+              border: '1px solid #D9D9D9',
               '&:hover': {
-                backgroundColor: '#AAAAAA',
+                backgroundColor: '#F5F5F5',
               },
             },
           }}>
           <Box 
             sx={{
               fontFamily: 'Poppins',
+              paddingRight: '20px',
               '& h1': {
                 fontFamily: 'Poppins',
-                fontSize: '28px',
+                fontSize: '24px',
                 fontWeight: 700,
                 color: '#333',
-                marginBottom: '16px',
-                marginTop: '24px',
+                marginBottom: '12px',
+                marginTop: '16px',
                 scrollMarginTop: '20px',
               },
               '& h2': {
                 fontFamily: 'Poppins',
-                fontSize: '22px',
+                fontSize: '18px',
                 fontWeight: 600,
                 color: '#3EA3FF',
-                marginBottom: '14px',
-                marginTop: '20px',
+                marginBottom: '10px',
+                marginTop: '14px',
                 scrollMarginTop: '20px',
               },
               '& h3': {
                 fontFamily: 'Poppins',
-                fontSize: '18px',
+                fontSize: '16px',
                 fontWeight: 600,
                 color: '#555',
-                marginBottom: '12px',
-                marginTop: '16px',
+                marginBottom: '10px',
+                marginTop: '12px',
                 scrollMarginTop: '20px',
               },
               '& h4, & h5, & h6': {
                 fontFamily: 'Poppins',
                 fontWeight: 600,
                 color: '#555',
-                marginBottom: '10px',
-                marginTop: '14px',
+                marginBottom: '8px',
+                marginTop: '10px',
                 scrollMarginTop: '20px',
               },
               '& p': {
                 fontFamily: 'Poppins',
                 fontSize: '14px',
-                lineHeight: '1.8',
+                lineHeight: '1.6',
                 color: '#666',
-                marginBottom: '12px',
+                marginBottom: '10px',
               },
               '& ul, & ol': {
                 fontFamily: 'Poppins',
                 fontSize: '14px',
-                lineHeight: '1.8',
+                lineHeight: '1.6',
                 color: '#666',
                 marginLeft: '20px',
-                marginBottom: '12px',
+                marginBottom: '10px',
               },
               '& strong': {
                 fontWeight: 600,
@@ -574,13 +582,14 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ docxBase64, fileName,
 
       {/* Action Buttons */}
       <Box sx={{ 
-        padding: '20px 40px',
+        padding: '12px 40px',
         backgroundColor: '#FFFFFF',
         borderTop: '1px solid #E0E0E0',
         display: 'flex',
         justifyContent: 'center',
         gap: '16px',
-        alignItems: 'stretch'
+        alignItems: 'center',
+        flexShrink: 0
       }}>
         {/* Download Button with Dropdown */}
         <Box sx={{ position: 'relative', display: 'flex' }}>
@@ -598,19 +607,20 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ docxBase64, fileName,
             sx={{
               fontFamily: 'Poppins',
               fontSize: '13px',
-              fontWeight: 500,
-              padding: '10px 24px',
-              borderRadius: '10px',
-              borderColor: '#3EA3FF',
-              color: '#3EA3FF',
+              fontWeight: 600,
+              padding: '8px 20px',
+              borderRadius: '6px',
+              border: '2px solid #3EA3FF',
+              backgroundColor: '#FFF',
+              color: '#000',
               textTransform: 'none',
-              height: '100%',
               '&:hover': {
-                borderColor: '#2E8FE6',
-                backgroundColor: '#E3F2FD',
+                border: '2px solid #3EA3FF',
+                backgroundColor: '#F8F8F8',
               },
               '&:disabled': {
-                borderColor: '#ccc',
+                border: '2px solid #ccc',
+                backgroundColor: '#F5F5F5',
                 color: '#999',
               },
             }}
@@ -680,15 +690,16 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ docxBase64, fileName,
           sx={{
             fontFamily: 'Poppins',
             fontSize: '13px',
-            fontWeight: 500,
-            padding: '10px 24px',
-            borderRadius: '10px',
-            borderColor: '#3EA3FF',
-            color: '#3EA3FF',
+            fontWeight: 600,
+            padding: '8px 20px',
+            borderRadius: '6px',
+            border: '2px solid #3EA3FF',
+            backgroundColor: '#FFF',
+            color: '#000',
             textTransform: 'none',
             '&:hover': {
-              borderColor: '#2E8FE6',
-              backgroundColor: '#E3F2FD',
+              border: '2px solid #3EA3FF',
+              backgroundColor: '#F8F8F8',
             },
           }}
         >
@@ -712,9 +723,9 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ docxBase64, fileName,
           sx={{
             fontFamily: 'Poppins',
             fontSize: '13px',
-            fontWeight: 500,
-            padding: '10px 24px',
-            borderRadius: '10px',
+            fontWeight: 600,
+            padding: '8px 20px',
+            borderRadius: '6px',
             background: 'linear-gradient(#FFF, #FFF) padding-box, linear-gradient(135deg, #3EA3FF, #FF3C80) border-box',
             border: '2px solid transparent',
             color: '#333',
@@ -749,8 +760,8 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ docxBase64, fileName,
             fontFamily: 'Poppins',
             fontSize: '13px',
             fontWeight: 600,
-            padding: '10px 24px',
-            borderRadius: '10px',
+            padding: '8px 20px',
+            borderRadius: '6px',
             background: 'linear-gradient(135deg, #3EA3FF, #FF3C80)',
             color: '#FFF',
             textTransform: 'none',

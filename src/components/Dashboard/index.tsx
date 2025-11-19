@@ -64,6 +64,13 @@ const DashboardPage = () => {
   const [isDownloading, setIsDownloading] = useState(false);
   const [loadingDocumentId, setLoadingDocumentId] = useState<string | null>(null);
   const [showLoadingOverlay, setShowLoadingOverlay] = useState(false);
+  
+  // State for See More/See Less functionality
+  const [showAllDocuments, setShowAllDocuments] = useState(false);
+  const [documentsPerRow] = useState(7); // Approximate number of documents per row with smaller cards
+  
+  // State for search functionality
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     getReviews();
@@ -176,6 +183,37 @@ const DashboardPage = () => {
     }
   };
 
+  // Toggle See More/See Less
+  const handleToggleDocuments = () => {
+    setShowAllDocuments(!showAllDocuments);
+  };
+
+  // Handle search input change
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSearchQuery(value);
+    // Show all when searching, reset when cleared
+    if (value) {
+      setShowAllDocuments(true);
+    } else {
+      setShowAllDocuments(false);
+    }
+  };
+
+  // Filter documents based on search query
+  const filteredDocuments = documentsData?.documents?.filter((doc: DocumentItem) => {
+    const searchLower = searchQuery.toLowerCase();
+    const documentName = doc.document_name?.toLowerCase() || "";
+    return documentName.includes(searchLower);
+  }) || [];
+
+  // Calculate documents to display
+  const totalDocuments = filteredDocuments.length;
+  const shouldShowToggle = totalDocuments > documentsPerRow && !searchQuery; // Hide toggle when searching
+  const displayedDocuments = showAllDocuments || searchQuery
+    ? filteredDocuments 
+    : filteredDocuments.slice(0, documentsPerRow);
+
   // Default image for documents
   const defaultDocumentImage = "/Folders/documentGenration.png";
 
@@ -260,8 +298,8 @@ const DashboardPage = () => {
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
-            gap: 7,
-            py: 2,
+            gap: 2,
+            py: 1,
           }}
         >
           {/* Welcome Section */}
@@ -272,8 +310,8 @@ const DashboardPage = () => {
                 color: "#000",
                 fontFamily: "Poppins",
                 fontWeight: 600,
-                fontSize: "32px",
-                mb: 3,
+                fontSize: "26px",
+                mb: 1.5,
               }}
             >
               Welcome to CAMMI
@@ -284,20 +322,23 @@ const DashboardPage = () => {
               sx={{
                 display: "flex",
                 alignItems: "center",
-                width: "600px",
-                height: "40px",
-                borderRadius: "19px",
+                width: "550px",
+                height: "36px",
+                borderRadius: "18px",
                 border: "0.6px solid #D5D5D5",
                 backgroundColor: "#FFF",
                 px: 2,
                 mx: "auto",
                 flexShrink: 0,
+                position: "relative",
               }}
             >
-              <FaSearch color="#7A7A7A" size={18} />
+              <FaSearch color="#7A7A7A" size={16} />
               <input
                 type="text"
                 placeholder="Search documents"
+                value={searchQuery}
+                onChange={handleSearchChange}
                 style={{
                   marginLeft: "8px",
                   width: "100%",
@@ -305,34 +346,119 @@ const DashboardPage = () => {
                   border: "none",
                   outline: "none",
                   background: "transparent",
-                  fontSize: "16px",
+                  fontSize: "14px",
                   fontFamily: "Poppins, sans-serif",
                   color: "#000",
+                  paddingRight: searchQuery ? "30px" : "0",
                 }}
               />
+              {searchQuery && (
+                <Box
+                  onClick={() => {
+                    setSearchQuery("");
+                    setShowAllDocuments(false);
+                  }}
+                  sx={{
+                    position: "absolute",
+                    right: "12px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    cursor: "pointer",
+                    width: "20px",
+                    height: "20px",
+                    borderRadius: "50%",
+                    backgroundColor: "#E0E0E0",
+                    transition: "background-color 0.2s",
+                    "&:hover": {
+                      backgroundColor: "#BDBDBD",
+                    },
+                  }}
+                >
+                  <Typography
+                    sx={{
+                      color: "#FFF",
+                      fontSize: "14px",
+                      fontWeight: 600,
+                      lineHeight: 1,
+                    }}
+                  >
+                    ×
+                  </Typography>
+                </Box>
+              )}
             </Box>
           </Box>
 
           <Box
             display="flex"
             flexWrap="wrap"
-            gap={5}
+            gap={2}
             justifyContent="flex-start"
           >
             {/* My Documents */}
             <Box sx={{ width: "100%" }}>
-              <Typography
-                variant="h6"
-                sx={{
-                  color: "#000",
-                  fontFamily: "Poppins",
-                  fontSize: "24px",
-                  fontWeight: 600,
-                  mb: 2,
+              {/* Header with See More/See Less Toggle */}
+              <Box 
+                sx={{ 
+                  display: "flex", 
+                  justifyContent: "space-between", 
+                  alignItems: "center",
+                  mb: 1.2,
                 }}
               >
-                My Documents
-              </Typography>
+                <Typography
+                  variant="h6"
+                  sx={{
+                    color: "#000",
+                    fontFamily: "Poppins",
+                    fontSize: "20px",
+                    fontWeight: 600,
+                  }}
+                >
+                  My Documents
+                  {searchQuery && (
+                    <Typography
+                      component="span"
+                      sx={{
+                        ml: 1,
+                        color: "#949494",
+                        fontSize: "13px",
+                        fontWeight: 400,
+                      }}
+                    >
+                      ({totalDocuments} {totalDocuments === 1 ? 'result' : 'results'})
+                    </Typography>
+                  )}
+                </Typography>
+
+                {/* See More/See Less Toggle Button */}
+                {shouldShowToggle && !documentsLoading && (
+                  <Button
+                    onClick={handleToggleDocuments}
+                    sx={{
+                      backgroundColor: "#FFF",
+                      border: "1px solid #D9D9D9",
+                      borderRadius: "18px",
+                      padding: "4px 8px",
+                      color: "#000",
+                      fontFamily: "Poppins",
+                      fontSize: "10px",
+                      fontWeight: 500,
+                      textTransform: "none",
+                      transition: "all 0.2s ease",
+                      "&:hover": {
+                        backgroundColor: "#FFF",
+                        borderColor: "#3EA3FF",
+                        color: "#3EA3FF",
+                      },
+                      marginTop: "10px",
+                    }}
+                  >
+                    {showAllDocuments ? "See Less" : "See More"}
+                  </Button>
+                )}
+              </Box>
 
               {documentsLoading ? (
                 <Box display="flex" justifyContent="center" py={4}>
@@ -342,10 +468,9 @@ const DashboardPage = () => {
                 <Typography color="error">
                   Error loading documents. Please try again.
                 </Typography>
-              ) : documentsData?.documents &&
-                documentsData.documents.length > 0 ? (
-                <Box display="flex" flexWrap="wrap" gap={2}>
-                  {documentsData.documents.map((doc: DocumentItem, index: number) => {
+              ) : displayedDocuments && displayedDocuments.length > 0 ? (
+                <Box display="flex" flexWrap="wrap" gap={1.2}>
+                  {displayedDocuments.map((doc: DocumentItem, index: number) => {
                     const isLoading = loadingDocumentId === doc.document_id;
                     
                     return (
@@ -367,10 +492,10 @@ const DashboardPage = () => {
                       {/* Card */}
                       <Box
                         sx={{
-                          width: "130px",
-                          height: "160px",
+                          width: "105px",
+                          height: "135px",
                           flexShrink: 0,
-                          borderRadius: "15px",
+                          borderRadius: "12px",
                           backgroundColor: "#E4E5E8",
                           border: "1px solid #E4E5E8",
                           display: "flex",
@@ -412,7 +537,7 @@ const DashboardPage = () => {
                             }}
                           >
                             <CircularProgress
-                              size={40}
+                              size={35}
                               sx={{
                                 color: "#3EA3FF",
                               }}
@@ -422,15 +547,15 @@ const DashboardPage = () => {
                       </Box>
 
                       {/* Document Name and Date */}
-                      <Box sx={{ mt: 1, textAlign: "center", width: "130px" }}>
+                      <Box sx={{ mt: 0.8, textAlign: "center", width: "105px" }}>
                         <Typography
                           sx={{
                             color: "#000000",
                             fontFamily: "Poppins",
-                            fontSize: "10px",
+                            fontSize: "9px",
                             fontStyle: "normal",
                             fontWeight: 500,
-                            lineHeight: "14px",
+                            lineHeight: "12px",
                             overflow: "hidden",
                             textOverflow: "ellipsis",
                             whiteSpace: "nowrap",
@@ -444,11 +569,11 @@ const DashboardPage = () => {
                           sx={{
                             color: "#949494",
                             fontFamily: "Poppins",
-                            fontSize: "8px",
+                            fontSize: "7px",
                             fontStyle: "normal",
                             fontWeight: 400,
-                            lineHeight: "11.2px",
-                            mt: 0.5,
+                            lineHeight: "10px",
+                            mt: 0.3,
                           }}
                         >
                           {(doc.createdAt ?? doc.created_at)
@@ -469,7 +594,7 @@ const DashboardPage = () => {
                 <Box
                   sx={{
                     textAlign: "center",
-                    py: 8,
+                    py: 4,
                     backgroundColor: "#FFF",
                     borderRadius: "12px",
                   }}
@@ -481,7 +606,10 @@ const DashboardPage = () => {
                       fontSize: "14px",
                     }}
                   >
-                    No documents found. Start by creating your first document!
+                    {searchQuery 
+                      ? `No documents found matching "${searchQuery}"`
+                      : "No documents found. Start by creating your first document!"
+                    }
                   </Typography>
                 </Box>
               )}
@@ -494,9 +622,9 @@ const DashboardPage = () => {
                 sx={{
                   color: "#000",
                   fontFamily: "Poppins",
-                  fontSize: "24px",
+                  fontSize: "20px",
                   fontWeight: 600,
-                  mb: 5,
+                  mb: 1.5,
                 }}
               >
                 CAMMI Expert Review
@@ -504,7 +632,12 @@ const DashboardPage = () => {
 
               <TableContainer
                 component={Paper}
-                sx={{ borderRadius: "12px", maxWidth: 900 }}
+                sx={{ 
+                  borderRadius: "12px", 
+                  maxWidth: 900,
+                  boxShadow: "none",
+                  border: "1px solid #E0E0E0",
+                }}
               >
                 <Table>
                   <TableHead>

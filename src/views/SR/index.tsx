@@ -661,7 +661,8 @@ const SRPage: React.FC = () => {
 
   const isLoading = isLoadingUnanswered || isLoadingAll;
   const isError = isErrorUnanswered || isErrorAll;
-  const showButton = view === "questions" || view === "preview";
+  // const showButton = view === "questions" || view === "preview";
+  const showButton = view === "preview";
 
   if (isError) {
     return (
@@ -683,11 +684,13 @@ const SRPage: React.FC = () => {
 
   if (showDocumentPreview && docxBase64) {
     return (
-      <DocumentPreview
-        docxBase64={docxBase64}
-        fileName={fileName}
-        documentType="sr"
-      />
+      <Box sx={{ height: 'calc(100vh - 10.96vh)', width: '100%', overflow: 'hidden' }}>
+        <DocumentPreview
+          docxBase64={docxBase64}
+          fileName={fileName}
+          documentType="sr"
+        />
+      </Box>
     );
   }
 

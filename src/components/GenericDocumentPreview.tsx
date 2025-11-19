@@ -226,53 +226,61 @@ const GenericDocumentPreview: React.FC<GenericDocumentPreviewProps> = ({
             Document tabs
           </Typography>
           
-          <Box sx={{ 
-            flex: 1,
-            overflowY: 'auto',
-            '&::-webkit-scrollbar': {
-              width: '6px',
-            },
-            '&::-webkit-scrollbar-track': {
-              backgroundColor: '#F5F5F5',
-              borderRadius: '3px',
-            },
-            '&::-webkit-scrollbar-thumb': {
-              backgroundColor: '#CCCCCC',
-              borderRadius: '3px',
-              '&:hover': {
-                backgroundColor: '#AAAAAA',
+          <Box 
+            id="toc-container"
+            sx={{ 
+              flex: 1,
+              overflowY: 'auto',
+              direction: 'rtl', // Right-to-left to move scrollbar to left
+              paddingLeft: '12px', // Changed from paddingRight since direction is rtl
+              '&::-webkit-scrollbar': {
+                width: '6px',
               },
-            },
-          }}>
-            {tableOfContents.map((item) => (
-              <Box
-                key={item.id}
-                onClick={() => scrollToSection(item.id)}
-                sx={{
-                  padding: '10px 12px',
-                  paddingLeft: `${12 + (item.level - 1) * 16}px`,
-                  marginBottom: '4px',
-                  cursor: 'pointer',
-                  borderRadius: '6px',
-                  backgroundColor: activeSection === item.id ? '#E3F2FD' : 'transparent',
-                  borderLeft: activeSection === item.id ? '3px solid #3EA3FF' : '3px solid transparent',
-                  transition: 'all 0.2s ease',
-                  '&:hover': {
-                    backgroundColor: '#F5F5F5',
-                  },
-                }}
-              >
-                <Typography sx={{
-                  fontFamily: 'Poppins',
-                  fontSize: item.level === 1 ? '13px' : '12px',
-                  fontWeight: item.level === 1 ? 600 : 400,
-                  color: activeSection === item.id ? '#3EA3FF' : '#555',
-                  lineHeight: '1.4',
-                }}>
-                  {item.text}
-                </Typography>
-              </Box>
-            ))}
+              '&::-webkit-scrollbar-track': {
+                backgroundColor: '#F5F5F5',
+                borderRadius: '3px',
+              },
+              '&::-webkit-scrollbar-thumb': {
+                backgroundColor: '#CCCCCC',
+                borderRadius: '3px',
+                '&:hover': {
+                  backgroundColor: '#AAAAAA',
+                },
+              },
+            }}>
+            <Box sx={{ direction: 'ltr' }}> {/* Reset direction for content */}
+              {tableOfContents.map((item) => (
+                <Box
+                  key={item.id}
+                  id={`toc-${item.id}`}
+                  onClick={() => scrollToSection(item.id)}
+                  sx={{
+                    padding: '10px 12px',
+                    paddingLeft: `${12 + (item.level - 1) * 16}px`,
+                    marginBottom: '4px',
+                    marginLeft: '8px', // Changed from marginRight - creates space from scrollbar
+                    cursor: 'pointer',
+                    borderRadius: '6px',
+                    backgroundColor: 'transparent',
+                    transition: 'background-color 0.2s ease',
+                    '&:hover': {
+                      backgroundColor: '#F5F5F5', // Light grey background on hover
+                    },
+                  }}
+                >
+                  <Typography sx={{
+                    fontFamily: 'Poppins',
+                    fontSize: item.level === 1 ? '13px' : '12px',
+                    fontWeight: item.level === 1 ? 600 : 400,
+                    color: activeSection === item.id ? '#3EA3FF' : '#555',
+                    lineHeight: '1.4',
+                    transition: 'color 0.2s ease',
+                  }}>
+                    {item.text}
+                  </Typography>
+                </Box>
+              ))}
+            </Box>
           </Box>
         </Box>
 
@@ -284,27 +292,31 @@ const GenericDocumentPreview: React.FC<GenericDocumentPreviewProps> = ({
             backgroundColor: '#FFFFFF',
             borderRadius: '12px',
             padding: '24px',
+            paddingRight: '28px',
             boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
             overflowY: 'auto',
             position: 'relative',
             '&::-webkit-scrollbar': {
-              width: '8px',
+              width: '10px',
             },
             '&::-webkit-scrollbar-track': {
-              backgroundColor: '#F5F5F5',
-              borderRadius: '4px',
+              backgroundColor: '#D9D9D9',
+              borderRadius: '6px',
             },
             '&::-webkit-scrollbar-thumb': {
-              backgroundColor: '#CCCCCC',
-              borderRadius: '4px',
+              backgroundColor: '#FFFFFF',
+              borderRadius: '6px',
+              border: '1px solid #D9D9D9',
               '&:hover': {
-                backgroundColor: '#AAAAAA',
+                backgroundColor: '#F5F5F5',
               },
             },
-          }}>
+          }}
+          >
           <Box 
             sx={{
               fontFamily: 'Poppins',
+              paddingRight: '20px',
               '& h1': {
                 fontFamily: 'Poppins',
                 fontSize: '24px',

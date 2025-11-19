@@ -58,7 +58,7 @@ const BSPage: React.FC = () => {
   const mountRecoveryTriggered = useRef(false);
   const hasCheckedForRefetch = useRef(false);
   const refetchTimestamp = useRef(Date.now());
-  
+
   // 🔥 NEW: Track if upload was interrupted
   const [wasUploadInterrupted, setWasUploadInterrupted] = useState(false);
 
@@ -92,13 +92,13 @@ const BSPage: React.FC = () => {
     // Check if upload was interrupted
     if (wasUploadInterrupted) {
       console.log("⚠️ [BS] Upload was interrupted - showing message");
-      
+
       // Show interruption message
       toast.error(
         "Document analysis was interrupted due to page navigation or refresh. Please upload again.",
         { duration: 5000 }
       );
-      
+
       // Reset the flag
       setWasUploadInterrupted(false);
     }
@@ -501,7 +501,10 @@ const BSPage: React.FC = () => {
 
     if (data.status === "analyzing_document") {
       // 🔥 FIXED: Use toast.loading with unique ID to prevent duplicates
-      toast.loading("Analyzing your document...", { id: "analyzing-doc", duration: Infinity });
+      toast.loading("Analyzing your document...", {
+        id: "analyzing-doc",
+        duration: Infinity,
+      });
       return;
     }
 
@@ -661,7 +664,8 @@ const BSPage: React.FC = () => {
 
   const isLoading = isLoadingUnanswered || isLoadingAll;
   const isError = isErrorUnanswered || isErrorAll;
-  const showButton = view === "questions" || view === "preview";
+  // const showButton = view === "questions" || view === "preview";
+  const showButton = view === "preview";
 
   if (isError) {
     return (
@@ -683,11 +687,19 @@ const BSPage: React.FC = () => {
 
   if (showDocumentPreview && docxBase64) {
     return (
-      <DocumentPreview
-        docxBase64={docxBase64}
-        fileName={fileName}
-        documentType="bs"
-      />
+      <Box
+        sx={{
+          height: "calc(100vh - 10.96vh)",
+          width: "100%",
+          overflow: "hidden",
+        }}
+      >
+        <DocumentPreview
+          docxBase64={docxBase64}
+          fileName={fileName}
+          documentType="bs"
+        />
+      </Box>
     );
   }
 
