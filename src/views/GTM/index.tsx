@@ -489,7 +489,8 @@ const GTMPage: React.FC = () => {
 
   const isLoading = isLoadingUnanswered || isLoadingAll;
   const isError = isErrorUnanswered || isErrorAll;
-  const showButton = view === "questions" || view === "preview";
+  // const showButton = view === "questions" || view === "preview";
+  const showButton = view === "preview";
 
   const currentQuestion = questions[currentQuestionIndex];
   const hasValidCurrentQuestion = currentQuestion !== undefined;

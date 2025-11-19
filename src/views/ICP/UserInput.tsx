@@ -59,7 +59,7 @@ const UserInput: React.FC<UserInputProps> = ({
                 setIsTyping(false);
                 clearInterval(typingInterval);
             }
-        }, 20);
+        }, 10);
 
         return () => clearInterval(typingInterval);
     }, [answer]);
@@ -184,10 +184,6 @@ const UserInput: React.FC<UserInputProps> = ({
         <Box sx={{ 
             width: '100%',
             maxWidth: {
-                // xs: '100%',
-                // sm: '280px',
-                // md: '480px',
-                // lg: '680px',
                 xl: '1200px',
             },
             margin: '0 auto',
@@ -262,7 +258,8 @@ const UserInput: React.FC<UserInputProps> = ({
                         </Typography>
                     </Box>
 
-                    {combinedLoading ? (
+                    {/* Show loading spinner when loading */}
+                    {combinedLoading && (
                         <Box sx={{
                             display: 'flex',
                             justifyContent: 'center',
@@ -273,7 +270,10 @@ const UserInput: React.FC<UserInputProps> = ({
                         }}>
                             <CircularProgress size={30} sx={{ color: '#3EA3FF' }} />
                         </Box>
-                    ) : displayedAnswer || isTyping ? (
+                    )}
+
+                    {/* Show answer field when there's content (either typing or complete) */}
+                    {!combinedLoading && (displayedAnswer || isTyping) && (
                         <Box sx={{ marginBottom: '11px', marginLeft: '32px', width: 'calc(100% - 32px)' }}>
                             <TextField
                                 fullWidth
@@ -323,75 +323,66 @@ const UserInput: React.FC<UserInputProps> = ({
                                 }}
                             />
                         </Box>
-                    ) : (
-                        <Typography
-                            sx={{
-                                color: '#999',
-                                fontFamily: 'Poppins',
-                                fontSize: '9px',
-                                fontWeight: 400,
-                                lineHeight: '1.6',
-                                marginBottom: '11px',
-                                marginLeft: '32px',
-                            }}
-                        >
-                            Your answer will appear here...
-                        </Typography>
                     )}
 
-                    <Box
-                        sx={{
-                            height: '1px',
-                            backgroundColor: '#D9D9D9',
-                            marginBottom: '11px',
-                            filter: 'drop-shadow(0 1px 0 #FFF)',
-                        }}
-                    />
+                    {/* Only show dividing line and buttons when typing is complete and answer exists */}
+                    {!combinedLoading && !isTyping && displayedAnswer && (
+                        <>
+                            <Box
+                                sx={{
+                                    height: '1px',
+                                    backgroundColor: '#D9D9D9',
+                                    marginBottom: '11px',
+                                    filter: 'drop-shadow(0 1px 0 #FFF)',
+                                }}
+                            />
 
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Button
-                            startIcon={<RefreshIcon sx={{ fontSize: '12px' }} />}
-                            onClick={handleRegenerateClick}
-                            disabled={!answer || combinedLoading || isTyping}
-                            sx={{
-                                color: '#3FA3FF',
-                                textTransform: 'none',
-                                fontFamily: 'Poppins',
-                                fontSize: '9px',
-                                fontWeight: 500,
-                                padding: '4px 6px',
-                                '&:hover': {
-                                    backgroundColor: 'rgba(63, 163, 255, 0.1)',
-                                },
-                                '&:disabled': {
-                                    color: '#ccc',
-                                },
-                            }}
-                        >
-                            Regenerate
-                        </Button>
-                        <Button
-                            endIcon={<Cammi />}
-                            onClick={handleConfirmClick}
-                            disabled={!answer || combinedLoading || isTyping}
-                            sx={{
-                                color: '#FD3D81',
-                                textTransform: 'none',
-                                fontFamily: 'Poppins',
-                                fontSize: '9px',
-                                fontWeight: 500,
-                                padding: '4px 6px',
-                                '&:hover': {
-                                    backgroundColor: 'rgba(253, 61, 129, 0.1)',
-                                },
-                                '&:disabled': {
-                                    color: '#ccc',
-                                },
-                            }}
-                        >
-                            Confirm
-                        </Button>
-                    </Box>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <Button
+                                    startIcon={<RefreshIcon sx={{ fontSize: '12px' }} />}
+                                    onClick={handleRegenerateClick}
+                                    disabled={!answer}
+                                    sx={{
+                                        color: '#3FA3FF',
+                                        textTransform: 'none',
+                                        fontFamily: 'Poppins',
+                                        fontSize: '9px',
+                                        fontWeight: 500,
+                                        padding: '4px 6px',
+                                        '&:hover': {
+                                            backgroundColor: 'rgba(63, 163, 255, 0.1)',
+                                        },
+                                        '&:disabled': {
+                                            color: '#ccc',
+                                        },
+                                    }}
+                                >
+                                    Regenerate
+                                </Button>
+                                <Button
+                                    endIcon={<Cammi />}
+                                    onClick={handleConfirmClick}
+                                    disabled={!answer}
+                                    sx={{
+                                        color: '#FD3D81',
+                                        textTransform: 'none',
+                                        fontFamily: 'Poppins',
+                                        fontSize: '9px',
+                                        fontWeight: 500,
+                                        padding: '4px 6px',
+                                        '&:hover': {
+                                            backgroundColor: 'rgba(253, 61, 129, 0.1)',
+                                        },
+                                        '&:disabled': {
+                                            color: '#ccc',
+                                        },
+                                    }}
+                                >
+                                    Confirm
+                                </Button>
+                            </Box>
+                        </>
+                    )}
                 </Box>
             </Box>
 

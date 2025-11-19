@@ -181,7 +181,7 @@ const InputTakerUpdated: React.FC<InputTakerProps> = ({
             margin-bottom: 26px !important;
           }
           .input-taker-scroll {
-            max-height: 350px !important;
+            max-height: 400px !important;
           }
           .input-taker-item {
             width: 280px !important;
