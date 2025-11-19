@@ -746,7 +746,7 @@ const ICPPage: React.FC = () => {
           )}
 
           {view === "questions" && questions.length > 0 && (
-            <Box sx={{ width: "100%", maxWidth: "1200px" }}>
+            <Box sx={{ width: "100%" }}>
               <Box
                 sx={{
                   display: "flex",

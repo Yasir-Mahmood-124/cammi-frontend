@@ -489,8 +489,6 @@ const GTMPage: React.FC = () => {
 
   const isLoading = isLoadingUnanswered || isLoadingAll;
   const isError = isErrorUnanswered || isErrorAll;
-  // const showButton = view === "questions" || view === "preview";
-  const showButton = view === "preview";
 
   const currentQuestion = questions[currentQuestionIndex];
   const hasValidCurrentQuestion = currentQuestion !== undefined;
@@ -551,7 +549,7 @@ const GTMPage: React.FC = () => {
       ) : (
         <>
           {view === "questions" && questions.length > 0 && hasValidCurrentQuestion && (
-            <Box sx={{ width: "100%", maxWidth: "1200px" }}>
+            <Box sx={{ width: "100%" }}>
               <Box
                 sx={{
                   display: "flex",
@@ -595,6 +593,8 @@ const GTMPage: React.FC = () => {
                 maxWidth: "1200px",
                 display: "flex",
                 justifyContent: "flex-start",
+                alignItems: "flex-end",
+                gap: "24px",
                 paddingLeft: "20px",
               }}
             >
@@ -603,6 +603,43 @@ const GTMPage: React.FC = () => {
                   questionsAnswers={questions}
                   onAnswerUpdate={handleAnswerUpdate}
                 />
+              </Box>
+              
+              {/* Generate Document Button - Positioned at the bottom next to the preview */}
+              <Box sx={{ 
+                display: "flex", 
+                alignItems: "flex-end",
+                // paddingBottom: "20px",
+              }}>
+                <Button
+                  variant="contained"
+                  endIcon={<ArrowForwardIcon sx={{ fontSize: "14px" }} />}
+                  onClick={handleGenerateDocument}
+                  disabled={
+                    view !== "preview" || !allQuestionsAnswered || isUploading
+                  }
+                  sx={{
+                    background: "linear-gradient(135deg, #3EA3FF, #FF3C80)",
+                    color: "#fff",
+                    textTransform: "none",
+                    fontFamily: "Poppins",
+                    fontSize: "13px",
+                    fontWeight: 600,
+                    padding: "10px 20px",
+                    borderRadius: "10px",
+                    boxShadow: "0 3px 8px rgba(62, 163, 255, 0.3)",
+                    whiteSpace: "nowrap",
+                    "&:hover": {
+                      background: "linear-gradient(135deg, #2E8FE6, #E6356D)",
+                    },
+                    "&:disabled": {
+                      background: "#ccc",
+                      color: "#666",
+                    },
+                  }}
+                >
+                  {isUploading ? "Uploading..." : "Generate Document"}
+                </Button>
               </Box>
             </Box>
           )}
@@ -619,39 +656,6 @@ const GTMPage: React.FC = () => {
               <div style={{ fontFamily: "Poppins", color: "#666" }}>
                 Loading questions...
               </div>
-            </Box>
-          )}
-
-          {showButton && (
-            <Box sx={{ position: "fixed", bottom: "28px", right: "70px" }}>
-              <Button
-                variant="contained"
-                endIcon={<ArrowForwardIcon sx={{ fontSize: "14px" }} />}
-                onClick={handleGenerateDocument}
-                disabled={
-                  view !== "preview" || !allQuestionsAnswered || isUploading
-                }
-                sx={{
-                  background: "linear-gradient(135deg, #3EA3FF, #FF3C80)",
-                  color: "#fff",
-                  textTransform: "none",
-                  fontFamily: "Poppins",
-                  fontSize: "13px",
-                  fontWeight: 600,
-                  padding: "10px 20px",
-                  borderRadius: "10px",
-                  boxShadow: "0 3px 8px rgba(62, 163, 255, 0.3)",
-                  "&:hover": {
-                    background: "linear-gradient(135deg, #2E8FE6, #E6356D)",
-                  },
-                  "&:disabled": {
-                    background: "#ccc",
-                    color: "#666",
-                  },
-                }}
-              >
-                {isUploading ? "Uploading..." : "Generate Document"}
-              </Button>
             </Box>
           )}
         </>
