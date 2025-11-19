@@ -800,7 +800,7 @@ const SRPage: React.FC = () => {
                 paddingLeft: "20px",
               }}
             >
-              <Box sx={{ width: "100%", maxWidth: "900px" }}>
+              <Box sx={{ width: "100%", }}>
                 {questions.some((q) => q.answer === "") && (
                   <Button
                     onClick={handleBackToQuestions}

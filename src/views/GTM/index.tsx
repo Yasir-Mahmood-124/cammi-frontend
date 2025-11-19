@@ -598,7 +598,7 @@ const GTMPage: React.FC = () => {
                 paddingLeft: "20px",
               }}
             >
-              <Box sx={{ width: "100%", maxWidth: "900px" }}>
+              <Box sx={{ width: "100%" }}>
                 <FinalPreview
                   questionsAnswers={questions}
                   onAnswerUpdate={handleAnswerUpdate}
