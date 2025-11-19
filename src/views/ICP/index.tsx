@@ -11,6 +11,7 @@ import InputTakerUpdated from "./InputTakerUpdated";
 import FinalPreview from "./FinalPreview";
 import Generating from "./Generating";
 import DocumentPreview from "./DocumentPreview";
+import ArrowUp from "@/assests/icons/ArrowUp.svg";
 import { useGet_unanswered_questionsQuery } from "@/redux/services/common/getUnansweredQuestionsApi";
 import { useGetQuestionsQuery } from "@/redux/services/common/getQuestionsApi";
 import { useUploadTextFileMutation } from "@/redux/services/common/uploadApiSlice";
@@ -57,7 +58,7 @@ const ICPPage: React.FC = () => {
   const mountRecoveryTriggered = useRef(false);
   const hasCheckedForRefetch = useRef(false);
   const refetchTimestamp = useRef(Date.now());
-  
+
   // 🔥 NEW: Track if upload was interrupted
   const [wasUploadInterrupted, setWasUploadInterrupted] = useState(false);
 
@@ -91,13 +92,13 @@ const ICPPage: React.FC = () => {
     // Check if upload was interrupted
     if (wasUploadInterrupted) {
       console.log("⚠️ [ICP] Upload was interrupted - showing message");
-      
+
       // Show interruption message
       toast.error(
         "Document analysis was interrupted due to page navigation or refresh. Please upload again.",
         { duration: 5000 }
       );
-      
+
       // Reset the flag
       setWasUploadInterrupted(false);
     }
@@ -465,7 +466,8 @@ const ICPPage: React.FC = () => {
 
   // Check if all questions are answered
   const allQuestionsAnswered =
-    questions.length > 0 && questions.every((q: Question) => q.answer.trim() !== "");
+    questions.length > 0 &&
+    questions.every((q: Question) => q.answer.trim() !== "");
 
   const handleYesClick = () => {
     console.log("📤 [ICP] User clicked Yes - preparing upload view");
@@ -500,7 +502,10 @@ const ICPPage: React.FC = () => {
 
     if (data.status === "analyzing_document") {
       // 🔥 FIXED: Use toast.loading with unique ID to prevent duplicates
-      toast.loading("Analyzing your document...", { id: "analyzing-doc", duration: Infinity });
+      toast.loading("Analyzing your document...", {
+        id: "analyzing-doc",
+        duration: Infinity,
+      });
       return;
     }
 
@@ -682,11 +687,19 @@ const ICPPage: React.FC = () => {
 
   if (showDocumentPreview && docxBase64) {
     return (
-      <DocumentPreview
-        docxBase64={docxBase64}
-        fileName={fileName}
-        documentType="icp"
-      />
+      <Box
+        sx={{
+          height: "calc(100vh - 10.96vh)",
+          width: "100%",
+          overflow: "hidden",
+        }}
+      >
+        <DocumentPreview
+          docxBase64={docxBase64}
+          fileName={fileName}
+          documentType="icp"
+        />
+      </Box>
     );
   }
 
@@ -825,7 +838,7 @@ const ICPPage: React.FC = () => {
           )}
 
           {showButton && (
-            <Box sx={{ position: "fixed", bottom: "35px", right: "70px" }}>
+            <Box sx={{ position: "fixed", bottom: "20px", right: "70px" }}>
               <Button
                 variant="contained"
                 endIcon={<ArrowForwardIcon sx={{ fontSize: "14px" }} />}

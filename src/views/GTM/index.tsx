@@ -9,6 +9,7 @@ import InputTakerUpdated from "../ICP/InputTakerUpdated";
 import FinalPreview from "../ICP/FinalPreview";
 import Generating from "../ICP/Generating";
 import DocumentPreview from "../ICP/DocumentPreview";
+import ArrowUp from "@/assests/icons/ArrowUp.svg";
 import { useGet_unanswered_questionsQuery } from "@/redux/services/common/getUnansweredQuestionsApi";
 import { useGetQuestionsQuery } from "@/redux/services/common/getQuestionsApi";
 import { useRefineMutation } from "@/redux/services/common/refineApi";
@@ -56,7 +57,7 @@ const GTMPage: React.FC = () => {
   const documentFetchTriggered = useRef(false);
   const mountRecoveryTriggered = useRef(false);
   const previewFetchTriggered = useRef(false);
-  const hasInitialFetchHappened = useRef(false); // Track if initial fetch happened
+  const hasInitialFetchHappened = useRef(false);
 
   // Get state from Redux
   const {
@@ -105,7 +106,7 @@ const GTMPage: React.FC = () => {
     data: unansweredData,
     isLoading: isLoadingUnanswered,
     isError: isErrorUnanswered,
-    refetch: refetchUnanswered, // 🔥 GET THE REFETCH FUNCTION
+    refetch: refetchUnanswered,
   } = useGet_unanswered_questionsQuery(
     {
       project_id: projectId,
@@ -113,7 +114,7 @@ const GTMPage: React.FC = () => {
     },
     {
       skip: !shouldFetchUnanswered || !projectId,
-      refetchOnMountOrArgChange: true, // 🔥 ALWAYS REFETCH ON MOUNT
+      refetchOnMountOrArgChange: true,
     }
   );
 
@@ -122,7 +123,7 @@ const GTMPage: React.FC = () => {
     data: allQuestionsData,
     isLoading: isLoadingAll,
     isError: isErrorAll,
-    refetch: refetchAllQuestions, // 🔥 GET THE REFETCH FUNCTION
+    refetch: refetchAllQuestions,
   } = useGetQuestionsQuery(
     {
       project_id: projectId,
@@ -130,7 +131,7 @@ const GTMPage: React.FC = () => {
     },
     {
       skip: !shouldFetchAll || !projectId,
-      refetchOnMountOrArgChange: true, // 🔥 ALWAYS REFETCH ON MOUNT
+      refetchOnMountOrArgChange: true,
     }
   );
 
@@ -138,36 +139,32 @@ const GTMPage: React.FC = () => {
   useEffect(() => {
     return () => {
       console.log("🧹 [GTM Unmount] Clearing state for fresh fetch on return");
-      // Only clear if not generating or showing document
       if (!isGenerating && !showDocumentPreview) {
         dispatch(setQuestions([]));
         dispatch(setCurrentQuestionIndex(0));
         dispatch(setAnsweredIds([]));
         dispatch(setShouldFetchUnanswered(false));
         dispatch(setShouldFetchAll(false));
-        hasInitialFetchHappened.current = false; // Reset flag
+        hasInitialFetchHappened.current = false;
       }
     };
   }, [dispatch, isGenerating, showDocumentPreview]);
 
   // 🔥 MODIFIED: Force refetch on every mount
   useEffect(() => {
-    // Only fetch if we have a projectId and not in a critical state
     if (projectId && !isGenerating && !showDocumentPreview) {
       console.log("📋 [GTM Mount] Force refetching latest unanswered questions from API (bypassing cache)");
       
-      // Small delay to ensure cleanup is complete
       setTimeout(() => {
         dispatch(setShouldFetchUnanswered(true));
         
-        // 🔥 FORCE REFETCH - This bypasses RTK Query cache
         setTimeout(() => {
           console.log("🔄 [GTM Refetch] Manually triggering refetch to bypass cache");
           refetchUnanswered();
         }, 200);
       }, 100);
     }
-  }, [projectId, dispatch, refetchUnanswered]); // Add refetchUnanswered to dependencies
+  }, [projectId, dispatch, refetchUnanswered]);
 
   // 🔥 Safety check - Reset currentQuestionIndex if out of bounds
   useEffect(() => {
@@ -208,7 +205,7 @@ const GTMPage: React.FC = () => {
     } catch (error: any) {
       console.error("❌ [GTM Document] Fetch failed:", error);
       toast.error("Failed to fetch document. Please try again.");
-      documentFetchTriggered.current = false; // Reset on error to allow retry
+      documentFetchTriggered.current = false;
     }
   }, [dispatch, getDocxFile]);
 
@@ -232,7 +229,6 @@ const GTMPage: React.FC = () => {
       "╚════════════════════════════════════════════════════════════╝"
     );
 
-    // 🧩 Scenario 1: Document already fetched and available
     if (docxBase64 && fileName) {
       console.log("✅ [Recovery] Document already available in Redux");
       if (!showDocumentPreview) {
@@ -241,7 +237,6 @@ const GTMPage: React.FC = () => {
       return;
     }
 
-    // 🧩 Scenario 2: Completion message received but no document yet - FETCH IT!
     if (hasReceivedCompletionMessage && !docxBase64) {
       console.log(
         "🎯 [Recovery] Completion message found - fetching document!"
@@ -252,7 +247,6 @@ const GTMPage: React.FC = () => {
       return;
     }
 
-    // 🧩 Scenario 3: Generation in progress - RE-ESTABLISH WEBSOCKET CONNECTION
     if (isGenerating && !hasReceivedCompletionMessage && wsUrl) {
       console.log(
         "⚡ [Recovery] Generation active - restoring progress and WebSocket"
@@ -263,7 +257,6 @@ const GTMPage: React.FC = () => {
 
       mountRecoveryTriggered.current = true;
 
-      // 🔄 Re-trigger the middleware by toggling isGenerating
       setTimeout(() => {
         setTimeout(() => {
           dispatch(setIsGenerating(true));
@@ -272,7 +265,6 @@ const GTMPage: React.FC = () => {
       return;
     }
 
-    // 🧩 Scenario 4: Stale generation state (no wsUrl but isGenerating true)
     if (isGenerating && !wsUrl) {
       console.log(
         "⚠️ [Recovery] Stale generation state detected - resetting..."
@@ -282,7 +274,6 @@ const GTMPage: React.FC = () => {
       return;
     }
 
-    // 🧩 Scenario 5: No active generation
     if (!isGenerating) {
       console.log("✅ [Recovery] No active generation, normal state");
       return;
@@ -290,13 +281,11 @@ const GTMPage: React.FC = () => {
 
     console.log("ℹ️ [Recovery] No specific recovery action required");
 
-    // 🧹 CLEANUP — allows this effect to run again when user revisits this page
     return () => {
       console.log("🧹 [Cleanup] Resetting mount recovery flag for next mount");
       mountRecoveryTriggered.current = false;
     };
   }, [
-    // Dependencies to handle re-mounts properly:
     docxBase64,
     fileName,
     showDocumentPreview,
@@ -380,10 +369,9 @@ const GTMPage: React.FC = () => {
   // 🔥 When transitioning to preview, always fetch from API
   const handleShowPreview = useCallback(() => {
     console.log("📋 [GTM Preview] Triggering API fetch for preview");
-    previewFetchTriggered.current = false; // Reset flag
+    previewFetchTriggered.current = false;
     dispatch(setShouldFetchAll(true));
     
-    // 🔥 Force refetch for preview
     setTimeout(() => {
       console.log("🔄 [GTM Preview Refetch] Manually triggering refetch to bypass cache");
       refetchAllQuestions();
@@ -411,12 +399,10 @@ const GTMPage: React.FC = () => {
         error: "Failed to generate answer. Please try again.",
       });
 
-      // Store session ID for conversation continuity
       if (response.session_id) {
         dispatch(setSessionId(response.session_id));
       }
 
-      // Set the generated answer
       dispatch(updateCurrentQuestionAnswer(response.groq_response));
     } catch (error) {
       // Error already handled by toast.promise
@@ -442,7 +428,6 @@ const GTMPage: React.FC = () => {
         dispatch(nextQuestion());
       } else {
         toast.success("All questions answered! Loading preview...");
-        // 🔥 Always fetch from API when showing preview
         handleShowPreview();
       }
     } else {
@@ -460,7 +445,6 @@ const GTMPage: React.FC = () => {
 
   const handleGenerateDocument = async () => {
     try {
-      // Reset flags
       documentFetchTriggered.current = false;
       mountRecoveryTriggered.current = false;
 
@@ -496,7 +480,7 @@ const GTMPage: React.FC = () => {
       const websocketUrl = `wss://4iqvtvmxle.execute-api.us-east-1.amazonaws.com/prod/?session_id=${savedToken}`;
 
       dispatch(setWsUrl(websocketUrl));
-      dispatch(setIsGenerating(true)); // This triggers the global middleware!
+      dispatch(setIsGenerating(true));
     } catch (err: any) {
       console.error("❌ [GTM Upload] Error:", err);
       toast.error("Upload failed. Please try again.");
@@ -507,7 +491,6 @@ const GTMPage: React.FC = () => {
   const isError = isErrorUnanswered || isErrorAll;
   const showButton = view === "questions" || view === "preview";
 
-  // 🔥 Safety check for current question
   const currentQuestion = questions[currentQuestionIndex];
   const hasValidCurrentQuestion = currentQuestion !== undefined;
 
@@ -529,13 +512,16 @@ const GTMPage: React.FC = () => {
     );
   }
 
+  // 🔥 FIX: Wrap DocumentPreview in a container with defined height
   if (showDocumentPreview && docxBase64) {
     return (
-      <DocumentPreview
-        docxBase64={docxBase64}
-        fileName={fileName}
-        documentType="gtm"
-      />
+      <Box sx={{ height: 'calc(100vh - 10.96vh)', width: '100%', overflow: 'hidden' }}>
+        <DocumentPreview
+          docxBase64={docxBase64}
+          fileName={fileName}
+          documentType="gtm"
+        />
+      </Box>
     );
   }
 
@@ -563,7 +549,6 @@ const GTMPage: React.FC = () => {
         </Box>
       ) : (
         <>
-          {/* 🔥 Safety check for questions and currentQuestionIndex */}
           {view === "questions" && questions.length > 0 && hasValidCurrentQuestion && (
             <Box sx={{ width: "100%", maxWidth: "1200px" }}>
               <Box
@@ -637,7 +622,7 @@ const GTMPage: React.FC = () => {
           )}
 
           {showButton && (
-            <Box sx={{ position: "fixed", bottom: "35px", right: "70px" }}>
+            <Box sx={{ position: "fixed", bottom: "28px", right: "70px" }}>
               <Button
                 variant="contained"
                 endIcon={<ArrowForwardIcon sx={{ fontSize: "14px" }} />}

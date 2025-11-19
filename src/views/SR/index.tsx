@@ -683,11 +683,13 @@ const SRPage: React.FC = () => {
 
   if (showDocumentPreview && docxBase64) {
     return (
-      <DocumentPreview
-        docxBase64={docxBase64}
-        fileName={fileName}
-        documentType="sr"
-      />
+      <Box sx={{ height: 'calc(100vh - 10.96vh)', width: '100%', overflow: 'hidden' }}>
+        <DocumentPreview
+          docxBase64={docxBase64}
+          fileName={fileName}
+          documentType="sr"
+        />
+      </Box>
     );
   }
 

@@ -182,9 +182,16 @@ const UserInput: React.FC<UserInputProps> = ({
 
     return (
         <Box sx={{ 
-            width: '100%', 
-            maxWidth: '700px',  
-            }}>
+            width: '100%',
+            maxWidth: {
+                // xs: '100%',
+                // sm: '280px',
+                // md: '480px',
+                // lg: '680px',
+                xl: '1200px',
+            },
+            margin: '0 auto',
+        }}>
             <Box
                 sx={{
                     backgroundColor: '#FAFAFA',
@@ -192,8 +199,14 @@ const UserInput: React.FC<UserInputProps> = ({
                     borderRadius: '8px',
                     padding: '11px',
                     marginBottom: '11px',
-                    height: "100vh",
-                    maxHeight: '450px',
+                    height: "auto",
+                    minHeight: {
+                        xs: '250px',
+                        sm: '300px',
+                        md: '320px',
+                        lg: '430px',
+                        xl: '600px',
+                    },
                     overflowY: 'auto',
                     overflowX: 'hidden',
                     '&::-webkit-scrollbar': {
