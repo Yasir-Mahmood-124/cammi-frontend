@@ -12,7 +12,7 @@ import {
   Collapse,
   IconButton,
   Tooltip,
-  Modal,
+  Dialog
 } from "@mui/material";
 
 import { useRouter, usePathname } from "next/navigation";
@@ -218,7 +218,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
     }
     if (hasSubItems) {
       const isCurrentlyOpen = openMenus[itemName];
-      
+
       setOpenMenus((prev) => {
         const newState: { [key: string]: boolean } = {};
         Object.keys(prev).forEach((key) => {
@@ -228,7 +228,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
         newState[itemName] = !prev[itemName];
         return newState;
       });
-      
+
       // If closing the menu (was open), deselect it
       // If opening the menu (was closed), select it
       if (isCurrentlyOpen) {
@@ -908,7 +908,11 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
                           <ListItem key={subItem} disablePadding>
                             <ListItemButton
                               onClick={() =>
-                                handleSubmenuClick(subItem, item.text, item.text === "Scheduler")
+                                handleSubmenuClick(
+                                  subItem,
+                                  item.text,
+                                  item.text === "Scheduler"
+                                )
                               }
                               sx={{
                                 pl: 1.5,
@@ -1203,20 +1207,25 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
       </Box>
 
       {/* Create Project Modal */}
-      <Modal open={open} onClose={handleClose}>
-        <Box
-          sx={{
-            position: "absolute",
-            top: "50%",
-            left: "50%",
-            transform: "translate(-50%, -50%)",
-            p: 3,
-            width: 400,
-          }}
-        >
-          <CreateProject onCreate={handleOpen} onClose={handleClose} />
-        </Box>
-      </Modal>
+      <Dialog
+        open={open}
+        onClose={handleClose}
+        PaperProps={{
+          sx: {
+            borderRadius: 5,
+            boxShadow: "0 12px 40px rgba(0, 0, 0, 0.15)",
+            overflow: "visible",
+            maxWidth: "none",
+          },
+        }}
+        BackdropProps={{
+          sx: {
+            backgroundColor: "rgba(0, 0, 0, 0.15)", // Very subtle backdrop
+          },
+        }}
+      >
+        <CreateProject onCreate={handleOpen} onClose={handleClose} />
+      </Dialog>
     </Drawer>
   );
 };
