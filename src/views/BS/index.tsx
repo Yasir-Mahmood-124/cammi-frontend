@@ -745,7 +745,7 @@ const BSPage: React.FC = () => {
           )}
 
           {view === "questions" && questions.length > 0 && (
-            <Box sx={{ width: "100%", maxWidth: "1200px" }}>
+            <Box sx={{ width: "100%" }}>
               <Box
                 sx={{
                   display: "flex",
@@ -809,7 +809,7 @@ const BSPage: React.FC = () => {
                 paddingLeft: "20px",
               }}
             >
-              <Box sx={{ width: "100%", maxWidth: "900px" }}>
+              <Box sx={{ width: "100%" }}>
                 {questions.some((q) => q.answer === "") && (
                   <Button
                     onClick={handleBackToQuestions}

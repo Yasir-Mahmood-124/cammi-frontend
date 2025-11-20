@@ -908,7 +908,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
                           <ListItem key={subItem} disablePadding>
                             <ListItemButton
                               onClick={() =>
-                                handleSubmenuClick(subItem, item.text, false)
+                                handleSubmenuClick(subItem, item.text, item.text === "Scheduler")
                               }
                               sx={{
                                 pl: 1.5,

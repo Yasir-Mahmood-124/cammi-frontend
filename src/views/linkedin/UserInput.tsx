@@ -29,6 +29,7 @@ const UserInput: React.FC<UserInputProps> = ({
   const [inputValue, setInputValue] = useState('');
   const [displayedAnswer, setDisplayedAnswer] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const answerFieldRef = React.useRef<HTMLInputElement>(null);
 
   // Typing animation effect
   useEffect(() => {
@@ -49,16 +50,34 @@ const UserInput: React.FC<UserInputProps> = ({
         setIsTyping(false);
         clearInterval(typingInterval);
       }
-    }, 20); // Adjust speed here (milliseconds per character)
+    }, 10); // Faster typing speed to match first component
 
     return () => clearInterval(typingInterval);
   }, [answer]);
+
+  // Auto-focus and position cursor at end when typing completes
+  useEffect(() => {
+    if (!isTyping && displayedAnswer && answerFieldRef.current) {
+      const textField = answerFieldRef.current;
+      // Small delay to ensure the field is ready
+      setTimeout(() => {
+        textField.focus();
+        // Set cursor position to the end
+        const length = displayedAnswer.length;
+        textField.setSelectionRange(length, length);
+      }, 100);
+    }
+  }, [isTyping, displayedAnswer]);
 
   const handleSendClick = () => {
     if (inputValue.trim() && onGenerate) {
       onGenerate(inputValue.trim());
       setInputValue('');
     }
+  };
+
+  const handleAnswerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setDisplayedAnswer(e.target.value);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -69,7 +88,13 @@ const UserInput: React.FC<UserInputProps> = ({
   };
 
   return (
-    <Box sx={{ width: '100%', maxWidth: '700px', height: "100%", maxHeight: "505px" }}>
+    <Box sx={{ 
+      width: '100%',
+      maxWidth: {
+        xl: '1200px',
+      },
+      margin: '0 auto',
+    }}>
       <Box
         sx={{
           backgroundColor: '#FAFAFA',
@@ -77,9 +102,16 @@ const UserInput: React.FC<UserInputProps> = ({
           borderRadius: '8px',
           padding: '11px',
           marginBottom: '11px',
-          height: "100%",
-          maxHeight: '483px',
+          height: "auto",
+          minHeight: {
+            xs: '250px',
+            sm: '300px',
+            md: '320px',
+            lg: '430px',
+            xl: '600px',
+          },
           overflowY: 'auto',
+          overflowX: 'hidden',
           '&::-webkit-scrollbar': {
             width: '5px',
           },
@@ -102,6 +134,7 @@ const UserInput: React.FC<UserInputProps> = ({
             border: '2px solid transparent',
             borderRadius: '8px',
             padding: '13px',
+            overflowX: 'hidden',
           }}
         >
           <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: '8px', marginBottom: '8px' }}>
@@ -132,87 +165,131 @@ const UserInput: React.FC<UserInputProps> = ({
             </Typography>
           </Box>
 
-          {isLoading ? (
-            <Box sx={{ 
-              display: 'flex', 
-              justifyContent: 'center', 
-              alignItems: 'center', 
+          {/* Show loading spinner when loading */}
+          {isLoading && (
+            <Box sx={{
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
               minHeight: '100px',
               marginBottom: '11px',
               marginLeft: '32px',
             }}>
               <CircularProgress size={30} sx={{ color: '#3EA3FF' }} />
             </Box>
-          ) : (
-            <Typography
-              sx={{
-                color: '#000',
-                fontFamily: 'Poppins',
-                fontSize: '9px',
-                fontWeight: 400,
-                lineHeight: '1.6',
-                marginBottom: '11px',
-                marginLeft: '32px',
-              }}
-            >
-              {displayedAnswer || 'Your answer will appear here...'}
-              {isTyping && <span style={{ opacity: 0.5 }}>▊</span>}
-            </Typography>
           )}
 
-          <Box
-            sx={{
-              height: '1px',
-              backgroundColor: '#D9D9D9',
-              marginBottom: '11px',
-              filter: 'drop-shadow(0 1px 0 #FFF)',
-            }}
-          />
+          {/* Show answer field when there's content (either typing or complete) */}
+          {!isLoading && (displayedAnswer || isTyping) && (
+            <Box sx={{ marginBottom: '11px', marginLeft: '32px', width: 'calc(100% - 32px)' }}>
+              <TextField
+                fullWidth
+                multiline
+                value={displayedAnswer}
+                onChange={handleAnswerChange}
+                disabled={isTyping}
+                placeholder="Your answer will appear here..."
+                inputRef={answerFieldRef}
+                InputProps={{
+                  sx: {
+                    color: '#000',
+                    fontFamily: 'Poppins',
+                    fontSize: '9px',
+                    fontWeight: 400,
+                    lineHeight: '1.6',
+                    padding: 0,
+                    width: '100%',
+                    '& .MuiOutlinedInput-notchedOutline': {
+                      border: 'none',
+                    },
+                    '&:hover .MuiOutlinedInput-notchedOutline': {
+                      border: 'none',
+                    },
+                    '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                      border: 'none',
+                    },
+                    '& .MuiInputBase-input': {
+                      padding: 0,
+                      cursor: isTyping ? 'default' : 'text',
+                      wordWrap: 'break-word',
+                      overflowWrap: 'break-word',
+                      whiteSpace: 'pre-wrap',
+                    },
+                  },
+                }}
+                sx={{
+                  width: '100%',
+                  '& .MuiInputBase-input::placeholder': {
+                    color: '#999',
+                    opacity: 1,
+                    fontFamily: 'Poppins',
+                  },
+                  '& .MuiInputBase-root': {
+                    width: '100%',
+                  },
+                }}
+              />
+            </Box>
+          )}
 
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Button
-              startIcon={<RefreshIcon sx={{ fontSize: '12px' }} />}
-              onClick={onRegenerate}
-              disabled={!answer || isLoading || isTyping}
-              sx={{
-                color: '#3FA3FF',
-                textTransform: 'none',
-                fontFamily: 'Poppins',
-                fontSize: '9px',
-                fontWeight: 500,
-                padding: '4px 6px',
-                '&:hover': {
-                  backgroundColor: 'rgba(63, 163, 255, 0.1)',
-                },
-                '&:disabled': {
-                  color: '#ccc',
-                },
-              }}
-            >
-              Regenerate
-            </Button>
-            <Button
-              endIcon={<Cammi />}
-              onClick={onConfirm}
-              disabled={!answer || isLoading || isTyping}
-              sx={{
-                color: '#FD3D81',
-                textTransform: 'none',
-                fontFamily: 'Poppins',
-                fontSize: '9px',
-                fontWeight: 500,
-                padding: '4px 6px',
-                '&:hover': {
-                  backgroundColor: 'rgba(253, 61, 129, 0.1)',
-                },
-                '&:disabled': {
-                  color: '#ccc',
-                },
-              }}
-            >
-              Confirm
-            </Button>
-          </Box>
+          {/* Only show dividing line and buttons when typing is complete and answer exists */}
+          {!isLoading && !isTyping && displayedAnswer && (
+            <>
+              <Box
+                sx={{
+                  height: '1px',
+                  backgroundColor: '#D9D9D9',
+                  marginBottom: '11px',
+                  filter: 'drop-shadow(0 1px 0 #FFF)',
+                }}
+              />
+
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Button
+                  startIcon={<RefreshIcon sx={{ fontSize: '12px' }} />}
+                  onClick={onRegenerate}
+                  disabled={!answer}
+                  sx={{
+                    color: '#3FA3FF',
+                    textTransform: 'none',
+                    fontFamily: 'Poppins',
+                    fontSize: '9px',
+                    fontWeight: 500,
+                    padding: '4px 6px',
+                    '&:hover': {
+                      backgroundColor: 'rgba(63, 163, 255, 0.1)',
+                    },
+                    '&:disabled': {
+                      color: '#ccc',
+                    },
+                  }}
+                >
+                  Regenerate
+                </Button>
+                <Button
+                  endIcon={<Cammi />}
+                  onClick={onConfirm}
+                  disabled={!answer}
+                  sx={{
+                    color: '#FD3D81',
+                    textTransform: 'none',
+                    fontFamily: 'Poppins',
+                    fontSize: '9px',
+                    fontWeight: 500,
+                    padding: '4px 6px',
+                    '&:hover': {
+                      backgroundColor: 'rgba(253, 61, 129, 0.1)',
+                    },
+                    '&:disabled': {
+                      color: '#ccc',
+                    },
+                  }}
+                >
+                  Confirm
+                </Button>
+              </Box>
+            </>
+          )}
         </Box>
       </Box>
 
