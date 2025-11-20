@@ -1,4 +1,5 @@
 // redux/store.ts
+
 import { configureStore, combineReducers } from "@reduxjs/toolkit";
 import { persistStore, persistReducer } from 'redux-persist';
 import storage from 'redux-persist/lib/storage';
@@ -46,6 +47,7 @@ import { bsWebSocketMiddleware } from "./middleware/bsWebSocketMiddleware";
 import { srWebSocketMiddleware } from "./middleware/srWebSocketMiddleware";
 import { gtmWebSocketMiddleware } from "./middleware/gtmWebSocketMiddleware";
 import { getSpecificDocumentApi } from "./services/document/getSpecificDocument";
+import linkedinReducer from './services/linkedin/linkedinSlice';
 
 // ==================== REDUX PERSIST CONFIGURATION ====================
 
@@ -155,11 +157,27 @@ const gtmPersistConfig = {
   ],
 };
 
+// ✅ ADD LINKEDIN PERSIST CONFIG
+const linkedinPersistConfig = {
+  key: 'linkedin',
+  storage,
+  whitelist: [
+    'sub',
+    'hasOrgId',
+    'items',
+    'currentQuestionId',
+    'answeredIds',
+    'allAnswered',
+    'isQuestionsLoaded',
+  ],
+};
+
 const persistedIcpReducer = persistReducer(icpPersistConfig, icpReducer);
 const persistedKmfReducer = persistReducer(kmfPersistConfig, kmfReducer);
 const persistedBsReducer = persistReducer(bsPersistConfig, bsReducer);
 const persistedSrReducer = persistReducer(srPersistConfig, srReducer);
 const persistedGtmReducer = persistReducer(gtmPersistConfig, gtmReducer);
+const persistedLinkedinReducer = persistReducer(linkedinPersistConfig, linkedinReducer); // ✅ ADD THIS
 
 // ==================== ROOT REDUCER ====================
 
@@ -170,6 +188,8 @@ const rootReducer = combineReducers({
   bs: persistedBsReducer,
   sr: persistedSrReducer,
   gtm: persistedGtmReducer,
+
+  linkedin: persistedLinkedinReducer, // ✅ CHANGE THIS LINE
 
   [authApi.reducerPath]: authApi.reducer,
   [onboardingApi.reducerPath]: onboardingApi.reducer,
