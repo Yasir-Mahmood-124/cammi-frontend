@@ -218,7 +218,7 @@ const InputTakerUpdated: React.FC<InputTakerProps> = ({
           color: '#000',
           transition: 'all 0.3s ease',
         }}>
-          Document Generation
+          Post Generation
         </h2>
 
         <div 
