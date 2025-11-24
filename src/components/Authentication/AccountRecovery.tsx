@@ -162,19 +162,19 @@ const AccountRecovery = () => {
           opacity: 0.2,
           zIndex: -2,
         },
-        "&::after": {
-          content: '""',
-          position: "absolute",
-          inset: 0,
-          backgroundImage: "url('/Background/bg-2.png')",
-          backgroundRepeat: "no-repeat",
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          opacity: 0.15,
-          mixBlendMode: "overlay",
-          pointerEvents: "none",
-          zIndex: -1,
-        },
+        // "&::after": {
+        //   content: '""',
+        //   position: "absolute",
+        //   inset: 0,
+        //   backgroundImage: "url('/Background/bg-2.png')",
+        //   backgroundRepeat: "no-repeat",
+        //   backgroundSize: "cover",
+        //   backgroundPosition: "center",
+        //   opacity: 0.15,
+        //   mixBlendMode: "overlay",
+        //   pointerEvents: "none",
+        //   zIndex: -1,
+        // },
       }}
     >
       <Container
