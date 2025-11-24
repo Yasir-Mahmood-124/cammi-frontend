@@ -1,5 +1,3 @@
-
-
 "use client";
 import React, { useState, useEffect } from "react";
 import {
@@ -31,7 +29,6 @@ import { useLazyGoogleLoginQuery } from "@/redux/services/auth/googleApi";
 import NextLink from "next/link";
 import Cookies from "js-cookie";
 
-
 const Register = () => {
   const [formData, setFormData] = useState({
     firstName: "",
@@ -55,70 +52,62 @@ const Register = () => {
   const [isProcessingGoogle, setIsProcessingGoogle] = useState(false);
   const searchParams = useSearchParams();
 
-    // Handle Google OAuth callback
-    useEffect(() => {
-      const handleGoogleCallback = () => {
-        try {
-          // Check if we have Google callback parameters
-          const sessionId = searchParams.get("session_id");
-          const name = searchParams.get("name");
-          const email = searchParams.get("email");
-          const picture = searchParams.get("picture");
-          const sub = searchParams.get("sub");
-          const onboardingStatus = searchParams.get("onboarding_status");
-          const locale = searchParams.get("locale");
-          const id = searchParams.get("id");
-          const error = searchParams.get("error");
-  
-          // Handle error case
-          if (error) {
-            toast("Google sign-in failed", { variant: "error" });
-            setIsProcessingGoogle(false);
-            return;
-          }
-  
-          // If we have session_id, process the Google login
-          if (sessionId && email) {
-            setIsProcessingGoogle(true);
-  
-            // Store session_id as token in cookies (same as manual login)
-            Cookies.set("token", sessionId, { expires: 7, secure: true });
-  
-            // Store user data in localStorage
-            const userData = {
-              id: id,
-              name: name,
-              email: email,
-              picture: picture,
-              sub: sub,
-              locale: locale,
-            };
-            localStorage.setItem("user", JSON.stringify(userData));
-  
-            // Store onboarding status
-            localStorage.setItem(
-              "onboarding_status",
-              JSON.stringify(onboardingStatus === "true")
-            );
-  
-            // Show success message
-            toast("Login successful!", { variant: "success" });
-  
-            // Redirect based on onboarding status
-            if (onboardingStatus === "true") {
-              router.push("/onboarding");
-            } else {
-              router.push("/dashboard");
-            }
-          }
-        } catch (err) {
-          toast("Authentication failed", { variant: "error" });
+  // Handle Google OAuth callback
+  useEffect(() => {
+    const handleGoogleCallback = () => {
+      try {
+        const sessionId = searchParams.get("session_id");
+        const name = searchParams.get("name");
+        const email = searchParams.get("email");
+        const picture = searchParams.get("picture");
+        const sub = searchParams.get("sub");
+        const onboardingStatus = searchParams.get("onboarding_status");
+        const locale = searchParams.get("locale");
+        const id = searchParams.get("id");
+        const error = searchParams.get("error");
+
+        if (error) {
+          toast("Google sign-in failed", { variant: "error" });
           setIsProcessingGoogle(false);
+          return;
         }
-      };
-  
-      handleGoogleCallback();
-    }, [searchParams, router]);
+
+        if (sessionId && email) {
+          setIsProcessingGoogle(true);
+
+          Cookies.set("token", sessionId, { expires: 7, secure: true });
+
+          const userData = {
+            id: id,
+            name: name,
+            email: email,
+            picture: picture,
+            sub: sub,
+            locale: locale,
+          };
+          localStorage.setItem("user", JSON.stringify(userData));
+
+          localStorage.setItem(
+            "onboarding_status",
+            JSON.stringify(onboardingStatus === "true")
+          );
+
+          toast("Login successful!", { variant: "success" });
+
+          if (onboardingStatus === "true") {
+            router.push("/onboarding");
+          } else {
+            router.push("/dashboard");
+          }
+        }
+      } catch (err) {
+        toast("Authentication failed", { variant: "error" });
+        setIsProcessingGoogle(false);
+      }
+    };
+
+    handleGoogleCallback();
+  }, [searchParams, router]);
 
   const handleClickShowPassword = () => setShowPassword((prev) => !prev);
 
@@ -153,13 +142,12 @@ const Register = () => {
     }
   };
 
-  // Handles typing + backspace
   const handleCodeChange = (
     index: number,
     e: React.ChangeEvent<HTMLInputElement>
   ) => {
     const value = e.target.value;
-    if (!/^\d?$/.test(value)) return; // only digits
+    if (!/^\d?$/.test(value)) return;
 
     const newCode = [...verificationCode];
     newCode[index] = value;
@@ -177,7 +165,7 @@ const Register = () => {
   const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
     e.preventDefault();
     const paste = e.clipboardData.getData("text").trim();
-    if (!/^\d+$/.test(paste)) return; // only digits
+    if (!/^\d+$/.test(paste)) return;
 
     const digits = paste.slice(0, 6).split("");
     const newCode = [...verificationCode];
@@ -204,6 +192,7 @@ const Register = () => {
       toast(getErrorMessage(err), { variant: "error" });
     }
   };
+
   const setInputRef = (idx: number) => (el: HTMLInputElement | null) => {
     inputsRef.current[idx] = el;
   };
@@ -228,18 +217,6 @@ const Register = () => {
           opacity: 0.2,
           zIndex: -2,
         },
-        // "&::after": {
-        //   content: '""',
-        //   position: "absolute",
-        //   inset: 0,
-        //   backgroundImage: "url('/Background/bg-2.png')",
-        //   backgroundRepeat: "no-repeat",
-        //   backgroundSize: "cover",
-        //   backgroundPosition: "center",
-        //   opacity: 0.15,
-        //   mixBlendMode: "overlay",
-        //   zIndex: -1,
-        // },
       }}
     >
       <Container
@@ -248,95 +225,131 @@ const Register = () => {
         sx={{
           flex: 1,
           display: "flex",
-          justifyContent: "center",
+          flexDirection: "column",
           alignItems: "center",
+          justifyContent: "center",
           zIndex: 1,
+          py: 2,
         }}
       >
-        <Paper
-          elevation={0}
+        <Box
           sx={{
-            width: 400,
-            borderRadius: 4,
-            px: 4,
-            py: 5,
-            backgroundColor: "#fff",
-            boxShadow: "0px 8px 15px 2px #00000026",
             display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: 2,
+            alignItems: "flex-start",
+            flexWrap: "wrap",
           }}
         >
-          {!showVerification && (
-            <>
-              <Image
-                src={Logo}
-                alt="CAMMI Logo"
-                width={110}
-                height={70}
-                style={{ objectFit: "contain" }}
-              />
-              {/* Line with dots */}
-              <Box
-                sx={{
-                  // position: "absolute",
-                  width: "60%",
-                  height: "2px",
-                  bgcolor: "#e0e0e0",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  px: 1.5, // space inside for dots
-                }}
-              >
+          <Paper
+            elevation={0}
+            sx={{
+              width: { xs: "90%", sm: 340, md: 340, lg: 380, xl: 420 },
+              maxWidth: { xs: "90%", sm: 340, md: 340, lg: 380, xl: 420 },
+              borderRadius: 3,
+              px: { xs: 2.5, lg: 3, xl: 3.5 },
+              py: { xs: 2.5, lg: 3, xl: 3.5 },
+              backgroundColor: "#fff",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: 0.5,
+              boxShadow: "0px 4px 12px rgba(0, 0, 0, 0.1)",
+            }}
+          >
+            {!showVerification && (
+              <>
                 <Box
                   sx={{
-                    width: 4,
-                    height: 4,
-                    bgcolor: "#e0e0e0",
-                    borderRadius: "50%",
-                    ml: -3,
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    width: "100%",
+                    height: { xs: 60, lg: 70, xl: 80 },
+                    mb: 0.5,
                   }}
-                />
+                >
+                  <Image
+                    src={Logo}
+                    alt="CAMMI Logo"
+                    width={90}
+                    height={55}
+                    style={{ objectFit: "contain", width: "auto", height: "80%" }}
+                  />
+                </Box>
                 <Box
-                  sx={{
-                    width: 4,
-                    height: 4,
-                    bgcolor: "#e0e0e0",
-                    borderRadius: "50%",
-                    mr: -3,
-                  }}
-                />
-              </Box>
-              <Typography
-                sx={{
-                  fontFamily: "Poppins",
-                  fontWeight: 600,
-                  fontSize: "30px",
-                  textAlign: "center",
-                  mt: 1,
-                  mb: 2,
-                }}
-              >
-                Sign up
-              </Typography>
-            </>
-          )}
+                  position="relative"
+                  display="flex"
+                  alignItems="center"
+                  justifyContent="center"
+                  width="100%"
+                  sx={{ my: 0.5 }}
+                >
+                  <Box
+                    sx={{
+                      position: "absolute",
+                      width: "60%",
+                      height: "1.5px",
+                      bgcolor: "#e0e0e0",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      px: 1.5,
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        width: 3,
+                        height: 3,
+                        bgcolor: "#e0e0e0",
+                        borderRadius: "50%",
+                        ml: -2.5,
+                      }}
+                    />
+                    <Box
+                      sx={{
+                        width: 3,
+                        height: 3,
+                        bgcolor: "#e0e0e0",
+                        borderRadius: "50%",
+                        mr: -2.5,
+                      }}
+                    />
+                  </Box>
+                </Box>
+              </>
+            )}
 
-          {!showVerification ? (
-            <form onSubmit={handleSubmit} style={{ width: "100%" }}>
-              <Stack spacing={2}>
-                <Stack direction="row" spacing={1.5}>
+            {!showVerification ? (
+              <form onSubmit={handleSubmit} style={{ width: "100%" }}>
+                <Typography
+                  textAlign="center"
+                  sx={{
+                    fontFamily: "Poppins",
+                    fontWeight: 600,
+                    fontStyle: "normal",
+                    fontSize: { xs: "24px", lg: "26px", xl: "28px" },
+                    lineHeight: "100%",
+                    letterSpacing: "0%",
+                    opacity: 1,
+                    mt: 0.5,
+                    mb: 1.5,
+                    width: "100%",
+                  }}
+                >
+                  Sign up
+                </Typography>
+
+                <Stack spacing={0.8} sx={{ width: "100%" }}>
+                  {/* First Name and Last Name Row */}
                   <Stack direction="row" spacing={1.5}>
                     {/* First Name */}
-                    <Stack spacing={1} sx={{ width: "100%" }}>
+                    <Stack spacing={0.5} sx={{ flex: 1 }}>
                       <Typography
-                        variant="h6"
                         sx={{
                           color: "#000",
-                          fontWeight: "bold",
-                          fontSize: "16px",
+                          fontWeight: 500,
+                          fontSize: { xs: "14px", lg: "15px", xl: "16px" },
+                          mb: 0.3,
+                          textAlign: "left",
                         }}
                       >
                         First Name
@@ -345,20 +358,27 @@ const Register = () => {
                         fullWidth
                         name="firstName"
                         placeholder="Enter first name"
+                        variant="outlined"
                         size="small"
                         value={formData.firstName}
                         onChange={handleInputChange}
                         sx={{
                           "& .MuiInputBase-root": {
-                            borderRadius: "10px",
-                            height: 45,
+                            height: { xs: 40, lg: 44, xl: 48 },
+                            borderRadius: "8px",
+                            fontSize: { xs: "13px", lg: "14px", xl: "15px" },
                           },
                           "& input": {
-                            padding: "15px 8px",
-                            fontSize: "14px",
+                            padding: { xs: "10px 12px", lg: "12px 14px", xl: "14px 16px" },
+                            fontSize: { xs: "13px", lg: "14px", xl: "15px" },
+                            fontWeight: 500,
+                          },
+                          "& input::placeholder": {
+                            fontWeight: 500,
+                            opacity: 0.6,
                           },
                           "& .MuiOutlinedInput-notchedOutline": {
-                            borderColor: "#ccc",
+                            borderColor: "#d0d0d0",
                           },
                           "&:hover .MuiOutlinedInput-notchedOutline": {
                             borderColor: "#999",
@@ -371,13 +391,14 @@ const Register = () => {
                     </Stack>
 
                     {/* Last Name */}
-                    <Stack spacing={1} sx={{ width: "100%" }}>
+                    <Stack spacing={0.5} sx={{ flex: 1 }}>
                       <Typography
-                        variant="h6"
                         sx={{
                           color: "#000",
-                          fontWeight: "bold",
-                          fontSize: "16px",
+                          fontWeight: 500,
+                          fontSize: { xs: "14px", lg: "15px", xl: "16px" },
+                          mb: 0.3,
+                          textAlign: "left",
                         }}
                       >
                         Last Name
@@ -386,20 +407,27 @@ const Register = () => {
                         fullWidth
                         name="lastName"
                         placeholder="Enter last name"
+                        variant="outlined"
                         size="small"
                         value={formData.lastName}
                         onChange={handleInputChange}
                         sx={{
                           "& .MuiInputBase-root": {
-                            borderRadius: "10px",
-                            height: 45,
+                            height: { xs: 40, lg: 44, xl: 48 },
+                            borderRadius: "8px",
+                            fontSize: { xs: "13px", lg: "14px", xl: "15px" },
                           },
                           "& input": {
-                            padding: "15px 8px",
-                            fontSize: "14px",
+                            padding: { xs: "10px 12px", lg: "12px 14px", xl: "14px 16px" },
+                            fontSize: { xs: "13px", lg: "14px", xl: "15px" },
+                            fontWeight: 500,
+                          },
+                          "& input::placeholder": {
+                            fontWeight: 500,
+                            opacity: 0.6,
                           },
                           "& .MuiOutlinedInput-notchedOutline": {
-                            borderColor: "#ccc",
+                            borderColor: "#d0d0d0",
                           },
                           "&:hover .MuiOutlinedInput-notchedOutline": {
                             borderColor: "#999",
@@ -411,13 +439,18 @@ const Register = () => {
                       />
                     </Stack>
                   </Stack>
-                </Stack>
 
-                {/* Email Field */}
-                <Box>
+                  {/* Email Field */}
                   <Typography
-                    variant="h6"
-                    sx={{ color: "#000", fontWeight: "bold", mb: 0.5 }}
+                    sx={{
+                      color: "#000",
+                      fontWeight: 500,
+                      fontSize: { xs: "14px", lg: "15px", xl: "16px" },
+                      mb: 0.3,
+                      mt: 0.5,
+                      textAlign: "left",
+                      width: "100%",
+                    }}
                   >
                     Email
                   </Typography>
@@ -426,23 +459,48 @@ const Register = () => {
                     name="email"
                     placeholder="Email"
                     type="email"
+                    variant="outlined"
                     size="small"
                     value={formData.email}
                     onChange={handleInputChange}
                     sx={{
                       "& .MuiInputBase-root": {
-                        borderRadius: "10px",
-                        height: 45,
+                        height: { xs: 40, lg: 44, xl: 48 },
+                        borderRadius: "8px",
+                        fontSize: { xs: "13px", lg: "14px", xl: "15px" },
+                      },
+                      "& input": {
+                        padding: { xs: "10px 12px", lg: "12px 14px", xl: "14px 16px" },
+                        fontSize: { xs: "13px", lg: "14px", xl: "15px" },
+                        fontWeight: 500,
+                      },
+                      "& input::placeholder": {
+                        fontWeight: 500,
+                        opacity: 0.6,
+                      },
+                      "& .MuiOutlinedInput-notchedOutline": {
+                        borderColor: "#d0d0d0",
+                      },
+                      "&:hover .MuiOutlinedInput-notchedOutline": {
+                        borderColor: "#999",
+                      },
+                      "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+                        borderColor: "#000",
                       },
                     }}
                   />
-                </Box>
 
-                {/* Password Field */}
-                <Box>
+                  {/* Password Field */}
                   <Typography
-                    variant="h6"
-                    sx={{ color: "#000", fontWeight: "bold", mb: 0.5 }}
+                    sx={{
+                      color: "#000",
+                      fontWeight: 500,
+                      fontSize: { xs: "14px", lg: "15px", xl: "16px" },
+                      mb: 0.3,
+                      mt: 0.5,
+                      textAlign: "left",
+                      width: "100%",
+                    }}
                   >
                     Password
                   </Typography>
@@ -451,130 +509,210 @@ const Register = () => {
                     name="password"
                     placeholder="Password"
                     type={showPassword ? "text" : "password"}
+                    variant="outlined"
                     size="small"
                     value={formData.password}
                     onChange={handleInputChange}
+                    sx={{
+                      "& .MuiInputBase-root": {
+                        height: { xs: 40, lg: 44, xl: 48 },
+                        borderRadius: "8px",
+                        fontSize: { xs: "13px", lg: "14px", xl: "15px" },
+                      },
+                      "& input": {
+                        padding: { xs: "10px 12px", lg: "12px 14px", xl: "14px 16px" },
+                        fontSize: { xs: "13px", lg: "14px", xl: "15px" },
+                        fontWeight: 500,
+                      },
+                      "& input::placeholder": {
+                        fontWeight: 500,
+                        opacity: 0.6,
+                      },
+                      "& .MuiOutlinedInput-notchedOutline": {
+                        borderColor: "#d0d0d0",
+                      },
+                      "&:hover .MuiOutlinedInput-notchedOutline": {
+                        borderColor: "#999",
+                      },
+                      "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+                        borderColor: "#000",
+                      },
+                    }}
                     InputProps={{
                       endAdornment: (
                         <InputAdornment position="end">
-                          <IconButton onClick={handleClickShowPassword}>
-                            {showPassword ? <VisibilityOff /> : <Visibility />}
+                          <IconButton
+                            onClick={handleClickShowPassword}
+                            edge="end"
+                            sx={{
+                              color: "#666",
+                              "&:hover": { color: "#000" },
+                              padding: "4px",
+                            }}
+                          >
+                            {showPassword ? (
+                              <VisibilityOff sx={{ fontSize: { xs: 20, lg: 22, xl: 24 } }} />
+                            ) : (
+                              <Visibility sx={{ fontSize: { xs: 20, lg: 22, xl: 24 } }} />
+                            )}
                           </IconButton>
                         </InputAdornment>
                       ),
                     }}
+                  />
+
+                  <Button
+                    variant="contained"
+                    size="medium"
+                    fullWidth
+                    type="submit"
                     sx={{
-                      "& .MuiInputBase-root": {
-                        borderRadius: "10px",
-                        height: 45,
+                      borderRadius: "25px",
+                      height: { xs: 42, lg: 46, xl: 50 },
+                      fontSize: { xs: "14px", lg: "15px", xl: "16px" },
+                      fontWeight: 500,
+                      textTransform: "none",
+                      mt: 1.5,
+                      boxShadow: "none",
+                      "&:hover": {
+                        boxShadow: "none",
+                      },
+                      "&:active": {
+                        boxShadow: "none",
                       },
                     }}
-                  />
-                </Box>
+                    disabled={isLoading}
+                  >
+                    {isLoading ? "Signing up..." : "Sign up"}
+                  </Button>
 
-                <Button
-                  type="submit"
-                  variant="contained"
-                  fullWidth
-                  disabled={isLoading}
-                  sx={{ borderRadius: "30px", py: 1.5 }}
+                  <Button
+                    onClick={handleClickGoogle}
+                    variant="outlined"
+                    size="medium"
+                    fullWidth
+                    startIcon={<Google />}
+                    sx={{
+                      borderRadius: "25px",
+                      height: { xs: 42, lg: 46, xl: 50 },
+                      fontSize: { xs: "14px", lg: "15px", xl: "16px" },
+                      fontWeight: 500,
+                      textTransform: "none",
+                      mt: 1,
+                      boxShadow: "none",
+                      "&:hover": {
+                        boxShadow: "none",
+                      },
+                      "&:active": {
+                        boxShadow: "none",
+                      },
+                    }}
+                  >
+                    Sign up with Google
+                  </Button>
+                </Stack>
+
+                <Typography
+                  textAlign="center"
+                  sx={{
+                    color: "#838485",
+                    mt: 1,
+                    fontSize: { xs: "13px", lg: "14px", xl: "15px" },
+                  }}
                 >
-                  {isLoading ? "Signing up..." : "Sign up"}
-                </Button>
-
-                <Button
-                  onClick={handleClickGoogle}
-                  variant="outlined"
-                  startIcon={<Google />}
-                  fullWidth
-                  sx={{ borderRadius: "30px", py: 1.5 }}
-                >
-                  Sign up with Google
-                </Button>
-
-                <Typography textAlign="center" sx={{ mt: 1, color: "#838485" }}>
                   Already have an account?{" "}
                   <Link
                     component={NextLink}
                     href="/sign-in"
                     underline="hover"
-                    sx={{ color: "#FF3C80", fontWeight: 500 }}
+                    sx={{
+                      color: "secondary.main",
+                      fontWeight: 500,
+                      fontSize: { xs: "13px", lg: "14px", xl: "15px" },
+                    }}
                   >
                     Log in
                   </Link>
                 </Typography>
-              </Stack>
-            </form>
-          ) : (
-            <>
-              <Typography
-                variant="h5"
-                sx={{
-                  color: "#000",
-                  textAlign: "center",
-                  fontFamily: "Poppins, sans-serif",
-                  fontSize: "36px",
-                  fontStyle: "normal",
-                  fontWeight: 500,
-                  lineHeight: "normal",
-                }}
-              >
-                Email Verification
-              </Typography>
-              <Typography
-                sx={{
-                  color: "#000",
-                  fontFamily: "Poppins, sans-serif",
-                  fontSize: "16px",
-                  fontStyle: "normal",
-                  fontWeight: 500,
-                  lineHeight: "normal",
-                  mb: "-10px",
-                  ml: "4px",
-                  alignSelf: "flex-start",
-                }}
-              >
-                Enter code
-              </Typography>
+              </form>
+            ) : (
+              <>
+                <Typography
+                  textAlign="center"
+                  sx={{
+                    fontFamily: "Poppins",
+                    fontWeight: 600,
+                    fontSize: { xs: "28px", lg: "32px", xl: "36px" },
+                    lineHeight: "normal",
+                    mt: 2,
+                  }}
+                >
+                  Email Verification
+                </Typography>
+                <Typography
+                  sx={{
+                    color: "#000",
+                    fontFamily: "Poppins",
+                    fontSize: { xs: "14px", lg: "15px", xl: "16px" },
+                    fontWeight: 500,
+                    lineHeight: "normal",
+                    mb: 1,
+                    mt: 2,
+                    alignSelf: "flex-start",
+                  }}
+                >
+                  Enter code
+                </Typography>
 
-              <Stack direction="row" spacing={1} justifyContent="center" mb={0}>
-                {verificationCode.map((digit, idx) => (
-                  <input
-                    key={idx}
-                    ref={setInputRef(idx)}
-                    type="text"
-                    value={digit}
-                    onChange={(e) => handleCodeChange(idx, e)}
-                    onPaste={handlePaste}
-                    maxLength={1}
-                    style={{
-                      width: "48px",
-                      height: "58px",
-                      fontSize: "20px",
-                      textAlign: "center",
-                      border: "1.5px solid #D0D5DD",
-                      borderRadius: "12px",
-                      outline: "none",
-                      background: "#F9FAFB",
-                      fontWeight: 600,
-                      color: "#344054",
-                    }}
-                  />
-                ))}
-              </Stack>
+                <Stack direction="row" spacing={1} justifyContent="center" mb={2}>
+                  {verificationCode.map((digit, idx) => (
+                    <input
+                      key={idx}
+                      ref={setInputRef(idx)}
+                      type="text"
+                      value={digit}
+                      onChange={(e) => handleCodeChange(idx, e)}
+                      onPaste={handlePaste}
+                      maxLength={1}
+                      style={{
+                        width: "48px",
+                        height: "58px",
+                        fontSize: "20px",
+                        textAlign: "center",
+                        border: "1.5px solid #D0D5DD",
+                        borderRadius: "12px",
+                        outline: "none",
+                        background: "#F9FAFB",
+                        fontWeight: 600,
+                        color: "#344054",
+                      }}
+                    />
+                  ))}
+                </Stack>
 
-              <Button
-                variant="contained"
-                onClick={handleVerify}
-                disabled={isVerifying}
-                fullWidth
-                sx={{ py: 1.5, borderRadius: "30px" }}
-              >
-                {isVerifying ? "Verifying..." : "Verify"}
-              </Button>
-            </>
-          )}
-        </Paper>
+                <Button
+                  variant="contained"
+                  onClick={handleVerify}
+                  disabled={isVerifying}
+                  fullWidth
+                  sx={{
+                    borderRadius: "25px",
+                    height: { xs: 42, lg: 46, xl: 50 },
+                    fontSize: { xs: "14px", lg: "15px", xl: "16px" },
+                    fontWeight: 500,
+                    textTransform: "none",
+                    boxShadow: "none",
+                    "&:hover": {
+                      boxShadow: "none",
+                    },
+                  }}
+                >
+                  {isVerifying ? "Verifying..." : "Verify"}
+                </Button>
+              </>
+            )}
+          </Paper>
+        </Box>
       </Container>
     </Box>
   );
