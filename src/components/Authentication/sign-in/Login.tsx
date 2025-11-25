@@ -345,7 +345,11 @@ const Login = () => {
                       fontSize: { xs: "13px", lg: "14px", xl: "15px" },
                     },
                     "& input": {
-                      padding: { xs: "10px 12px", lg: "12px 14px", xl: "14px 16px" },
+                      padding: {
+                        xs: "10px 12px",
+                        lg: "12px 14px",
+                        xl: "14px 16px",
+                      },
                       fontSize: { xs: "13px", lg: "14px", xl: "15px" },
                       fontWeight: 500,
                     },
@@ -392,7 +396,11 @@ const Login = () => {
                       fontSize: { xs: "13px", lg: "14px", xl: "15px" },
                     },
                     "& input": {
-                      padding: { xs: "10px 12px", lg: "12px 14px", xl: "14px 16px" },
+                      padding: {
+                        xs: "10px 12px",
+                        lg: "12px 14px",
+                        xl: "14px 16px",
+                      },
                       fontSize: { xs: "13px", lg: "14px", xl: "15px" },
                       fontWeight: 500,
                     },
@@ -423,9 +431,13 @@ const Login = () => {
                           }}
                         >
                           {showPassword ? (
-                            <VisibilityOff sx={{ fontSize: { xs: 20, lg: 22, xl: 24 } }} />
+                            <VisibilityOff
+                              sx={{ fontSize: { xs: 20, lg: 22, xl: 24 } }}
+                            />
                           ) : (
-                            <Visibility sx={{ fontSize: { xs: 20, lg: 22, xl: 24 } }} />
+                            <Visibility
+                              sx={{ fontSize: { xs: 20, lg: 22, xl: 24 } }}
+                            />
                           )}
                         </IconButton>
                       </InputAdornment>
@@ -433,7 +445,7 @@ const Login = () => {
                   }}
                 />
 
-                <Box sx={{ mb: 2, width: "100%" }}>
+                <Box sx={{ pb: 1.5 }}>
                   <Link
                     href="/account-recovery"
                     underline="hover"
@@ -449,29 +461,33 @@ const Login = () => {
                     Forgot password?
                   </Link>
                 </Box>
-                <Button
-                  variant="contained"
-                  size="medium"
-                  fullWidth
-                  type="submit"
-                  sx={{
-                    borderRadius: "25px",
-                    height: { xs: 42, lg: 46, xl: 50 },
-                    fontSize: { xs: "14px", lg: "15px", xl: "16px" },
-                    fontWeight: 500,
-                    textTransform: "none",
-                    boxShadow: "none",
-                    "&:hover": {
+
+                <Box>
+                  <Button
+                    variant="contained"
+                    size="medium"
+                    fullWidth
+                    type="submit"
+                    sx={{
+                      borderRadius: "25px",
+                      height: { xs: 42, lg: 46, xl: 50 },
+                      fontSize: { xs: "14px", lg: "15px", xl: "16px" },
+                      fontWeight: 500,
+                      textTransform: "none",
                       boxShadow: "none",
-                    },
-                    "&:active": {
-                      boxShadow: "none",
-                    },
-                  }}
-                  disabled={isLoading}
-                >
-                  {isLoading ? "Logging in..." : "Log in"}
-                </Button>
+                      "&:hover": {
+                        boxShadow: "none",
+                      },
+                      "&:active": {
+                        boxShadow: "none",
+                      },
+                    }}
+                    disabled={isLoading}
+                  >
+                    {isLoading ? "Logging in..." : "Log in"}
+                  </Button>
+                </Box>
+
                 <Button
                   onClick={handleClick}
                   variant="outlined"

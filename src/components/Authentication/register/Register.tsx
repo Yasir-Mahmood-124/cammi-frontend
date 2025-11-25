@@ -272,7 +272,11 @@ const Register = () => {
                     alt="CAMMI Logo"
                     width={90}
                     height={55}
-                    style={{ objectFit: "contain", width: "auto", height: "80%" }}
+                    style={{
+                      objectFit: "contain",
+                      width: "auto",
+                      height: "80%",
+                    }}
                   />
                 </Box>
                 <Box
@@ -369,7 +373,11 @@ const Register = () => {
                             fontSize: { xs: "13px", lg: "14px", xl: "15px" },
                           },
                           "& input": {
-                            padding: { xs: "10px 12px", lg: "12px 14px", xl: "14px 16px" },
+                            padding: {
+                              xs: "10px 12px",
+                              lg: "12px 14px",
+                              xl: "14px 16px",
+                            },
                             fontSize: { xs: "13px", lg: "14px", xl: "15px" },
                             fontWeight: 500,
                           },
@@ -418,7 +426,11 @@ const Register = () => {
                             fontSize: { xs: "13px", lg: "14px", xl: "15px" },
                           },
                           "& input": {
-                            padding: { xs: "10px 12px", lg: "12px 14px", xl: "14px 16px" },
+                            padding: {
+                              xs: "10px 12px",
+                              lg: "12px 14px",
+                              xl: "14px 16px",
+                            },
                             fontSize: { xs: "13px", lg: "14px", xl: "15px" },
                             fontWeight: 500,
                           },
@@ -470,7 +482,11 @@ const Register = () => {
                         fontSize: { xs: "13px", lg: "14px", xl: "15px" },
                       },
                       "& input": {
-                        padding: { xs: "10px 12px", lg: "12px 14px", xl: "14px 16px" },
+                        padding: {
+                          xs: "10px 12px",
+                          lg: "12px 14px",
+                          xl: "14px 16px",
+                        },
                         fontSize: { xs: "13px", lg: "14px", xl: "15px" },
                         fontWeight: 500,
                       },
@@ -520,7 +536,11 @@ const Register = () => {
                         fontSize: { xs: "13px", lg: "14px", xl: "15px" },
                       },
                       "& input": {
-                        padding: { xs: "10px 12px", lg: "12px 14px", xl: "14px 16px" },
+                        padding: {
+                          xs: "10px 12px",
+                          lg: "12px 14px",
+                          xl: "14px 16px",
+                        },
                         fontSize: { xs: "13px", lg: "14px", xl: "15px" },
                         fontWeight: 500,
                       },
@@ -551,9 +571,13 @@ const Register = () => {
                             }}
                           >
                             {showPassword ? (
-                              <VisibilityOff sx={{ fontSize: { xs: 20, lg: 22, xl: 24 } }} />
+                              <VisibilityOff
+                                sx={{ fontSize: { xs: 20, lg: 22, xl: 24 } }}
+                              />
                             ) : (
-                              <Visibility sx={{ fontSize: { xs: 20, lg: 22, xl: 24 } }} />
+                              <Visibility
+                                sx={{ fontSize: { xs: 20, lg: 22, xl: 24 } }}
+                              />
                             )}
                           </IconButton>
                         </InputAdornment>
@@ -561,30 +585,32 @@ const Register = () => {
                     }}
                   />
 
-                  <Button
-                    variant="contained"
-                    size="medium"
-                    fullWidth
-                    type="submit"
-                    sx={{
-                      borderRadius: "25px",
-                      height: { xs: 42, lg: 46, xl: 50 },
-                      fontSize: { xs: "14px", lg: "15px", xl: "16px" },
-                      fontWeight: 500,
-                      textTransform: "none",
-                      mt: 1.5,
-                      boxShadow: "none",
-                      "&:hover": {
+                  <Box sx={{ mt: 1.5 }}>
+                    <Button
+                      variant="contained"
+                      size="medium"
+                      fullWidth
+                      type="submit"
+                      sx={{
+                        borderRadius: "25px",
+                        height: { xs: 42, lg: 46, xl: 50 },
+                        fontSize: { xs: "14px", lg: "15px", xl: "16px" },
+                        fontWeight: 500,
+                        textTransform: "none",
+                        mt: 1.5,
                         boxShadow: "none",
-                      },
-                      "&:active": {
-                        boxShadow: "none",
-                      },
-                    }}
-                    disabled={isLoading}
-                  >
-                    {isLoading ? "Signing up..." : "Sign up"}
-                  </Button>
+                        "&:hover": {
+                          boxShadow: "none",
+                        },
+                        "&:active": {
+                          boxShadow: "none",
+                        },
+                      }}
+                      disabled={isLoading}
+                    >
+                      {isLoading ? "Signing up..." : "Sign up"}
+                    </Button>
+                  </Box>
 
                   <Button
                     onClick={handleClickGoogle}
@@ -664,7 +690,12 @@ const Register = () => {
                   Enter code
                 </Typography>
 
-                <Stack direction="row" spacing={1} justifyContent="center" mb={2}>
+                <Stack
+                  direction="row"
+                  spacing={1}
+                  justifyContent="center"
+                  mb={2}
+                >
                   {verificationCode.map((digit, idx) => (
                     <input
                       key={idx}
