@@ -4,7 +4,6 @@ import React, { useEffect, useState } from "react";
 import Sidebar from "./Sidebar";
 import {
   Box,
-  Container,
   Typography,
   Paper,
   Table,
@@ -292,18 +291,21 @@ const DashboardPage = () => {
             height: "100%",
           }}
         >
-          <Container
-            maxWidth="lg"
+          <Box
             sx={{
               display: "flex",
               flexDirection: "column",
-              alignItems: "center",
+              alignItems: "flex-start",
               gap: 2,
               py: 1,
+              px: 4,
+              width: "100%",
+              maxWidth: "1600px", // Add max width for very large screens
+              mx: "auto", // Center the content
             }}
           >
             {/* Welcome Section */}
-            <Box sx={{ textAlign: "center" }}>
+            <Box sx={{ width: "100%", textAlign: "center" }}>
               <Typography
                 variant="h4"
                 sx={{
@@ -405,6 +407,7 @@ const DashboardPage = () => {
               flexWrap="wrap"
               gap={2}
               justifyContent="flex-start"
+              width="100%"
             >
               {/* My Documents */}
               <Box sx={{ width: "100%" }}>
@@ -480,7 +483,30 @@ const DashboardPage = () => {
                     Error loading documents. Please try again.
                   </Typography>
                 ) : displayedDocuments && displayedDocuments.length > 0 ? (
-                  <Box display="flex" flexWrap="wrap" gap={1.2}>
+                  <Box 
+                    display="flex" 
+                    flexWrap="nowrap" // Changed from wrap to nowrap to keep documents in one line
+                    gap={1.2}
+                    sx={{
+                      overflowX: showAllDocuments ? "auto" : "hidden", // Add horizontal scroll when showing all
+                      overflowY: "hidden",
+                      pb: showAllDocuments ? 1 : 0, // Add padding for scrollbar
+                      "&::-webkit-scrollbar": {
+                        height: "8px",
+                      },
+                      "&::-webkit-scrollbar-track": {
+                        backgroundColor: "#f1f1f1",
+                        borderRadius: "4px",
+                      },
+                      "&::-webkit-scrollbar-thumb": {
+                        backgroundColor: "#888",
+                        borderRadius: "4px",
+                        "&:hover": {
+                          backgroundColor: "#555",
+                        },
+                      },
+                    }}
+                  >
                     {displayedDocuments.map(
                       (doc: DocumentItem, index: number) => {
                         const isLoading = loadingDocumentId === doc.document_id;
@@ -498,6 +524,7 @@ const DashboardPage = () => {
                               cursor: isLoading ? "wait" : "pointer",
                               transition: "transform 0.2s",
                               opacity: isLoading ? 0.7 : 1,
+                              flexShrink: 0, // Prevent cards from shrinking
                               "&:hover": {
                                 transform: isLoading
                                   ? "none"
@@ -662,7 +689,7 @@ const DashboardPage = () => {
                   component={Paper}
                   sx={{
                     borderRadius: "12px",
-                    maxWidth: 900,
+                    width: "100%", // Changed from maxWidth: 900 to width: 100%
                     boxShadow: "none",
                     border: "1px solid #E0E0E0",
                   }}
@@ -760,7 +787,7 @@ const DashboardPage = () => {
                 </TableContainer>
               </Box>
             </Box>
-          </Container>
+          </Box>
         </Box>
       </Box>
 
