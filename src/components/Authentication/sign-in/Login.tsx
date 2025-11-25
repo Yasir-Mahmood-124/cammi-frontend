@@ -357,6 +357,21 @@ const Login = () => {
                       fontWeight: 500,
                       opacity: 0.6,
                     },
+                    // Add these autofill styles
+                    "& input:-webkit-autofill": {
+                      WebkitBoxShadow: "0 0 0 100px #fff inset !important",
+                      WebkitTextFillColor: "#000 !important",
+                      borderRadius: "8px",
+                    },
+                    "& input:-webkit-autofill:hover": {
+                      WebkitBoxShadow: "0 0 0 100px #fff inset !important",
+                    },
+                    "& input:-webkit-autofill:focus": {
+                      WebkitBoxShadow: "0 0 0 100px #fff inset !important",
+                    },
+                    "& input:-webkit-autofill:active": {
+                      WebkitBoxShadow: "0 0 0 100px #fff inset !important",
+                    },
                     "& .MuiOutlinedInput-notchedOutline": {
                       borderColor: "#d0d0d0",
                     },
@@ -407,6 +422,21 @@ const Login = () => {
                     "& input::placeholder": {
                       fontWeight: 500,
                       opacity: 0.6,
+                    },
+                    // Add these autofill styles
+                    "& input:-webkit-autofill": {
+                      WebkitBoxShadow: "0 0 0 100px #fff inset !important",
+                      WebkitTextFillColor: "#000 !important",
+                      borderRadius: "8px",
+                    },
+                    "& input:-webkit-autofill:hover": {
+                      WebkitBoxShadow: "0 0 0 100px #fff inset !important",
+                    },
+                    "& input:-webkit-autofill:focus": {
+                      WebkitBoxShadow: "0 0 0 100px #fff inset !important",
+                    },
+                    "& input:-webkit-autofill:active": {
+                      WebkitBoxShadow: "0 0 0 100px #fff inset !important",
                     },
                     "& .MuiOutlinedInput-notchedOutline": {
                       borderColor: "#d0d0d0",
