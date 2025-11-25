@@ -3,11 +3,13 @@ import React, { useState } from "react";
 import { Box, Container, Paper, Typography, Button, Card } from "@mui/material";
 import Image from "next/image";
 import Logo from "@/assests/images/Logo.png";
+import Background2 from "@/assests/images/Background2.png";
 import { onboardingData } from "../../const/data";
 import Cookies from "js-cookie";
 import toast, { Toaster } from "react-hot-toast";
 import { useSubmitAnswerMutation } from "@/redux/services/onboarding/onboardingApi";
 import { useRouter } from "next/navigation";
+
 const Onboarding = () => {
   const [step, setStep] = useState(0);
   const [selected, setSelected] = useState<number | null>(null);
@@ -50,81 +52,90 @@ const Onboarding = () => {
     <Box
       sx={{
         minHeight: "100vh",
+        height: "100vh",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        p: 5,
-
+        p: 3,
         overflow: "hidden",
-        background: `
-          radial-gradient(circle at 20% 20%, #FFB3D1 0%, rgba(255, 255, 255, 0) 60%),
-          linear-gradient(180deg, #BFDCFE 30.9%, #EBF3FD 100%)
-        `,
+        position: "relative",
+        "&::before": {
+          content: '""',
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundImage: `
+            radial-gradient(circle at 10% 50%, rgba(191, 220, 254, 0.6) 0%, transparent 50%),
+            radial-gradient(circle at 90% 85%, rgba(255, 179, 209, 0.6) 0%, transparent 50%)
+          `,
+          zIndex: 1,
+          pointerEvents: "none",
+        },
+        backgroundImage: `url(${Background2.src})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
       }}
     >
       <Toaster position="top-right" reverseOrder={false} />
 
       <Container
-        // maxWidth={false}
         disableGutters
+        maxWidth="lg"
         sx={{
           display: "flex",
           justifyContent: "center",
+          position: "relative",
+          zIndex: 2,
         }}
       >
         <Paper
           elevation={6}
           sx={{
-            width: "90%",
-            maxWidth: "100%",
-            height: "560px",
+            width: "100%",
+            maxWidth: "950px",
+            minHeight: "auto",
             borderRadius: "20px",
-            // p: 10,
-            gap: 2,
-            mx: "auto",
+            p: 4,
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
             justifyContent: "space-between",
             boxShadow: "0 12px 40px rgba(0,0,0,0.08)",
-            background: `
-              radial-gradient(60.56% 24.66% at 12.44% 32.53%, #E5F1FF 0%, rgba(229, 241, 255, 0) 100%),
-              radial-gradient(123% 84.66% at 92.11% 74.54%, #F8F0F8 0%, rgba(255, 255, 255, 0) 100%),
-              radial-gradient(98.89% 49.35% at 96.78% 1.24%, #EAF3FF 0%, rgba(255, 255, 255, 0) 100%)
-            `,
-            backgroundRepeat: "no-repeat",
-            backgroundSize: "cover",
             backgroundColor: "#FFFFFF",
           }}
         >
           <Image
             src={Logo}
             alt="CAMMI Logo"
-            width={100}
-            height={70}
+            width={90}
+            height={60}
             style={{
               objectFit: "contain",
-              marginBottom: 12,
-              marginTop: "30px",
+              marginBottom: 8,
             }}
           />
 
           <Typography
             align="center"
-            sx={{ fontSize: "26px", fontWeight: 700, marginBottom: 1 }}
+            sx={{
+              fontSize: { xs: "20px", sm: "24px", md: "26px" },
+              fontWeight: 700,
+              mb: 3,
+              mt: 1,
+            }}
           >
             {currentData.question}
           </Typography>
 
-          <Box sx={{ flexGrow: 1, mb: 3, width: "100%" }}>
+          <Box sx={{ width: "100%", mb: 3 }}>
             <Box
               display="grid"
               gridTemplateColumns="repeat(3, 1fr)"
-              rowGap={6}
-              columnGap={0}
-              justifyItems="center"
-              sx={{ py: 0, px: 15 }}
-              height={"220px"}
+              gap={2.5}
+              sx={{ px: { xs: 2, sm: 4, md: 8 } }}
             >
               {currentData.options.map((title, idx) => {
                 const isActive = selected === idx;
@@ -136,8 +147,8 @@ const Onboarding = () => {
                       setSelected((prev) => (prev === idx ? null : idx))
                     }
                     sx={{
-                      width: "85%",
-                      height: 100,
+                      width: "100%",
+                      height: "90px",
                       borderRadius: "12px",
                       display: "flex",
                       alignItems: "center",
@@ -147,38 +158,37 @@ const Onboarding = () => {
                       transition: "all .3s ease",
                       background: "#fff",
                       border: "2px solid #D9D9D9",
+                      px: 1.5,
 
                       "&:hover": {
                         transform: "translateY(-6px)",
                         border: "2px solid transparent",
                         background: `
+        radial-gradient(circle at 0% 50%, rgba(255, 60, 128, 0.15) 0%, transparent 50%),
+        radial-gradient(circle at 100% 50%, rgba(62, 162, 255, 0.15) 0%, transparent 50%),
         linear-gradient(#fff, #fff) padding-box,
-        linear-gradient(to right, #FF3C80, #3EA2FF) border-box
+        linear-gradient(90deg, #FF3C80 0%, #3EA2FF 100%) border-box
       `,
                         borderRadius: "12px",
-                        boxShadow: `
-        inset 25px 0 50px -20px rgba(255, 60, 128, 0.4),  /* pink glow left */
-        inset -25px 0 50px -20px rgba(62, 162, 255, 0.4)  /* blue glow right */
-      `,
+                        boxShadow: "0 4px 15px rgba(0, 0, 0, 0.1)",
                       },
 
                       ...(isActive && {
                         transform: "translateY(-6px)",
                         border: "2px solid transparent",
                         background: `
+        radial-gradient(circle at 0% 50%, rgba(255, 60, 128, 0.2) 0%, transparent 50%),
+        radial-gradient(circle at 100% 50%, rgba(62, 162, 255, 0.2) 0%, transparent 50%),
         linear-gradient(#fff, #fff) padding-box,
-        linear-gradient(to right, #FF3C80, #3EA2FF) border-box
+        linear-gradient(90deg, #FF3C80 0%, #3EA2FF 100%) border-box
       `,
                         borderRadius: "12px",
-                        boxShadow: `
-        inset 30px 0 60px -18px rgba(255, 60, 128, 0.5),
-        inset -30px 0 60px -18px rgba(62, 162, 255, 0.5)
-      `,
+                        boxShadow: "0 6px 20px rgba(0, 0, 0, 0.12)",
                       }),
                     }}
                     elevation={0}
                   >
-                    <Typography sx={{ fontWeight: 500, fontSize: 14 }}>
+                    <Typography sx={{ fontWeight: 500, fontSize: { xs: 12, sm: 13, md: 14 } }}>
                       {title}
                     </Typography>
                   </Card>
@@ -194,10 +204,12 @@ const Onboarding = () => {
             onClick={handleNext}
             sx={{
               borderRadius: "999px",
-              px: 20,
-              fontSize: "1.1rem",
+              px: { xs: 8, sm: 12, md: 18 },
+              py: 1.2,
+              fontSize: { xs: "0.95rem", sm: "1rem", md: "1.1rem" },
               fontWeight: "bold",
-              // marginBottom: "20px",
+              mb: 2,
+              minWidth: "200px",
             }}
           >
             {step < onboardingData.length - 1 ? "Next" : "Finish"}
@@ -209,24 +221,23 @@ const Onboarding = () => {
               flexDirection: "column",
               alignItems: "center",
               gap: 1,
-              mb: 2,
             }}
           >
-            <Typography sx={{ fontSize: 14, fontWeight: 500 }}>
+            <Typography sx={{ fontSize: 13, fontWeight: 500 }}>
               {step + 1} out of {onboardingData.length}
             </Typography>
 
-            <Box sx={{ display: "flex", gap: 1 }}>
+            <Box sx={{ display: "flex", gap: 0.8 }}>
               {onboardingData.map((_, idx) => (
                 <Box
                   key={idx}
                   sx={{
-                    width: idx === step ? 28 : 20,
-                    height: 4,
+                    width: idx === step ? 24 : 18,
+                    height: 3.5,
                     borderRadius: 2,
                     background:
                       idx === step
-                        ? "linear-gradient(to right, #F34288)"
+                        ? "linear-gradient(to right, #F34288, #FF3C80)"
                         : "#D9D9D9",
                     transition: "all 0.3s ease",
                   }}
@@ -239,4 +250,5 @@ const Onboarding = () => {
     </Box>
   );
 };
+
 export default Onboarding;

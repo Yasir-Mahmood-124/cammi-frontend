@@ -203,20 +203,6 @@ const Login = () => {
           opacity: 0.2,
           zIndex: -2,
         },
-
-        "&::after": {
-          content: '""',
-          position: "absolute",
-          inset: 0,
-          backgroundImage: "url('/Background/bg-2.png')",
-          backgroundRepeat: "no-repeat",
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          opacity: 0.15,
-          mixBlendMode: "overlay",
-          pointerEvents: "none",
-          zIndex: -1,
-        },
       }}
     >
       <Container
@@ -229,6 +215,7 @@ const Login = () => {
           alignItems: "center",
           justifyContent: "center",
           zIndex: 1,
+          py: 2,
         }}
       >
         <Box
@@ -241,16 +228,17 @@ const Login = () => {
           <Paper
             elevation={0}
             sx={{
-              width: 400,
-              borderRadius: 4,
-              px: 4,
-              py: 4,
+              width: { xs: "90%", sm: 340, md: 340, lg: 380, xl: 420 },
+              maxWidth: { xs: "90%", sm: 340, md: 340, lg: 380, xl: 420 },
+              borderRadius: 3,
+              px: { xs: 2.5, lg: 3, xl: 3.5 },
+              py: { xs: 2.5, lg: 3, xl: 3.5 },
               backgroundColor: "#fff",
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
-              gap: 1,
-              boxShadow: "0px 8px 15px 2px #00000026",
+              gap: 0.5,
+              boxShadow: "0px 4px 12px rgba(0, 0, 0, 0.1)",
             }}
           >
             <Box
@@ -259,15 +247,16 @@ const Login = () => {
                 justifyContent: "center",
                 alignItems: "center",
                 width: "100%",
-                height: 80,
+                height: { xs: 60, lg: 70, xl: 80 },
+                mb: 0.5,
               }}
             >
               <Image
                 src={Logo}
                 alt="CAMMI Logo"
-                width={110}
-                height={70}
-                style={{ objectFit: "contain" }}
+                width={90}
+                height={55}
+                style={{ objectFit: "contain", width: "auto", height: "80%" }}
               />
             </Box>
             <Box
@@ -276,13 +265,13 @@ const Login = () => {
               alignItems="center"
               justifyContent="center"
               width="100%"
-              sx={{ my: 0 }}
+              sx={{ my: 0.5 }}
             >
               <Box
                 sx={{
                   position: "absolute",
                   width: "60%",
-                  height: "2px",
+                  height: "1.5px",
                   bgcolor: "#e0e0e0",
                   display: "flex",
                   alignItems: "center",
@@ -292,47 +281,53 @@ const Login = () => {
               >
                 <Box
                   sx={{
-                    width: 4,
-                    height: 4,
+                    width: 3,
+                    height: 3,
                     bgcolor: "#e0e0e0",
                     borderRadius: "50%",
-                    ml: -3,
+                    ml: -2.5,
                   }}
                 />
                 <Box
                   sx={{
-                    width: 4,
-                    height: 4,
+                    width: 3,
+                    height: 3,
                     bgcolor: "#e0e0e0",
                     borderRadius: "50%",
-                    mr: -3,
+                    mr: -2.5,
                   }}
                 />
               </Box>
             </Box>
-            <form onSubmit={handleSubmit}>
+            <form onSubmit={handleSubmit} style={{ width: "100%" }}>
               <Typography
                 textAlign="center"
                 sx={{
                   fontFamily: "Poppins",
                   fontWeight: 600,
                   fontStyle: "normal",
-                  fontSize: "30px",
+                  fontSize: { xs: "24px", lg: "26px", xl: "28px" },
                   lineHeight: "100%",
                   letterSpacing: "0%",
                   opacity: 1,
-                  mt: 0,
-                  mb: 2,
-                  width: "300px",
+                  mt: 0.5,
+                  mb: 1.5,
+                  width: "100%",
                 }}
               >
                 Log in
               </Typography>
 
-              <Stack spacing={1}>
+              <Stack spacing={0.8} sx={{ width: "100%" }}>
                 <Typography
-                  variant="h6"
-                  sx={{ color: "#000", fontWeight: "bold" }}
+                  sx={{
+                    color: "#000",
+                    fontWeight: 500,
+                    fontSize: { xs: "14px", lg: "15px", xl: "16px" },
+                    mb: 0.3,
+                    textAlign: "left",
+                    width: "100%",
+                  }}
                 >
                   Email Address
                 </Typography>
@@ -345,15 +340,21 @@ const Login = () => {
                   onChange={(e) => setEmail(e.target.value)}
                   sx={{
                     "& .MuiInputBase-root": {
-                      height: 45,
-                      borderRadius: "10px",
+                      height: { xs: 40, lg: 44, xl: 48 },
+                      borderRadius: "8px",
+                      fontSize: { xs: "13px", lg: "14px", xl: "15px" },
                     },
                     "& input": {
-                      padding: "15px 8px",
-                      fontSize: "14px",
+                      padding: { xs: "10px 12px", lg: "12px 14px", xl: "14px 16px" },
+                      fontSize: { xs: "13px", lg: "14px", xl: "15px" },
+                      fontWeight: 500,
+                    },
+                    "& input::placeholder": {
+                      fontWeight: 500,
+                      opacity: 0.6,
                     },
                     "& .MuiOutlinedInput-notchedOutline": {
-                      borderColor: "#ccc",
+                      borderColor: "#d0d0d0",
                     },
                     "&:hover .MuiOutlinedInput-notchedOutline": {
                       borderColor: "#999",
@@ -364,8 +365,15 @@ const Login = () => {
                   }}
                 />
                 <Typography
-                  variant="h6"
-                  sx={{ color: "#000", fontWeight: "bold" }}
+                  sx={{
+                    color: "#000",
+                    fontWeight: 500,
+                    fontSize: { xs: "14px", lg: "15px", xl: "16px" },
+                    mb: 0.3,
+                    mt: 0.5,
+                    textAlign: "left",
+                    width: "100%",
+                  }}
                 >
                   Password
                 </Typography>
@@ -379,15 +387,21 @@ const Login = () => {
                   onChange={(e) => setPassword(e.target.value)}
                   sx={{
                     "& .MuiInputBase-root": {
-                      height: 45,
-                      borderRadius: "10px",
+                      height: { xs: 40, lg: 44, xl: 48 },
+                      borderRadius: "8px",
+                      fontSize: { xs: "13px", lg: "14px", xl: "15px" },
                     },
                     "& input": {
-                      padding: "15px 8px",
-                      fontSize: "14px",
+                      padding: { xs: "10px 12px", lg: "12px 14px", xl: "14px 16px" },
+                      fontSize: { xs: "13px", lg: "14px", xl: "15px" },
+                      fontWeight: 500,
+                    },
+                    "& input::placeholder": {
+                      fontWeight: 500,
+                      opacity: 0.6,
                     },
                     "& .MuiOutlinedInput-notchedOutline": {
-                      borderColor: "#ccc",
+                      borderColor: "#d0d0d0",
                     },
                     "&:hover .MuiOutlinedInput-notchedOutline": {
                       borderColor: "#999",
@@ -405,32 +419,55 @@ const Login = () => {
                           sx={{
                             color: "#666",
                             "&:hover": { color: "#000" },
+                            padding: "4px",
                           }}
                         >
-                          {showPassword ? <VisibilityOff /> : <Visibility />}
+                          {showPassword ? (
+                            <VisibilityOff sx={{ fontSize: { xs: 20, lg: 22, xl: 24 } }} />
+                          ) : (
+                            <Visibility sx={{ fontSize: { xs: 20, lg: 22, xl: 24 } }} />
+                          )}
                         </IconButton>
                       </InputAdornment>
                     ),
                   }}
                 />
 
-                <Link
-                  href="/account-recovery"
-                  underline="hover"
-                  sx={{
-                    alignSelf: "flex-end",
-                    fontSize: "0.9rem",
-                    color: "primary.main",
-                  }}
-                >
-                  Forgot password?
-                </Link>
+                <Box sx={{ mb: 2, width: "100%" }}>
+                  <Link
+                    href="/account-recovery"
+                    underline="hover"
+                    sx={{
+                      alignSelf: "flex-end",
+                      fontSize: { xs: "12px", lg: "13px", xl: "14px" },
+                      color: "primary.main",
+                      display: "block",
+                      textAlign: "right",
+                      mt: 0.5,
+                    }}
+                  >
+                    Forgot password?
+                  </Link>
+                </Box>
                 <Button
                   variant="contained"
-                  size="large"
+                  size="medium"
                   fullWidth
                   type="submit"
-                  sx={{ mt: 1, borderRadius: "30px" }}
+                  sx={{
+                    borderRadius: "25px",
+                    height: { xs: 42, lg: 46, xl: 50 },
+                    fontSize: { xs: "14px", lg: "15px", xl: "16px" },
+                    fontWeight: 500,
+                    textTransform: "none",
+                    boxShadow: "none",
+                    "&:hover": {
+                      boxShadow: "none",
+                    },
+                    "&:active": {
+                      boxShadow: "none",
+                    },
+                  }}
                   disabled={isLoading}
                 >
                   {isLoading ? "Logging in..." : "Log in"}
@@ -438,26 +475,47 @@ const Login = () => {
                 <Button
                   onClick={handleClick}
                   variant="outlined"
-                  size="large"
+                  size="medium"
                   fullWidth
                   startIcon={<Google />}
-                  sx={{ borderRadius: "30px" }}
+                  sx={{
+                    borderRadius: "25px",
+                    height: { xs: 42, lg: 46, xl: 50 },
+                    fontSize: { xs: "14px", lg: "15px", xl: "16px" },
+                    fontWeight: 500,
+                    textTransform: "none",
+                    mt: 1,
+                    boxShadow: "none",
+                    "&:hover": {
+                      boxShadow: "none",
+                    },
+                    "&:active": {
+                      boxShadow: "none",
+                    },
+                  }}
                 >
                   Sign in with Google
                 </Button>
               </Stack>
             </form>
             <Typography
-              variant="h5"
               textAlign="center"
-              sx={{ color: "#838485", mt: "10px" }}
+              sx={{
+                color: "#838485",
+                mt: 1,
+                fontSize: { xs: "13px", lg: "14px", xl: "15px" },
+              }}
             >
               New to CAMMI?{" "}
               <Link
                 component={NextLink}
                 href="/register"
                 underline="hover"
-                sx={{ color: "secondary.main", fontWeight: 500 }}
+                sx={{
+                  color: "secondary.main",
+                  fontWeight: 500,
+                  fontSize: { xs: "13px", lg: "14px", xl: "15px" },
+                }}
               >
                 Sign up for free
               </Link>
