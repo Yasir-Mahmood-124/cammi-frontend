@@ -527,7 +527,7 @@ const Login = () => {
                     type="submit"
                     sx={{
                       borderRadius: "25px",
-                      height: { xs: 42, lg: 46, xl: 50 },
+                      height: { xs: 36, lg: 42, xl: 48 },
                       fontSize: { xs: "14px", lg: "15px", xl: "16px" },
                       fontWeight: 500,
                       textTransform: "none",
@@ -554,7 +554,7 @@ const Login = () => {
                   startIcon={<Google />}
                   sx={{
                     borderRadius: "25px",
-                    height: { xs: 42, lg: 46, xl: 50 },
+                    height: { xs: 32, lg: 42, xl: 48 },
                     fontSize: { xs: "14px", lg: "15px", xl: "16px" },
                     fontWeight: 500,
                     textTransform: "none",
