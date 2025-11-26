@@ -28,6 +28,7 @@ import { validatePassword } from "@/utils/validators";
 import { useLazyGoogleLoginQuery } from "@/redux/services/auth/googleApi";
 import NextLink from "next/link";
 import Cookies from "js-cookie";
+import AuthBackground from "@/assests/images/AuthBackground.png";
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -206,16 +207,15 @@ const Register = () => {
         overflow: "hidden",
         backgroundColor: "#EFF1F5",
         zIndex: 0,
+
         "&::before": {
           content: '""',
           position: "absolute",
           inset: 0,
-          backgroundImage: "url('/Background/Background.png')",
+          backgroundImage: `url(${AuthBackground.src})`,
           backgroundRepeat: "no-repeat",
           backgroundSize: "cover",
           backgroundPosition: "center",
-          opacity: 0.2,
-          zIndex: -2,
         },
       }}
     >
@@ -249,12 +249,8 @@ const Register = () => {
                 ? { xs: "90%", sm: 340, md: 340, lg: 380, xl: 420 }
                 : 450,
               borderRadius: "30px",
-              px: !showVerification
-                ? { xs: 2.5, lg: 3, xl: 3.5 }
-                : 5,
-              py: !showVerification
-                ? { xs: 2.5, lg: 3, xl: 3.5 }
-                : 5,
+              px: !showVerification ? { xs: 2.5, lg: 3, xl: 3.5 } : 5,
+              py: !showVerification ? { xs: 2.5, lg: 3, xl: 3.5 } : 5,
               backgroundColor: "#fff",
               display: "flex",
               flexDirection: "column",
@@ -759,12 +755,12 @@ const Register = () => {
                     textAlign: "center",
                     fontFamily: "Poppins, sans-serif",
                     fontSize: {
-                        xs: "16px", // 0-600px
-                        sm: "20px", // 600-900px
-                        md: "24px", // 900-1200px
-                        lg: "30px", // 1200-1536px
-                        xl: "36px", // 1536px+
-                      },
+                      xs: "16px", // 0-600px
+                      sm: "20px", // 600-900px
+                      md: "24px", // 900-1200px
+                      lg: "30px", // 1200-1536px
+                      xl: "36px", // 1536px+
+                    },
                     fontStyle: "normal",
                     fontWeight: 500,
                     lineHeight: "normal",
@@ -778,12 +774,12 @@ const Register = () => {
                     color: "#000",
                     fontFamily: "Poppins, sans-serif",
                     fontSize: {
-                        xs: "08px", // 0-600px
-                        sm: "10px", // 600-900px
-                        md: "12px", // 900-1200px
-                        lg: "14px", // 1200-1536px
-                        xl: "16px", // 1536px+
-                      },
+                      xs: "08px", // 0-600px
+                      sm: "10px", // 600-900px
+                      md: "12px", // 900-1200px
+                      lg: "14px", // 1200-1536px
+                      xl: "16px", // 1536px+
+                    },
                     fontStyle: "normal",
                     fontWeight: 500,
                     lineHeight: "normal",

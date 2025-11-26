@@ -18,6 +18,7 @@ import {
 } from "@/redux/services/auth/authApi";
 import { Visibility, VisibilityOff } from "@mui/icons-material";
 import { useRouter } from "next/navigation";
+import AuthBackground from "@/assests/images/AuthBackground.png";
 
 const AccountRecovery = () => {
   const [step, setStep] = useState<"emailEntry" | "recovery" | "resetPassword">(
@@ -142,39 +143,23 @@ const AccountRecovery = () => {
 
   return (
     <Box
-      sx={{
+            sx={{
         position: "relative",
         minHeight: "100vh",
         display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
         overflow: "hidden",
         backgroundColor: "#EFF1F5",
         zIndex: 0,
+
         "&::before": {
           content: '""',
           position: "absolute",
           inset: 0,
-          backgroundImage: "url('/Background/Background.png')",
+          backgroundImage: `url(${AuthBackground.src})`,
           backgroundRepeat: "no-repeat",
           backgroundSize: "cover",
           backgroundPosition: "center",
-          opacity: 0.2,
-          zIndex: -2,
         },
-        // "&::after": {
-        //   content: '""',
-        //   position: "absolute",
-        //   inset: 0,
-        //   backgroundImage: "url('/Background/bg-2.png')",
-        //   backgroundRepeat: "no-repeat",
-        //   backgroundSize: "cover",
-        //   backgroundPosition: "center",
-        //   opacity: 0.15,
-        //   mixBlendMode: "overlay",
-        //   pointerEvents: "none",
-        //   zIndex: -1,
-        // },
       }}
     >
       <Container
