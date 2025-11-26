@@ -342,91 +342,91 @@ const LinkedInPostForm: React.FC<LinkedInPostProps> = ({ sub }) => {
     }
   };
 
-const handleImageGenerate = async () => {
-  try {
-    const token = Cookies.get("token");
+  const handleImageGenerate = async () => {
+    try {
+      const token = Cookies.get("token");
 
-    if (!token) {
-      toast.error("Session expired. Please log in again.");
-      return;
-    }
+      if (!token) {
+        toast.error("Session expired. Please log in again.");
+        return;
+      }
 
-    // Validate inputs
-    if (!imagePrompt.trim() && imageGenUploads.length === 0) {
-      toast.error("Please provide a prompt or upload reference images.");
-      return;
-    }
+      // Validate inputs
+      if (!imagePrompt.trim() && imageGenUploads.length === 0) {
+        toast.error("Please provide a prompt or upload reference images.");
+        return;
+      }
 
-    const requestPayload: any = {
-      session_id: token,
-    };
-
-    if (imagePrompt.trim()) {
-      requestPayload.prompt = imagePrompt;
-    }
-
-    if (imageGenUploads.length > 0) {
-      requestPayload.images = imageGenUploads.map((img) => ({
-        mime_type: img.mime_type,
-        data: img.data,
-      }));
-    }
-
-    // Show loading toast with timeout warning
-    const loadingToast = toast.loading(
-      "Generating image... This may take up to 30 seconds."
-    );
-
-    const response = await generateImage(requestPayload).unwrap();
-
-    toast.dismiss(loadingToast);
-
-    if (response?.image_base64) {
-      toast.success("Image generated successfully!");
-
-      const cleanBase64 = response.image_base64.replace(
-        /^data:application\/octet-stream;base64,/,
-        ""
-      );
-
-      const newImage: ImageFile = {
-        file: new File([], "generated.png"),
-        preview: `data:image/png;base64,${cleanBase64}`,
-        base64: cleanBase64,
-        id: generateId(),
+      const requestPayload: any = {
+        session_id: token,
       };
 
-      setSelectedImages((prev) => [...prev, newImage]);
-      setImagePrompt("");
-      clearImageGenUploads();
-      setActiveTab(0);
+      if (imagePrompt.trim()) {
+        requestPayload.prompt = imagePrompt;
+      }
+
+      if (imageGenUploads.length > 0) {
+        requestPayload.images = imageGenUploads.map((img) => ({
+          mime_type: img.mime_type,
+          data: img.data,
+        }));
+      }
+
+      // Show loading toast with timeout warning
+      const loadingToast = toast.loading(
+        "Generating image... This may take up to 30 seconds."
+      );
+
+      const response = await generateImage(requestPayload).unwrap();
+
+      toast.dismiss(loadingToast);
+
+      if (response?.image_base64) {
+        toast.success("Image generated successfully!");
+
+        const cleanBase64 = response.image_base64.replace(
+          /^data:application\/octet-stream;base64,/,
+          ""
+        );
+
+        const newImage: ImageFile = {
+          file: new File([], "generated.png"),
+          preview: `data:image/png;base64,${cleanBase64}`,
+          base64: cleanBase64,
+          id: generateId(),
+        };
+
+        setSelectedImages((prev) => [...prev, newImage]);
+        setImagePrompt("");
+        clearImageGenUploads();
+        setActiveTab(0);
+      }
+    } catch (err: any) {
+      console.error("Image generation error:", err);
+
+      // Handle specific error cases
+      let errorMessage = "Failed to generate image. Please try again.";
+
+      if (err?.status === 502 || err?.status === 503 || err?.status === 504) {
+        errorMessage =
+          "Server is temporarily busy. Please try again in a moment.";
+      } else if (err?.status === 404) {
+        errorMessage =
+          "Image generation service unavailable. Please contact support.";
+      } else if (err?.status === 429) {
+        errorMessage =
+          "Too many requests. Please wait a moment before trying again.";
+      } else if (err?.status === "FETCH_ERROR") {
+        errorMessage = "Network error. Please check your internet connection.";
+      } else if (err?.data?.message) {
+        errorMessage = err.data.message;
+      } else if (err?.message) {
+        errorMessage = err.message;
+      }
+
+      toast.error(errorMessage);
     }
-  } catch (err: any) {
-    console.error("Image generation error:", err);
-
-    // Handle specific error cases
-    let errorMessage = "Failed to generate image. Please try again.";
-
-    if (err?.status === 502 || err?.status === 503 || err?.status === 504) {
-      errorMessage =
-        "Server is temporarily busy. Please try again in a moment.";
-    } else if (err?.status === 404) {
-      errorMessage =
-        "Image generation service unavailable. Please contact support.";
-    } else if (err?.status === 429) {
-      errorMessage =
-        "Too many requests. Please wait a moment before trying again.";
-    } else if (err?.status === "FETCH_ERROR") {
-      errorMessage = "Network error. Please check your internet connection.";
-    } else if (err?.data?.message) {
-      errorMessage = err.data.message;
-    } else if (err?.message) {
-      errorMessage = err.message;
-    }
-
-    toast.error(errorMessage);
-  }
-};
+  };
 
   const handleScheduleClick = (event: React.MouseEvent<HTMLElement>) =>
     setAnchorEl(event.currentTarget);
@@ -575,14 +575,42 @@ const handleImageGenerate = async () => {
                     "& .MuiInputBase-input": {
                       fontSize: "13px",
                       color: "#333",
-                      overflow: "hidden !important",
+                      overflow: "auto !important", // Changed from "hidden" to "auto"
+                      "&::-webkit-scrollbar": {
+                        width: "6px",
+                      },
+                      "&::-webkit-scrollbar-track": {
+                        background: "#f1f1f1",
+                        borderRadius: "10px",
+                      },
+                      "&::-webkit-scrollbar-thumb": {
+                        background: "#888",
+                        borderRadius: "10px",
+                      },
+                      "&::-webkit-scrollbar-thumb:hover": {
+                        background: "#555",
+                      },
                     },
                     "& .MuiInputBase-input::placeholder": {
                       color: "#999",
                       opacity: 1,
                     },
                     "& textarea": {
-                      overflow: "hidden !important",
+                      overflow: "auto !important", // Changed from "hidden" to "auto"
+                      "&::-webkit-scrollbar": {
+                        width: "6px",
+                      },
+                      "&::-webkit-scrollbar-track": {
+                        background: "#f1f1f1",
+                        borderRadius: "10px",
+                      },
+                      "&::-webkit-scrollbar-thumb": {
+                        background: "#888",
+                        borderRadius: "10px",
+                      },
+                      "&::-webkit-scrollbar-thumb:hover": {
+                        background: "#555",
+                      },
                     },
                   }}
                 />
@@ -789,7 +817,9 @@ const handleImageGenerate = async () => {
                   </Box>
 
                   {/* Generate Button - Centered */}
-                  <Box sx={{ display: "flex", justifyContent: "center", mt: 1.5 }}>
+                  <Box
+                    sx={{ display: "flex", justifyContent: "center", mt: 1.5 }}
+                  >
                     <Button
                       variant="contained"
                       onClick={handleImageGenerate}
@@ -835,7 +865,8 @@ const handleImageGenerate = async () => {
           </Box>
 
           {/* Right Side - Image Preview (Visible on BOTH tabs when images present) */}
-          {(selectedImages.length > 0 || (activeTab === 1 && imageGenUploads.length > 0)) && (
+          {(selectedImages.length > 0 ||
+            (activeTab === 1 && imageGenUploads.length > 0)) && (
             <Box
               sx={{
                 width: 200,
@@ -956,7 +987,9 @@ const handleImageGenerate = async () => {
               {/* Clear All Button */}
               <Button
                 fullWidth
-                onClick={activeTab === 0 ? clearAllImages : clearImageGenUploads}
+                onClick={
+                  activeTab === 0 ? clearAllImages : clearImageGenUploads
+                }
                 startIcon={<Close sx={{ fontSize: 12 }} />}
                 sx={{
                   background: "#FFFFFF",
