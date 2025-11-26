@@ -28,6 +28,7 @@ import { validatePassword } from "@/utils/validators";
 import { useLazyGoogleLoginQuery } from "@/redux/services/auth/googleApi";
 import NextLink from "next/link";
 import Cookies from "js-cookie";
+import AuthBackground from "@/assests/images/AuthBackground.png";
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -144,7 +145,7 @@ const Register = () => {
 
   const handleCodeChange = (
     index: number,
-    e: React.ChangeEvent<HTMLInputElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const value = e.target.value;
     if (!/^\d?$/.test(value)) return;
@@ -206,16 +207,15 @@ const Register = () => {
         overflow: "hidden",
         backgroundColor: "#EFF1F5",
         zIndex: 0,
+
         "&::before": {
           content: '""',
           position: "absolute",
           inset: 0,
-          backgroundImage: "url('/Background/Background.png')",
+          backgroundImage: `url(${AuthBackground.src})`,
           backgroundRepeat: "no-repeat",
           backgroundSize: "cover",
           backgroundPosition: "center",
-          opacity: 0.2,
-          zIndex: -2,
         },
       }}
     >
@@ -242,17 +242,23 @@ const Register = () => {
           <Paper
             elevation={0}
             sx={{
-              width: { xs: "90%", sm: 340, md: 340, lg: 380, xl: 420 },
-              maxWidth: { xs: "90%", sm: 340, md: 340, lg: 380, xl: 420 },
-              borderRadius: 3,
-              px: { xs: 2.5, lg: 3, xl: 3.5 },
-              py: { xs: 2.5, lg: 3, xl: 3.5 },
+              width: !showVerification
+                ? { xs: "90%", sm: 340, md: 340, lg: 380, xl: 420 }
+                : 450,
+              maxWidth: !showVerification
+                ? { xs: "90%", sm: 340, md: 340, lg: 380, xl: 420 }
+                : 450,
+              borderRadius: "30px",
+              px: !showVerification ? { xs: 2.5, lg: 3, xl: 3.5 } : 5,
+              py: !showVerification ? { xs: 2.5, lg: 3, xl: 3.5 } : 5,
               backgroundColor: "#fff",
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
               gap: 0.5,
-              boxShadow: "0px 4px 12px rgba(0, 0, 0, 0.1)",
+              boxShadow: !showVerification
+                ? "0px 4px 12px rgba(0, 0, 0, 0.1)"
+                : "0 8px 15px rgba(0, 0, 0, 0.15)",
             }}
           >
             {!showVerification && (
@@ -275,7 +281,8 @@ const Register = () => {
                     style={{
                       objectFit: "contain",
                       width: "auto",
-                      height: "80%",
+                      height: "100%",
+                      marginBottom: "-2px",
                     }}
                   />
                 </Box>
@@ -285,7 +292,7 @@ const Register = () => {
                   alignItems="center"
                   justifyContent="center"
                   width="100%"
-                  sx={{ my: 0.5 }}
+                  sx={{ my: 0.5, marginBottom: "-2px" }}
                 >
                   <Box
                     sx={{
@@ -342,9 +349,16 @@ const Register = () => {
                   Sign up
                 </Typography>
 
-                <Stack spacing={0.8} sx={{ width: "100%" }}>
+                <Stack
+                  spacing={0.8}
+                  sx={{ width: "100%", maxWidth: "90%", marginLeft: "15px" }}
+                >
                   {/* First Name and Last Name Row */}
-                  <Stack direction="row" spacing={1.5}>
+                  <Stack
+                    direction="row"
+                    spacing={1.5}
+                    sx={{ paddingTop: "12px" }}
+                  >
                     {/* First Name */}
                     <Stack spacing={0.5} sx={{ flex: 1 }}>
                       <Typography
@@ -368,22 +382,41 @@ const Register = () => {
                         onChange={handleInputChange}
                         sx={{
                           "& .MuiInputBase-root": {
-                            height: { xs: 40, lg: 44, xl: 48 },
+                            height: { xs: 32, lg: 34, xl: 36 },
                             borderRadius: "8px",
                             fontSize: { xs: "13px", lg: "14px", xl: "15px" },
                           },
                           "& input": {
                             padding: {
-                              xs: "10px 12px",
-                              lg: "12px 14px",
-                              xl: "14px 16px",
+                              xs: "6px 12px",
+                              lg: "7px 14px",
+                              xl: "8px 16px",
                             },
                             fontSize: { xs: "13px", lg: "14px", xl: "15px" },
                             fontWeight: 500,
                           },
                           "& input::placeholder": {
-                            fontWeight: 500,
                             opacity: 0.6,
+                            fontSize: { xs: "11px", lg: "12px", xl: "12px" },
+                            fontWeight: 400,
+                          },
+                          "& input:-webkit-autofill": {
+                            WebkitBoxShadow:
+                              "0 0 0 100px #fff inset !important",
+                            WebkitTextFillColor: "#000 !important",
+                            borderRadius: "8px",
+                          },
+                          "& input:-webkit-autofill:hover": {
+                            WebkitBoxShadow:
+                              "0 0 0 100px #fff inset !important",
+                          },
+                          "& input:-webkit-autofill:focus": {
+                            WebkitBoxShadow:
+                              "0 0 0 100px #fff inset !important",
+                          },
+                          "& input:-webkit-autofill:active": {
+                            WebkitBoxShadow:
+                              "0 0 0 100px #fff inset !important",
                           },
                           "& .MuiOutlinedInput-notchedOutline": {
                             borderColor: "#d0d0d0",
@@ -421,22 +454,41 @@ const Register = () => {
                         onChange={handleInputChange}
                         sx={{
                           "& .MuiInputBase-root": {
-                            height: { xs: 40, lg: 44, xl: 48 },
+                            height: { xs: 32, lg: 34, xl: 36 },
                             borderRadius: "8px",
                             fontSize: { xs: "13px", lg: "14px", xl: "15px" },
                           },
                           "& input": {
                             padding: {
-                              xs: "10px 12px",
-                              lg: "12px 14px",
-                              xl: "14px 16px",
+                              xs: "6px 12px",
+                              lg: "7px 14px",
+                              xl: "8px 16px",
                             },
                             fontSize: { xs: "13px", lg: "14px", xl: "15px" },
                             fontWeight: 500,
                           },
                           "& input::placeholder": {
-                            fontWeight: 500,
                             opacity: 0.6,
+                            fontSize: { xs: "11px", lg: "12px", xl: "12px" },
+                            fontWeight: 400,
+                          },
+                          "& input:-webkit-autofill": {
+                            WebkitBoxShadow:
+                              "0 0 0 100px #fff inset !important",
+                            WebkitTextFillColor: "#000 !important",
+                            borderRadius: "8px",
+                          },
+                          "& input:-webkit-autofill:hover": {
+                            WebkitBoxShadow:
+                              "0 0 0 100px #fff inset !important",
+                          },
+                          "& input:-webkit-autofill:focus": {
+                            WebkitBoxShadow:
+                              "0 0 0 100px #fff inset !important",
+                          },
+                          "& input:-webkit-autofill:active": {
+                            WebkitBoxShadow:
+                              "0 0 0 100px #fff inset !important",
                           },
                           "& .MuiOutlinedInput-notchedOutline": {
                             borderColor: "#d0d0d0",
@@ -462,6 +514,7 @@ const Register = () => {
                       mt: 0.5,
                       textAlign: "left",
                       width: "100%",
+                      pt: "8px",
                     }}
                   >
                     Email
@@ -477,22 +530,37 @@ const Register = () => {
                     onChange={handleInputChange}
                     sx={{
                       "& .MuiInputBase-root": {
-                        height: { xs: 40, lg: 44, xl: 48 },
+                        height: { xs: 32, lg: 34, xl: 36 },
                         borderRadius: "8px",
                         fontSize: { xs: "13px", lg: "14px", xl: "15px" },
                       },
                       "& input": {
                         padding: {
-                          xs: "10px 12px",
-                          lg: "12px 14px",
-                          xl: "14px 16px",
+                          xs: "6px 12px",
+                          lg: "7px 14px",
+                          xl: "8px 16px",
                         },
                         fontSize: { xs: "13px", lg: "14px", xl: "15px" },
                         fontWeight: 500,
                       },
                       "& input::placeholder": {
-                        fontWeight: 500,
                         opacity: 0.6,
+                        fontSize: { xs: "11px", lg: "12px", xl: "12px" },
+                        fontWeight: 400,
+                      },
+                      "& input:-webkit-autofill": {
+                        WebkitBoxShadow: "0 0 0 100px #fff inset !important",
+                        WebkitTextFillColor: "#000 !important",
+                        borderRadius: "8px",
+                      },
+                      "& input:-webkit-autofill:hover": {
+                        WebkitBoxShadow: "0 0 0 100px #fff inset !important",
+                      },
+                      "& input:-webkit-autofill:focus": {
+                        WebkitBoxShadow: "0 0 0 100px #fff inset !important",
+                      },
+                      "& input:-webkit-autofill:active": {
+                        WebkitBoxShadow: "0 0 0 100px #fff inset !important",
                       },
                       "& .MuiOutlinedInput-notchedOutline": {
                         borderColor: "#d0d0d0",
@@ -516,6 +584,7 @@ const Register = () => {
                       mt: 0.5,
                       textAlign: "left",
                       width: "100%",
+                      pt: "8px",
                     }}
                   >
                     Password
@@ -530,23 +599,39 @@ const Register = () => {
                     value={formData.password}
                     onChange={handleInputChange}
                     sx={{
+                      paddingBottom: "10px",
                       "& .MuiInputBase-root": {
-                        height: { xs: 40, lg: 44, xl: 48 },
+                        height: { xs: 32, lg: 34, xl: 36 },
                         borderRadius: "8px",
                         fontSize: { xs: "13px", lg: "14px", xl: "15px" },
                       },
                       "& input": {
                         padding: {
-                          xs: "10px 12px",
-                          lg: "12px 14px",
-                          xl: "14px 16px",
+                          xs: "6px 12px",
+                          lg: "7px 14px",
+                          xl: "8px 16px",
                         },
                         fontSize: { xs: "13px", lg: "14px", xl: "15px" },
                         fontWeight: 500,
                       },
                       "& input::placeholder": {
-                        fontWeight: 500,
                         opacity: 0.6,
+                        fontSize: { xs: "11px", lg: "12px", xl: "12px" },
+                        fontWeight: 400,
+                      },
+                      "& input:-webkit-autofill": {
+                        WebkitBoxShadow: "0 0 0 100px #fff inset !important",
+                        WebkitTextFillColor: "#000 !important",
+                        borderRadius: "8px",
+                      },
+                      "& input:-webkit-autofill:hover": {
+                        WebkitBoxShadow: "0 0 0 100px #fff inset !important",
+                      },
+                      "& input:-webkit-autofill:focus": {
+                        WebkitBoxShadow: "0 0 0 100px #fff inset !important",
+                      },
+                      "& input:-webkit-autofill:active": {
+                        WebkitBoxShadow: "0 0 0 100px #fff inset !important",
                       },
                       "& .MuiOutlinedInput-notchedOutline": {
                         borderColor: "#d0d0d0",
@@ -593,7 +678,7 @@ const Register = () => {
                       type="submit"
                       sx={{
                         borderRadius: "25px",
-                        height: { xs: 42, lg: 46, xl: 50 },
+                        height: { xs: 36, lg: 42, xl: 48 },
                         fontSize: { xs: "14px", lg: "15px", xl: "16px" },
                         fontWeight: 500,
                         textTransform: "none",
@@ -605,6 +690,7 @@ const Register = () => {
                         "&:active": {
                           boxShadow: "none",
                         },
+                        marginBottom: "8px",
                       }}
                       disabled={isLoading}
                     >
@@ -620,7 +706,7 @@ const Register = () => {
                     startIcon={<Google />}
                     sx={{
                       borderRadius: "25px",
-                      height: { xs: 42, lg: 46, xl: 50 },
+                      height: { xs: 36, lg: 42, xl: 48 },
                       fontSize: { xs: "14px", lg: "15px", xl: "16px" },
                       fontWeight: 500,
                       textTransform: "none",
@@ -664,13 +750,21 @@ const Register = () => {
             ) : (
               <>
                 <Typography
-                  textAlign="center"
                   sx={{
-                    fontFamily: "Poppins",
-                    fontWeight: 600,
-                    fontSize: { xs: "28px", lg: "32px", xl: "36px" },
+                    color: "#000",
+                    textAlign: "center",
+                    fontFamily: "Poppins, sans-serif",
+                    fontSize: {
+                      xs: "16px", // 0-600px
+                      sm: "20px", // 600-900px
+                      md: "24px", // 900-1200px
+                      lg: "30px", // 1200-1536px
+                      xl: "36px", // 1536px+
+                    },
+                    fontStyle: "normal",
+                    fontWeight: 500,
                     lineHeight: "normal",
-                    mt: 2,
+                    mb: 2,
                   }}
                 >
                   Email Verification
@@ -678,64 +772,86 @@ const Register = () => {
                 <Typography
                   sx={{
                     color: "#000",
-                    fontFamily: "Poppins",
-                    fontSize: { xs: "14px", lg: "15px", xl: "16px" },
+                    fontFamily: "Poppins, sans-serif",
+                    fontSize: {
+                      xs: "08px", // 0-600px
+                      sm: "10px", // 600-900px
+                      md: "12px", // 900-1200px
+                      lg: "14px", // 1200-1536px
+                      xl: "16px", // 1536px+
+                    },
+                    fontStyle: "normal",
                     fontWeight: 500,
                     lineHeight: "normal",
-                    mb: 1,
-                    mt: 2,
-                    alignSelf: "flex-start",
+                    mb: "8px",
+                    marginLeft: "-270px",
                   }}
                 >
                   Enter code
                 </Typography>
 
-                <Stack
-                  direction="row"
-                  spacing={1}
-                  justifyContent="center"
-                  mb={2}
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "center",
+                    gap: 2,
+                    mb: 3,
+                  }}
                 >
                   {verificationCode.map((digit, idx) => (
-                    <input
+                    <TextField
                       key={idx}
-                      ref={setInputRef(idx)}
-                      type="text"
                       value={digit}
+                      inputRef={setInputRef(idx)}
                       onChange={(e) => handleCodeChange(idx, e)}
                       onPaste={handlePaste}
-                      maxLength={1}
-                      style={{
-                        width: "48px",
-                        height: "58px",
-                        fontSize: "20px",
-                        textAlign: "center",
-                        border: "1.5px solid #D0D5DD",
-                        borderRadius: "12px",
-                        outline: "none",
-                        background: "#F9FAFB",
-                        fontWeight: 600,
-                        color: "#344054",
+                      variant="outlined"
+                      InputProps={{
+                        sx: {
+                          width: "45.127px",
+                          height: "56px",
+                          borderRadius: "10px",
+                          border: "1px solid #D9D9D9",
+                          backgroundColor: "#FFF",
+                          flexShrink: 0,
+                          input: {
+                            textAlign: "center",
+                            fontFamily: "Poppins, sans-serif",
+                            fontSize: "18px",
+                            fontStyle: "normal",
+                            fontWeight: 500,
+                            color: "#000",
+                            "&::placeholder": {
+                              color: "#D9D9D9",
+                              textAlign: "center",
+                              fontFamily: "Poppins, sans-serif",
+                              fontSize: "14px",
+                              fontStyle: "normal",
+                              fontWeight: 500,
+                              lineHeight: "normal",
+                            },
+                          },
+                        },
+                      }}
+                      inputProps={{
+                        maxLength: 1,
                       }}
                     />
                   ))}
-                </Stack>
+                </Box>
 
                 <Button
                   variant="contained"
                   onClick={handleVerify}
                   disabled={isVerifying}
+                  size="large"
                   fullWidth
                   sx={{
-                    borderRadius: "25px",
-                    height: { xs: 42, lg: 46, xl: 50 },
-                    fontSize: { xs: "14px", lg: "15px", xl: "16px" },
-                    fontWeight: 500,
-                    textTransform: "none",
-                    boxShadow: "none",
-                    "&:hover": {
-                      boxShadow: "none",
-                    },
+                    borderRadius: "30px",
+                    mt: 1,
+                    width: "356px",
+                    height: "60px",
+                    fontFamily: "Poppins",
                   }}
                 >
                   {isVerifying ? "Verifying..." : "Verify"}

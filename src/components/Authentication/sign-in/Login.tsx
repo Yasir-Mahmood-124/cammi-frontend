@@ -244,6 +244,7 @@ const Login = () => {
             display: "flex",
             alignItems: "flex-start",
             flexWrap: "wrap",
+            
           }}
         >
           <Paper
@@ -251,7 +252,6 @@ const Login = () => {
             sx={{
               width: { xs: "90%", sm: 340, md: 340, lg: 380, xl: 420 },
               maxWidth: { xs: "90%", sm: 340, md: 340, lg: 380, xl: 420 },
-              borderRadius: 3,
               px: { xs: 2.5, lg: 3, xl: 3.5 },
               py: { xs: 2.5, lg: 3, xl: 3.5 },
               backgroundColor: "#fff",
@@ -260,6 +260,7 @@ const Login = () => {
               alignItems: "center",
               gap: 0.5,
               boxShadow: "0px 4px 12px rgba(0, 0, 0, 0.1)",
+              borderRadius: "30px"
             }}
           >
             <Box
@@ -504,6 +505,7 @@ const Login = () => {
 
                 <Box sx={{ pb: 1.5 }}>
                   <Link
+                    component={NextLink}
                     href="/account-recovery"
                     underline="hover"
                     sx={{
@@ -527,7 +529,7 @@ const Login = () => {
                     type="submit"
                     sx={{
                       borderRadius: "25px",
-                      height: { xs: 42, lg: 46, xl: 50 },
+                      height: { xs: 36, lg: 42, xl: 48 },
                       fontSize: { xs: "14px", lg: "15px", xl: "16px" },
                       fontWeight: 500,
                       textTransform: "none",
@@ -554,7 +556,7 @@ const Login = () => {
                   startIcon={<Google />}
                   sx={{
                     borderRadius: "25px",
-                    height: { xs: 42, lg: 46, xl: 50 },
+                    height: { xs: 32, lg: 42, xl: 48 },
                     fontSize: { xs: "14px", lg: "15px", xl: "16px" },
                     fontWeight: 500,
                     textTransform: "none",
