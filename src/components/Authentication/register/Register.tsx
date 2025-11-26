@@ -144,7 +144,7 @@ const Register = () => {
 
   const handleCodeChange = (
     index: number,
-    e: React.ChangeEvent<HTMLInputElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const value = e.target.value;
     if (!/^\d?$/.test(value)) return;
@@ -242,17 +242,27 @@ const Register = () => {
           <Paper
             elevation={0}
             sx={{
-              width: { xs: "90%", sm: 340, md: 340, lg: 380, xl: 420 },
-              maxWidth: { xs: "90%", sm: 340, md: 340, lg: 380, xl: 420 },
-              borderRadius: 3,
-              px: { xs: 2.5, lg: 3, xl: 3.5 },
-              py: { xs: 2.5, lg: 3, xl: 3.5 },
+              width: !showVerification
+                ? { xs: "90%", sm: 340, md: 340, lg: 380, xl: 420 }
+                : 450,
+              maxWidth: !showVerification
+                ? { xs: "90%", sm: 340, md: 340, lg: 380, xl: 420 }
+                : 450,
+              borderRadius: "30px",
+              px: !showVerification
+                ? { xs: 2.5, lg: 3, xl: 3.5 }
+                : 5,
+              py: !showVerification
+                ? { xs: 2.5, lg: 3, xl: 3.5 }
+                : 5,
               backgroundColor: "#fff",
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
               gap: 0.5,
-              boxShadow: "0px 4px 12px rgba(0, 0, 0, 0.1)",
+              boxShadow: !showVerification
+                ? "0px 4px 12px rgba(0, 0, 0, 0.1)"
+                : "0 8px 15px rgba(0, 0, 0, 0.15)",
             }}
           >
             {!showVerification && (
@@ -382,7 +392,7 @@ const Register = () => {
                           },
                           "& input": {
                             padding: {
-                              xs: "6px 12px", // Reduced vertical padding
+                              xs: "6px 12px",
                               lg: "7px 14px",
                               xl: "8px 16px",
                             },
@@ -391,10 +401,9 @@ const Register = () => {
                           },
                           "& input::placeholder": {
                             opacity: 0.6,
-                            fontSize: { xs: "11px", lg: "12px", xl: "12px" }, // Smaller font size
-                            fontWeight: 400, // Reduced from 500
+                            fontSize: { xs: "11px", lg: "12px", xl: "12px" },
+                            fontWeight: 400,
                           },
-                          // Add these autofill styles
                           "& input:-webkit-autofill": {
                             WebkitBoxShadow:
                               "0 0 0 100px #fff inset !important",
@@ -455,7 +464,7 @@ const Register = () => {
                           },
                           "& input": {
                             padding: {
-                              xs: "6px 12px", // Reduced vertical padding
+                              xs: "6px 12px",
                               lg: "7px 14px",
                               xl: "8px 16px",
                             },
@@ -464,10 +473,9 @@ const Register = () => {
                           },
                           "& input::placeholder": {
                             opacity: 0.6,
-                            fontSize: { xs: "11px", lg: "12px", xl: "12px" }, // Smaller font size
-                            fontWeight: 400, // Reduced from 500
+                            fontSize: { xs: "11px", lg: "12px", xl: "12px" },
+                            fontWeight: 400,
                           },
-                          // Add these autofill styles
                           "& input:-webkit-autofill": {
                             WebkitBoxShadow:
                               "0 0 0 100px #fff inset !important",
@@ -532,7 +540,7 @@ const Register = () => {
                       },
                       "& input": {
                         padding: {
-                          xs: "6px 12px", // Reduced vertical padding
+                          xs: "6px 12px",
                           lg: "7px 14px",
                           xl: "8px 16px",
                         },
@@ -541,10 +549,9 @@ const Register = () => {
                       },
                       "& input::placeholder": {
                         opacity: 0.6,
-                        fontSize: { xs: "11px", lg: "12px", xl: "12px" }, // Smaller font size
-                        fontWeight: 400, // Reduced from 500
+                        fontSize: { xs: "11px", lg: "12px", xl: "12px" },
+                        fontWeight: 400,
                       },
-                      // Add these autofill styles
                       "& input:-webkit-autofill": {
                         WebkitBoxShadow: "0 0 0 100px #fff inset !important",
                         WebkitTextFillColor: "#000 !important",
@@ -604,7 +611,7 @@ const Register = () => {
                       },
                       "& input": {
                         padding: {
-                          xs: "6px 12px", // Reduced vertical padding
+                          xs: "6px 12px",
                           lg: "7px 14px",
                           xl: "8px 16px",
                         },
@@ -613,10 +620,9 @@ const Register = () => {
                       },
                       "& input::placeholder": {
                         opacity: 0.6,
-                        fontSize: { xs: "11px", lg: "12px", xl: "12px" }, // Smaller font size
-                        fontWeight: 400, // Reduced from 500
+                        fontSize: { xs: "11px", lg: "12px", xl: "12px" },
+                        fontWeight: 400,
                       },
-                      // Add these autofill styles
                       "& input:-webkit-autofill": {
                         WebkitBoxShadow: "0 0 0 100px #fff inset !important",
                         WebkitTextFillColor: "#000 !important",
@@ -748,13 +754,21 @@ const Register = () => {
             ) : (
               <>
                 <Typography
-                  textAlign="center"
                   sx={{
-                    fontFamily: "Poppins",
-                    fontWeight: 600,
-                    fontSize: { xs: "28px", lg: "32px", xl: "36px" },
+                    color: "#000",
+                    textAlign: "center",
+                    fontFamily: "Poppins, sans-serif",
+                    fontSize: {
+                        xs: "16px", // 0-600px
+                        sm: "20px", // 600-900px
+                        md: "24px", // 900-1200px
+                        lg: "30px", // 1200-1536px
+                        xl: "36px", // 1536px+
+                      },
+                    fontStyle: "normal",
+                    fontWeight: 500,
                     lineHeight: "normal",
-                    mt: 2,
+                    mb: 2,
                   }}
                 >
                   Email Verification
@@ -762,64 +776,86 @@ const Register = () => {
                 <Typography
                   sx={{
                     color: "#000",
-                    fontFamily: "Poppins",
-                    fontSize: { xs: "14px", lg: "15px", xl: "16px" },
+                    fontFamily: "Poppins, sans-serif",
+                    fontSize: {
+                        xs: "08px", // 0-600px
+                        sm: "10px", // 600-900px
+                        md: "12px", // 900-1200px
+                        lg: "14px", // 1200-1536px
+                        xl: "16px", // 1536px+
+                      },
+                    fontStyle: "normal",
                     fontWeight: 500,
                     lineHeight: "normal",
-                    mb: 1,
-                    mt: 2,
-                    alignSelf: "flex-start",
+                    mb: "8px",
+                    marginLeft: "-270px",
                   }}
                 >
                   Enter code
                 </Typography>
 
-                <Stack
-                  direction="row"
-                  spacing={1}
-                  justifyContent="center"
-                  mb={2}
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "center",
+                    gap: 2,
+                    mb: 3,
+                  }}
                 >
                   {verificationCode.map((digit, idx) => (
-                    <input
+                    <TextField
                       key={idx}
-                      ref={setInputRef(idx)}
-                      type="text"
                       value={digit}
+                      inputRef={setInputRef(idx)}
                       onChange={(e) => handleCodeChange(idx, e)}
                       onPaste={handlePaste}
-                      maxLength={1}
-                      style={{
-                        width: "48px",
-                        height: "58px",
-                        fontSize: "20px",
-                        textAlign: "center",
-                        border: "1.5px solid #D0D5DD",
-                        borderRadius: "12px",
-                        outline: "none",
-                        background: "#F9FAFB",
-                        fontWeight: 600,
-                        color: "#344054",
+                      variant="outlined"
+                      InputProps={{
+                        sx: {
+                          width: "45.127px",
+                          height: "56px",
+                          borderRadius: "10px",
+                          border: "1px solid #D9D9D9",
+                          backgroundColor: "#FFF",
+                          flexShrink: 0,
+                          input: {
+                            textAlign: "center",
+                            fontFamily: "Poppins, sans-serif",
+                            fontSize: "18px",
+                            fontStyle: "normal",
+                            fontWeight: 500,
+                            color: "#000",
+                            "&::placeholder": {
+                              color: "#D9D9D9",
+                              textAlign: "center",
+                              fontFamily: "Poppins, sans-serif",
+                              fontSize: "14px",
+                              fontStyle: "normal",
+                              fontWeight: 500,
+                              lineHeight: "normal",
+                            },
+                          },
+                        },
+                      }}
+                      inputProps={{
+                        maxLength: 1,
                       }}
                     />
                   ))}
-                </Stack>
+                </Box>
 
                 <Button
                   variant="contained"
                   onClick={handleVerify}
                   disabled={isVerifying}
+                  size="large"
                   fullWidth
                   sx={{
-                    borderRadius: "25px",
-                    height: { xs: 42, lg: 46, xl: 50 },
-                    fontSize: { xs: "14px", lg: "15px", xl: "16px" },
-                    fontWeight: 500,
-                    textTransform: "none",
-                    boxShadow: "none",
-                    "&:hover": {
-                      boxShadow: "none",
-                    },
+                    borderRadius: "30px",
+                    mt: 1,
+                    width: "356px",
+                    height: "60px",
+                    fontFamily: "Poppins",
                   }}
                 >
                   {isVerifying ? "Verifying..." : "Verify"}

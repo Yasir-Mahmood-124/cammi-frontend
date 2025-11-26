@@ -203,7 +203,7 @@ const AccountRecovery = () => {
               flexDirection: "column",
               justifyContent: "center",
               bgcolor: "#fff",
-              borderRadius: "20px",
+              borderRadius: "30px",
               boxShadow: "0 8px 15px rgba(0, 0, 0, 0.15)",
             }}
           >
@@ -215,7 +215,13 @@ const AccountRecovery = () => {
                       color: "#000",
                       textAlign: "center",
                       fontFamily: "Poppins, sans-serif",
-                      fontSize: "36px",
+                      fontSize: {
+                        xs: "16px", // 0-600px
+                        sm: "20px", // 600-900px
+                        md: "24px", // 900-1200px
+                        lg: "30px", // 1200-1536px
+                        xl: "36px", // 1536px+
+                      },
                       fontStyle: "normal",
                       fontWeight: 500,
                       lineHeight: "normal",
@@ -228,7 +234,13 @@ const AccountRecovery = () => {
                     sx={{
                       color: "#000",
                       fontFamily: "Poppins, sans-serif",
-                      fontSize: "16px",
+                      fontSize: {
+                        xs: "08px", // 0-600px
+                        sm: "10px", // 600-900px
+                        md: "12px", // 900-1200px
+                        lg: "14px", // 1200-1536px
+                        xl: "16px", // 1536px+
+                      },
                       fontStyle: "normal",
                       fontWeight: 500,
                       lineHeight: "normal",
@@ -278,7 +290,13 @@ const AccountRecovery = () => {
                       color: "#000",
                       textAlign: "center",
                       fontFamily: "Poppins, sans-serif",
-                      fontSize: "36px",
+                      fontSize: {
+                        xs: "16px", // 0-600px
+                        sm: "20px", // 600-900px
+                        md: "24px", // 900-1200px
+                        lg: "30px", // 1200-1536px
+                        xl: "36px", // 1536px+
+                      },
                       fontStyle: "normal",
                       fontWeight: 500,
                       lineHeight: "normal",
@@ -295,7 +313,8 @@ const AccountRecovery = () => {
                       fontStyle: "normal",
                       fontWeight: 500,
                       lineHeight: "normal",
-                      mb: "10px",
+                      mb: "8px",
+                      marginLeft: "10px",
                     }}
                   >
                     Enter code
@@ -305,7 +324,7 @@ const AccountRecovery = () => {
                     sx={{
                       display: "flex",
                       justifyContent: "center",
-                      gap: 4,
+                      gap: 2,
                       mb: 3,
                     }}
                   >
@@ -361,7 +380,7 @@ const AccountRecovery = () => {
                       color: "#000",
                       textAlign: "center",
                       fontFamily: "Poppins, sans-serif",
-                      fontSize: "36px",
+                      fontSize: { xs: "28px", lg: "32px", xl: "36px" },
                       fontStyle: "normal",
                       fontWeight: 500,
                       lineHeight: "normal",
