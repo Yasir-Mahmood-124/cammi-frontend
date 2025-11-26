@@ -55,6 +55,7 @@ export const onboardingData: OnboardingQuestion[] = [
       "Sales or RevOps Leader",
       "Content Creator/ Social Media Manager",
       "Freelancer / Consultant",
+      "Student / Educator",
       "Other",
     ],
   },
