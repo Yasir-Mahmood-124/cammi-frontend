@@ -26,6 +26,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useLazyGoogleLoginQuery } from "@/redux/services/auth/googleApi";
 import { resetAllStates } from "@/redux/actions/resetActions"; // ✅ Import reset action
 import NextLink from "next/link";
+import AuthBackground from "@/assests/images/AuthBackground.png";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -196,14 +197,34 @@ const Login = () => {
           content: '""',
           position: "absolute",
           inset: 0,
-          backgroundImage: "url('/Background/Background.png')",
+          backgroundImage: `url(${AuthBackground.src})`,
           backgroundRepeat: "no-repeat",
           backgroundSize: "cover",
           backgroundPosition: "center",
-          opacity: 0.2,
-          zIndex: -2,
         },
       }}
+
+      // sx={{
+      //   position: "relative",
+      //   minHeight: "100vh",
+      //   display: "flex",
+      //   overflow: "hidden",
+      //   // backgroundColor: "#EFF1F5",
+      //   // background:"linear-gradient(135deg, #E8EBF3 0%, #F5F7FB 50%, #E8ECF5 100%)",
+      //   // zIndex: 0,
+
+      //   "&::before": {
+      //     content: '""',
+      //     position: "absolute",
+      //     inset: 0,
+      //     backgroundImage: `url(${AuthBackground.src})`,
+      //     backgroundRepeat: "no-repeat",
+      //     // backgroundSize: "cover",
+      //     backgroundPosition: "center",
+      //     // opacity: 1, // Add opacity to make it subtle
+      //     zIndex: -1,
+      //   },
+      // }}
     >
       <Container
         maxWidth={false}
@@ -256,7 +277,7 @@ const Login = () => {
                 alt="CAMMI Logo"
                 width={90}
                 height={55}
-                style={{ objectFit: "contain", width: "auto", height: "80%" }}
+                style={{ objectFit: "contain", width: "auto", height: "100%" }}
               />
             </Box>
             <Box
@@ -310,15 +331,18 @@ const Login = () => {
                   lineHeight: "100%",
                   letterSpacing: "0%",
                   opacity: 1,
-                  mt: 0.5,
-                  mb: 1.5,
+                  mt: "-4px",
+                  mb: "18px",
                   width: "100%",
                 }}
               >
                 Log in
               </Typography>
 
-              <Stack spacing={0.8} sx={{ width: "100%" }}>
+              <Stack
+                spacing={0.8}
+                sx={{ width: "100%", maxWidth: "90%", marginLeft: "15px" }}
+              >
                 <Typography
                   sx={{
                     color: "#000",
@@ -329,7 +353,7 @@ const Login = () => {
                     width: "100%",
                   }}
                 >
-                  Email Address
+                  Email address
                 </Typography>
                 <TextField
                   fullWidth
@@ -339,23 +363,25 @@ const Login = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   sx={{
+                    paddingBottom: "10px",
                     "& .MuiInputBase-root": {
-                      height: { xs: 40, lg: 44, xl: 48 },
+                      height: { xs: 32, lg: 34, xl: 36 },
                       borderRadius: "8px",
                       fontSize: { xs: "13px", lg: "14px", xl: "15px" },
                     },
                     "& input": {
                       padding: {
-                        xs: "10px 12px",
-                        lg: "12px 14px",
-                        xl: "14px 16px",
+                        xs: "6px 12px", // Reduced vertical padding
+                        lg: "7px 14px",
+                        xl: "8px 16px",
                       },
                       fontSize: { xs: "13px", lg: "14px", xl: "15px" },
                       fontWeight: 500,
                     },
                     "& input::placeholder": {
-                      fontWeight: 500,
                       opacity: 0.6,
+                      fontSize: { xs: "11px", lg: "12px", xl: "12px" }, // Smaller font size
+                      fontWeight: 400, // Reduced from 500
                     },
                     // Add these autofill styles
                     "& input:-webkit-autofill": {
@@ -406,22 +432,23 @@ const Login = () => {
                   onChange={(e) => setPassword(e.target.value)}
                   sx={{
                     "& .MuiInputBase-root": {
-                      height: { xs: 40, lg: 44, xl: 48 },
+                      height: { xs: 32, lg: 34, xl: 36 },
                       borderRadius: "8px",
                       fontSize: { xs: "13px", lg: "14px", xl: "15px" },
                     },
                     "& input": {
                       padding: {
-                        xs: "10px 12px",
-                        lg: "12px 14px",
-                        xl: "14px 16px",
+                        xs: "6px 12px", // Reduced vertical padding
+                        lg: "7px 14px",
+                        xl: "8px 16px",
                       },
                       fontSize: { xs: "13px", lg: "14px", xl: "15px" },
                       fontWeight: 500,
                     },
                     "& input::placeholder": {
-                      fontWeight: 500,
                       opacity: 0.6,
+                      fontSize: { xs: "11px", lg: "12px", xl: "12px" }, // Smaller font size
+                      fontWeight: 400, // Reduced from 500
                     },
                     // Add these autofill styles
                     "& input:-webkit-autofill": {
@@ -511,6 +538,7 @@ const Login = () => {
                       "&:active": {
                         boxShadow: "none",
                       },
+                      marginBottom: "10px",
                     }}
                     disabled={isLoading}
                   >

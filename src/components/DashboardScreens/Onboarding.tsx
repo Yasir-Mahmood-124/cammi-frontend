@@ -4,6 +4,7 @@ import { Box, Container, Paper, Typography, Button, Card } from "@mui/material";
 import Image from "next/image";
 import Logo from "@/assests/images/Logo.png";
 import Background2 from "@/assests/images/Background2.png";
+import Background3 from "@/assests/images/Background3.png";
 import { onboardingData } from "../../const/data";
 import Cookies from "js-cookie";
 import toast, { Toaster } from "react-hot-toast";
@@ -73,9 +74,9 @@ const Onboarding = () => {
           zIndex: 1,
           pointerEvents: "none",
         },
-        backgroundImage: `url(${Background2.src})`,
-        backgroundSize: "cover",
-        backgroundPosition: "center",
+        backgroundImage: `url(${Background3.src})`,
+        // backgroundSize: "cover",
+        // backgroundPosition: "center",
         backgroundRepeat: "no-repeat",
       }}
     >
