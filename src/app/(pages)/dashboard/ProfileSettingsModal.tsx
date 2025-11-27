@@ -16,7 +16,6 @@ import {
 import CloseIcon from '@mui/icons-material/Close';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
-import CameraAltIcon from '@mui/icons-material/CameraAlt';
 import Cookies from 'js-cookie';
 import { useEditProfileMutation } from '@/redux/services/settings/profileSettings';
 
@@ -34,14 +33,13 @@ interface ProfileSettingsModalProps {
 
 const StyledDialog = styled(Dialog)(({ theme }) => ({
   '& .MuiDialog-paper': {
-    borderRadius: { xs: '12px', sm: '16px' },
-    padding: { xs: '16px', sm: '20px', md: '24px' },
-    minWidth: { xs: '90vw', sm: '400px' },
-    maxWidth: { xs: '95vw', sm: '500px', md: '600px', lg: '700px' },
-    maxHeight: { xs: '90vh', sm: '85vh' },
+    borderRadius: '26px',
+    padding: { xs: '16px', sm: '20px', md: '24px', lg: '28px', xl: '32px' },
+    width: '100%',
+    maxWidth: '400px',
+    maxHeight: '90vh',
     margin: { xs: '16px', sm: '32px' },
-    width: '500px',
-    overflow: 'hidden', // Prevent scrollbars on dialog itself
+    overflow: 'hidden',
     display: 'flex',
     flexDirection: 'column',
   },
@@ -50,15 +48,24 @@ const StyledDialog = styled(Dialog)(({ theme }) => ({
 const ProfileImageContainer = styled(Box)(({ theme }) => ({
   position: 'relative',
   width: '200px',
-  maxWidth: '100%',
-  aspectRatio: '1',
+  height: '200px',
   margin: '0 auto',
-  marginTop: '16px',
-  marginBottom: '16px',
+  marginBottom: theme.spacing(2),
+  [theme.breakpoints.down('xl')]: {
+    width: '180px',
+    height: '180px',
+  },
+  [theme.breakpoints.down('lg')]: {
+    width: '160px',
+    height: '160px',
+  },
+  [theme.breakpoints.down('md')]: {
+    width: '140px',
+    height: '140px',
+  },
   [theme.breakpoints.down('sm')]: {
-    maxWidth: '150px',
-    marginTop: '12px',
-    marginBottom: '12px',
+    width: '120px',
+    height: '120px',
   },
 }));
 
@@ -68,8 +75,17 @@ const StyledAvatar = styled(Avatar)(({ theme }) => ({
   fontSize: '72px',
   backgroundColor: '#e0e0e0',
   color: '#666',
-  [theme.breakpoints.down('sm')]: {
+  [theme.breakpoints.down('xl')]: {
+    fontSize: '64px',
+  },
+  [theme.breakpoints.down('lg')]: {
+    fontSize: '56px',
+  },
+  [theme.breakpoints.down('md')]: {
     fontSize: '48px',
+  },
+  [theme.breakpoints.down('sm')]: {
+    fontSize: '40px',
   },
 }));
 
@@ -79,31 +95,54 @@ const ImageOverlay = styled(Box)(({ theme }) => ({
   left: '50%',
   transform: 'translateX(-50%)',
   display: 'flex',
-  gap: '8px',
-  backgroundColor: 'rgba(255, 255, 255, 0.9)',
-  borderRadius: '20px',
-  padding: '4px 8px',
+  alignItems: 'center',
+  gap: '0px',
+  backgroundColor: '#FAFBFD',
+  borderRadius: '8px',
+  marginBottom: "10px",
+}));
+
+const Separator = styled(Box)(({ theme }) => ({
+  width: '1px',
+  height: '20px',
+  backgroundColor: '#979797',
+  margin: '0 8px',
+  [theme.breakpoints.down('md')]: {
+    height: '18px',
+    margin: '0 6px',
+  },
   [theme.breakpoints.down('sm')]: {
-    gap: '4px',
-    padding: '2px 6px',
-    borderRadius: '16px',
+    height: '16px',
+    margin: '0 4px',
   },
 }));
 
 const SaveButton = styled(Button)(({ theme }) => ({
-  backgroundColor: '#2196F3',
+  backgroundColor: '#3EA2FF',
   color: 'white',
-  borderRadius: '24px',
-  padding: '12px 48px',
+  borderRadius: '32px',
+  padding: '8px 50px',
   textTransform: 'none',
-  fontSize: '16px',
+  fontSize: '15px',
   fontWeight: 500,
   '&:hover': {
     backgroundColor: '#1976D2',
   },
-  [theme.breakpoints.down('sm')]: {
-    padding: '10px 36px',
+  '&:disabled': {
+    backgroundColor: '#B0BEC5',
+    color: 'white',
+  },
+  [theme.breakpoints.down('lg')]: {
+    padding: '11px 44px',
+    fontSize: '15px',
+  },
+  [theme.breakpoints.down('md')]: {
+    padding: '10px 40px',
     fontSize: '14px',
+  },
+  [theme.breakpoints.down('sm')]: {
+    padding: '9px 36px',
+    fontSize: '13px',
   },
 }));
 
@@ -117,6 +156,7 @@ const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
   const [isEditingName, setIsEditingName] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [imageChanged, setImageChanged] = useState(false); // Track if image was changed
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // RTK Query mutation
@@ -131,6 +171,7 @@ const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
         setUser(userData);
         setUserName(userData.name);
         setProfileImage(userData.picture);
+        setImageChanged(false); // Reset flag when opening modal
       }
     }
   }, [open]);
@@ -142,6 +183,7 @@ const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
       const reader = new FileReader();
       reader.onloadend = () => {
         setProfileImage(reader.result as string);
+        setImageChanged(true); // Mark that image was changed
       };
       reader.readAsDataURL(file);
     }
@@ -150,6 +192,7 @@ const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
   // Handle image delete
   const handleImageDelete = () => {
     setProfileImage(null);
+    setImageChanged(true); // Mark that image was changed
   };
 
   // Trigger file input click
@@ -173,12 +216,16 @@ const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
     }
 
     try {
-      // Prepare the request body
-      const requestBody = {
+      // Prepare the request body - only include picture if it was changed
+      const requestBody: any = {
         session_id: sessionId,
         name: userName,
-        picture: profileImage || '', // Send empty string if no picture
       };
+
+      // Only include picture if it was changed and is in base64 format
+      if (imageChanged) {
+        requestBody.picture = profileImage || '';
+      }
 
       // Call the API
       const response = await editProfile(requestBody).unwrap();
@@ -187,7 +234,7 @@ const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
       const updatedUser: User = {
         ...user,
         name: userName,
-        picture: profileImage,
+        ...(imageChanged && { picture: profileImage }), // Only update picture if changed
       };
       localStorage.setItem('user', JSON.stringify(updatedUser));
       setUser(updatedUser);
@@ -196,6 +243,7 @@ const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
       setShowSuccess(true);
       setErrorMessage(null);
       setIsEditingName(false);
+      setImageChanged(false); // Reset image changed flag
 
       // Close modal after short delay
       setTimeout(() => {
@@ -238,19 +286,22 @@ const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
           onClick={onClose}
           sx={{
             position: 'absolute',
-            right: { xs: -4, sm: -8 },
-            top: { xs: -4, sm: -8 },
-            color: '#999',
+            right: { xs: 8, sm: 12, md: 16 },
+            top: { xs: 8, sm: 12, md: 16 },
+            color: '#D9D9D9',
             zIndex: 1,
-            margin: 1.5,
+            padding: { xs: '4px', sm: '6px', md: '8px' },
           }}
         >
-          <CloseIcon sx={{ fontSize: { xs: '20px', sm: '24px' } }} />
+          <CloseIcon sx={{ 
+            fontSize: { xs: '20px', sm: '22px', md: '24px' },
+          }} />
         </IconButton>
 
         <DialogContent 
           sx={{ 
-            padding: { xs: '16px 8px', sm: '20px 16px', md: '24px' },
+            padding: { xs: '16px', sm: '20px', md: '24px', lg: '28px', xl: '32px' },
+            mt: 3,
             overflowY: 'auto',
             overflowX: 'hidden',
             flex: 1,
@@ -272,27 +323,27 @@ const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
           }}
         >
           {/* Header */}
-          <Box sx={{ textAlign: 'center', mb: { xs: 2, sm: 3 } }}>
+          <Box sx={{ mb: { xs: 2, sm: 2.5, md: 3 } }}>
             <Typography
-              variant="h5"
               sx={{
                 fontWeight: 600,
-                color: '#333',
-                mb: { xs: 0.5, sm: 1 },
-                fontSize: { xs: '1.25rem', sm: '1.5rem' },
+                fontSize: { xs: '10px', sm: '12px', md: '14px', lg: '16px', xl: '20px' },
+                color: '#000000',
+                mb: { xs: 0.5, sm: 0.75, md: 1 },
+                textAlign: 'left',
               }}
             >
               Profile Settings
             </Typography>
             <Typography
-              variant="body1"
               sx={{
-                color: '#2196F3',
-                fontSize: { xs: '14px', sm: '16px' },
+                color: '#3EA3FF',
+                fontSize: { xs: '08px', sm: '10px', md: '12px', lg: '14px', xl: '16px' },
+                fontWeight: 600,
+                textAlign: 'left',
                 wordBreak: 'break-word',
                 overflowWrap: 'break-word',
                 maxWidth: '100%',
-                px: 1,
               }}
             >
               {user?.email || ''}
@@ -300,14 +351,14 @@ const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
           </Box>
 
           {/* User Name Field */}
-          <Box sx={{ mb: { xs: 2, sm: 3 }, px: { xs: 1, sm: 0 } }}>
+          <Box sx={{ mb: { xs: 2, sm: 2.5, md: 3 }, mt: "-9px" }}>
             <Typography
-              variant="subtitle2"
               sx={{
-                color: '#333',
+                color: '#000000',
                 fontWeight: 600,
-                mb: 1,
-                fontSize: { xs: '0.875rem', sm: '0.975rem' },
+                fontSize: { xs: '8px', sm: '10px', md: '12px', lg: '14px', xl: '16px' },
+                mb: { xs: 0.75, sm: 1 },
+                textAlign: 'left',
               }}
             >
               User Name
@@ -323,39 +374,52 @@ const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
                   <IconButton
                     onClick={() => setIsEditingName(!isEditingName)}
                     size="small"
+                    sx={{
+                      padding: { xs: '4px', sm: '6px', md: '8px' },
+                    }}
                   >
-                    <EditIcon fontSize="small" />
+                    <EditIcon sx={{ 
+                      fontSize: { xs: '16px', sm: '18px', md: '20px' },
+                      color: '#666',
+                    }} />
                   </IconButton>
                 ),
                 sx: {
-                  backgroundColor: '#f5f5f5',
+                  fontSize: { xs: '11px', sm: '12px', md: '13px', lg: '13.5px', xl: '14px' },
+                  mt: "-6px",
+                  color: '#A6A6A6',
+                  fontWeight: 400,
+                  padding: '4px',
                   '& .MuiOutlinedInput-notchedOutline': {
                     border: 'none',
                   },
-                  fontSize: { xs: '14px', sm: '16px' },
-                  maxWidth: '100%',
+                  '&:hover': {
+                    backgroundColor: '#FAFAFA',
+                  },
                 },
               }}
               sx={{
-                '& .MuiInputBase-input.Mui-disabled': {
-                  WebkitTextFillColor: '#666',
-                  color: '#666',
+                '& .MuiInputBase-input': {
+                  color: '#A6A6A6',
+                  fontWeight: 400,
+                  padding: '0',
                 },
-                maxWidth: '100%',
-                width: '100%',
+                '& .MuiInputBase-input.Mui-disabled': {
+                  WebkitTextFillColor: '#A6A6A6',
+                  color: '#A6A6A6',
+                },
               }}
             />
           </Box>
 
           {/* User Profile Image */}
-          <Box sx={{ px: { xs: 1, sm: 0 } }}>
+          <Box>
             <Typography
-              variant="subtitle2"
               sx={{
-                color: '#333',
+                color: '#000000',
                 fontWeight: 600,
-                mb: 1,
-                fontSize: { xs: '0.875rem', sm: '0.975rem' },
+                fontSize: { xs: '8px', sm: '10px', md: '12px', lg: '14px', xl: '16px' },
+                textAlign: 'left',
               }}
             >
               User Profile
@@ -369,21 +433,28 @@ const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
                   size="small"
                   onClick={handleEditImageClick}
                   sx={{ 
-                    color: '#2196F3',
-                    padding: { xs: '4px', sm: '8px' },
+                    color: '#D5D5D5',
+                    '&:hover': {
+                      color: '#3EA3FF',
+                    },
                   }}
                 >
-                  <EditIcon sx={{ fontSize: { xs: '18px', sm: '20px' } }} />
+                  <EditIcon sx={{fontSize: "16px"}}/>
                 </IconButton>
+                <Separator />
                 <IconButton
                   size="small"
                   onClick={handleImageDelete}
                   sx={{ 
-                    color: '#f44336',
-                    padding: { xs: '4px', sm: '8px' },
+                    color: '#FF0000',
+                    '&:hover': {
+                      color: '#D32F2F',
+                    },
                   }}
                 >
-                  <DeleteIcon sx={{ fontSize: { xs: '18px', sm: '20px' } }} />
+                  <DeleteIcon sx={{ 
+                    fontSize: "16px",
+                  }} />
                 </IconButton>
               </ImageOverlay>
             </ProfileImageContainer>
@@ -399,12 +470,16 @@ const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
           />
 
           {/* Save Button */}
-          <Box sx={{ display: 'flex', justifyContent: 'center', mt: { xs: 2, sm: 4 } }}>
+          <Box sx={{ 
+            display: 'flex', 
+            justifyContent: 'center', 
+            mt: { xs: 2, sm: 2.5, md: 3, lg: 3.5, xl: 4 },
+          }}>
             <SaveButton 
               onClick={handleSave} 
               variant="contained"
               disabled={isLoading}
-              startIcon={isLoading ? <CircularProgress size={20} color="inherit" /> : null}
+              startIcon={isLoading ? <CircularProgress size={16} color="inherit" /> : null}
             >
               {isLoading ? 'Saving...' : 'Save'}
             </SaveButton>
