@@ -6,8 +6,8 @@ import LoginPage from "./(pages)/sign-in/page";
 export default function Home() {
   return (
     <div>
-      {/* <LoginPage /> */}
-      <OnboardingPage/>
+      <LoginPage />
+      {/* <OnboardingPage/> */}
     </div>
   );
 }

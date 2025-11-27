@@ -64,10 +64,37 @@ const DashboardPage = () => {
 
   // State for See More/See Less functionality
   const [showAllDocuments, setShowAllDocuments] = useState(false);
-  const [documentsPerRow] = useState(7); // Approximate number of documents per row with smaller cards
+  const [documentsPerRow, setDocumentsPerRow] = useState(7);
 
   // State for search functionality
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Calculate documents per row based on screen width
+  useEffect(() => {
+    const calculateDocumentsPerRow = () => {
+      const screenWidth = window.innerWidth;
+      
+      // Subtract sidebar width (approximately 250px) and padding
+      const availableWidth = screenWidth - 250 - 64; // 64px for px: 4 (32px each side)
+      
+      // Each document card is 105px wide + 9.6px gap (1.2 * 8px)
+      const cardWidth = 105 + 9.6;
+      
+      // Calculate how many cards can fit
+      const cardsPerRow = Math.floor(availableWidth / cardWidth);
+      
+      // Set minimum of 5 and maximum based on calculation
+      const finalCount = Math.max(5, Math.min(cardsPerRow, 15));
+      
+      setDocumentsPerRow(finalCount);
+    };
+
+    // Calculate on mount and on window resize
+    calculateDocumentsPerRow();
+    window.addEventListener('resize', calculateDocumentsPerRow);
+
+    return () => window.removeEventListener('resize', calculateDocumentsPerRow);
+  }, []);
 
   useEffect(() => {
     getReviews();
@@ -485,26 +512,11 @@ const DashboardPage = () => {
                 ) : displayedDocuments && displayedDocuments.length > 0 ? (
                   <Box 
                     display="flex" 
-                    flexWrap="nowrap" // Changed from wrap to nowrap to keep documents in one line
+                    flexWrap="wrap" // Allow documents to wrap into multiple rows
                     gap={1.2}
                     sx={{
-                      overflowX: showAllDocuments ? "auto" : "hidden", // Add horizontal scroll when showing all
+                      overflowX: "hidden",
                       overflowY: "hidden",
-                      pb: showAllDocuments ? 1 : 0, // Add padding for scrollbar
-                      "&::-webkit-scrollbar": {
-                        height: "8px",
-                      },
-                      "&::-webkit-scrollbar-track": {
-                        backgroundColor: "#f1f1f1",
-                        borderRadius: "4px",
-                      },
-                      "&::-webkit-scrollbar-thumb": {
-                        backgroundColor: "#888",
-                        borderRadius: "4px",
-                        "&:hover": {
-                          backgroundColor: "#555",
-                        },
-                      },
                     }}
                   >
                     {displayedDocuments.map(
