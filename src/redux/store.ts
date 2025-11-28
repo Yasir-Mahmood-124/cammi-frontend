@@ -48,6 +48,9 @@ import { srWebSocketMiddleware } from "./middleware/srWebSocketMiddleware";
 import { gtmWebSocketMiddleware } from "./middleware/gtmWebSocketMiddleware";
 import { getSpecificDocumentApi } from "./services/document/getSpecificDocument";
 import linkedinReducer from './services/linkedin/linkedinSlice';
+import { editDocumentNameApi } from "./services/document/editDocumentNameApi";
+import { deleteDocumentApi } from "./services/document/deleteDocumentApi";
+import { documentInfoApi } from "./services/document/documentInfoApi";
 
 // ==================== REDUX PERSIST CONFIGURATION ====================
 
@@ -189,7 +192,7 @@ const rootReducer = combineReducers({
   sr: persistedSrReducer,
   gtm: persistedGtmReducer,
 
-  linkedin: persistedLinkedinReducer, // ✅ CHANGE THIS LINE
+  linkedin: persistedLinkedinReducer, 
 
   [authApi.reducerPath]: authApi.reducer,
   [onboardingApi.reducerPath]: onboardingApi.reducer,
@@ -223,6 +226,9 @@ const rootReducer = combineReducers({
   [documentParsingApi.reducerPath]: documentParsingApi.reducer,
   [profileSettingsApi.reducerPath]: profileSettingsApi.reducer,
   [getSpecificDocumentApi.reducerPath]: getSpecificDocumentApi.reducer,
+  [editDocumentNameApi.reducerPath]: editDocumentNameApi.reducer,
+  [deleteDocumentApi.reducerPath]: deleteDocumentApi.reducer,
+  [documentInfoApi.reducerPath]: documentInfoApi.reducer,
 });
 
 // ==================== STORE CONFIGURATION ====================
@@ -271,7 +277,10 @@ export const store = configureStore({
       .concat(creditsApi.middleware)
       .concat(documentParsingApi.middleware)
       .concat(profileSettingsApi.middleware)
-      .concat(getSpecificDocumentApi.middleware),
+      .concat(getSpecificDocumentApi.middleware)
+      .concat(editDocumentNameApi.middleware)
+      .concat(deleteDocumentApi.middleware)
+      .concat(documentInfoApi.middleware),
 });
 
 export const persistor = persistStore(store);

@@ -28,6 +28,8 @@ export {default as ClosedTab} from "./ClosedTab.svg";
 export {default as OpenTab} from "./OpenTab.svg";
 export {default as CammiHead} from "./CammiHead.svg";
 export {default as ArrowUp} from "./ArrowUp.svg";
+export {default as EditIcon} from "./EditIcon.svg";
+export {default as DeleteIcon} from "./DeleteIcon.svg";
 // 👆 Add more icons like this if needed
 // export { default as Facebook } from "./Facebook.svg";
 // export { default as Twitter } from "./Twitter.svg";

@@ -14,10 +14,10 @@ import {
   Snackbar,
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
 import Cookies from 'js-cookie';
 import { useEditProfileMutation } from '@/redux/services/settings/profileSettings';
+import { EditIcon } from '@/assests/icons';
+import { DeleteIcon } from '@/assests/icons';
 
 interface User {
   email: string;
@@ -158,6 +158,7 @@ const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [imageChanged, setImageChanged] = useState(false); // Track if image was changed
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const nameInputRef = useRef<HTMLInputElement>(null); // Add this ref
 
   // RTK Query mutation
   const [editProfile, { isLoading }] = useEditProfileMutation();
@@ -369,10 +370,17 @@ const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
               onChange={(e) => setUserName(e.target.value)}
               disabled={!isEditingName}
               variant="outlined"
+              inputRef={nameInputRef} // Add this line
               InputProps={{
                 endAdornment: (
                   <IconButton
-                    onClick={() => setIsEditingName(!isEditingName)}
+                    onClick={() => {
+                      setIsEditingName(!isEditingName);
+                      // Focus the input after a small delay to ensure it's enabled
+                      setTimeout(() => {
+                        nameInputRef.current?.focus();
+                      }, 0);
+                    }}
                     size="small"
                     sx={{
                       padding: { xs: '4px', sm: '6px', md: '8px' },
