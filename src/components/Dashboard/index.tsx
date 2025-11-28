@@ -17,10 +17,15 @@ import {
   IconButton,
   Menu,
   MenuItem,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  DialogContentText,
 } from "@mui/material";
 import { FaSearch } from "react-icons/fa";
 import { BsThreeDotsVertical } from "react-icons/bs";
-import { MdDriveFileRenameOutline } from "react-icons/md";
+import { MdDriveFileRenameOutline, MdDelete } from "react-icons/md";
 import {
   useGetReviewsMutation,
   Review,
@@ -28,6 +33,7 @@ import {
 import { useGetUserDocumentsMutation } from "@/redux/services/document/documentsApi";
 import { useGetSpecificDocumentMutation } from "@/redux/services/document/getSpecificDocument";
 import { useEditDocumentNameMutation } from "@/redux/services/document/editDocumentNameApi";
+import { useDeleteDocumentMutation } from "@/redux/services/document/deleteDocumentApi";
 import Cookies from "js-cookie";
 import GenericDocumentPreview from "@/components/GenericDocumentPreview";
 import toast from "react-hot-toast";
@@ -59,8 +65,15 @@ const DashboardPage = () => {
     },
   ] = useGetSpecificDocumentMutation();
 
-  const [editDocumentName, { isLoading: isEditingName }] =
-    useEditDocumentNameMutation();
+  const [
+    editDocumentName,
+    { isLoading: isEditingName },
+  ] = useEditDocumentNameMutation();
+
+  const [
+    deleteDocument,
+    { isLoading: isDeletingDocument },
+  ] = useDeleteDocumentMutation();
 
   // State for document preview
   const [showPreview, setShowPreview] = useState(false);
@@ -81,41 +94,42 @@ const DashboardPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
 
   // State for editing document name
-  const [editingDocumentId, setEditingDocumentId] = useState<string | null>(
-    null
-  );
+  const [editingDocumentId, setEditingDocumentId] = useState<string | null>(null);
   const [editingDocumentName, setEditingDocumentName] = useState("");
 
   // State for three-dot menu
   const [menuAnchorEl, setMenuAnchorEl] = useState<null | HTMLElement>(null);
-  const [selectedMenuDocument, setSelectedMenuDocument] =
-    useState<DocumentItem | null>(null);
+  const [selectedMenuDocument, setSelectedMenuDocument] = useState<DocumentItem | null>(null);
+
+  // State for delete confirmation dialog
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [documentToDelete, setDocumentToDelete] = useState<DocumentItem | null>(null);
 
   // Calculate documents per row based on screen width
   useEffect(() => {
     const calculateDocumentsPerRow = () => {
       const screenWidth = window.innerWidth;
-
+      
       // Subtract sidebar width (approximately 250px) and padding
       const availableWidth = screenWidth - 250 - 64; // 64px for px: 4 (32px each side)
-
+      
       // Each document card is 105px wide + 9.6px gap (1.2 * 8px)
       const cardWidth = 105 + 9.6;
-
+      
       // Calculate how many cards can fit
       const cardsPerRow = Math.floor(availableWidth / cardWidth);
-
+      
       // Set minimum of 5 and maximum based on calculation
       const finalCount = Math.max(5, Math.min(cardsPerRow, 15));
-
+      
       setDocumentsPerRow(finalCount);
     };
 
     // Calculate on mount and on window resize
     calculateDocumentsPerRow();
-    window.addEventListener("resize", calculateDocumentsPerRow);
+    window.addEventListener('resize', calculateDocumentsPerRow);
 
-    return () => window.removeEventListener("resize", calculateDocumentsPerRow);
+    return () => window.removeEventListener('resize', calculateDocumentsPerRow);
   }, []);
 
   useEffect(() => {
@@ -136,32 +150,24 @@ const DashboardPage = () => {
   // Log document structure when documents arrive
   useEffect(() => {
     if (documentsData?.documents && documentsData.documents.length > 0) {
-      console.log(
-        "First document structure:",
-        JSON.stringify(documentsData.documents[0], null, 2)
-      );
-      console.log(
-        "All document keys:",
-        Object.keys(documentsData.documents[0])
-      );
+      console.log("First document structure:", JSON.stringify(documentsData.documents[0], null, 2));
+      console.log("All document keys:", Object.keys(documentsData.documents[0]));
     }
   }, [documentsData]);
 
   // Helper function to get document unique identifier
   const getDocumentId = (doc: DocumentItem): string | null => {
-    return (
-      doc.document_id ||
-      doc.document_type_uuid ||
-      doc.document_url ||
-      doc.document_name ||
-      null
-    );
+    return doc.document_id || 
+           doc.document_type_uuid || 
+           doc.document_url ||
+           doc.document_name ||
+           null;
   };
 
   // Handle document card click - open document
   const handleDocumentClick = async (doc: DocumentItem) => {
     const docId = getDocumentId(doc);
-
+    
     if (loadingDocumentId === docId || editingDocumentId === docId) {
       return;
     }
@@ -217,10 +223,7 @@ const DashboardPage = () => {
   };
 
   // Handle three-dot menu click
-  const handleMenuClick = (
-    e: React.MouseEvent<HTMLElement>,
-    doc: DocumentItem
-  ) => {
+  const handleMenuClick = (e: React.MouseEvent<HTMLElement>, doc: DocumentItem) => {
     e.stopPropagation();
     console.log("Menu clicked for document:", doc);
     console.log("Document keys:", Object.keys(doc));
@@ -237,32 +240,82 @@ const DashboardPage = () => {
   // Handle rename click from menu
   const handleRenameClick = () => {
     console.log("Rename clicked!");
-    console.log(
-      "Full selected document:",
-      JSON.stringify(selectedMenuDocument, null, 2)
-    );
-
+    console.log("Full selected document:", JSON.stringify(selectedMenuDocument, null, 2));
+    
     if (selectedMenuDocument) {
       // Try to find any unique identifier
       const docId = getDocumentId(selectedMenuDocument);
-
+      
       console.log("Setting editing document ID:", docId);
-      console.log(
-        "Setting editing document name:",
-        selectedMenuDocument.document_name
-      );
-      console.log(
-        "Available document fields:",
-        Object.keys(selectedMenuDocument)
-      );
-
+      console.log("Setting editing document name:", selectedMenuDocument.document_name);
+      console.log("Available document fields:", Object.keys(selectedMenuDocument));
+      
       setEditingDocumentId(docId);
       setEditingDocumentName(selectedMenuDocument.document_name || "");
     } else {
       console.log("No document selected!");
     }
-
+    
     handleMenuClose();
+  };
+
+  // Handle delete click from menu
+  const handleDeleteClick = () => {
+    if (selectedMenuDocument) {
+      setDocumentToDelete(selectedMenuDocument);
+      setDeleteDialogOpen(true);
+    }
+    handleMenuClose();
+  };
+
+  // Handle delete confirmation
+  const handleConfirmDelete = async () => {
+    if (!documentToDelete) return;
+
+    try {
+      const userDataString = localStorage.getItem("userData");
+      const userData = userDataString ? JSON.parse(userDataString) : null;
+      const userId = userData?.user_id || documentToDelete.user_id;
+
+      if (!userId) {
+        toast.error("User ID not found. Please log in again.");
+        return;
+      }
+
+      const documentTypeUuid = documentToDelete.document_type_uuid || documentToDelete.document_id;
+
+      if (!documentTypeUuid) {
+        toast.error("Document ID not found.");
+        return;
+      }
+
+      await deleteDocument({
+        user_id: userId,
+        document_type_uuid: documentTypeUuid,
+      }).unwrap();
+
+      toast.success("Document deleted successfully");
+
+      // Refresh documents list
+      const sessionId = Cookies.get("token");
+      if (sessionId) {
+        getUserDocuments({
+          session_id: sessionId,
+        });
+      }
+
+      setDeleteDialogOpen(false);
+      setDocumentToDelete(null);
+    } catch (error) {
+      console.error("Error deleting document:", error);
+      toast.error("Failed to delete document. Please try again.");
+    }
+  };
+
+  // Handle cancel delete
+  const handleCancelDelete = () => {
+    setDeleteDialogOpen(false);
+    setDocumentToDelete(null);
   };
 
   // Save edited document name
@@ -302,7 +355,7 @@ const DashboardPage = () => {
       }).unwrap();
 
       toast.success("Document name updated successfully");
-
+      
       // Refresh documents list
       const sessionId = Cookies.get("token");
       if (sessionId) {
@@ -442,6 +495,7 @@ const DashboardPage = () => {
         </Box>
       );
     }
+
     if (specificDocumentData?.document_base64) {
       return (
         <Box sx={{ width: "100%", height: "100%", display: "flex" }}>
@@ -454,15 +508,10 @@ const DashboardPage = () => {
             isDownloading={isDownloading}
             userId={(() => {
               const userDataString = localStorage.getItem("userData");
-              const userData = userDataString
-                ? JSON.parse(userDataString)
-                : null;
+              const userData = userDataString ? JSON.parse(userDataString) : null;
               return userData?.user_id || selectedDocument?.user_id;
             })()}
-            documentTypeUuid={
-              selectedDocument?.document_type_uuid ||
-              selectedDocument?.document_id
-            }
+            documentTypeUuid={selectedDocument?.document_type_uuid || selectedDocument?.document_id}
             onDocumentNameUpdated={(newName) => {
               // Update the selected document name using proper state update
               if (selectedDocument) {
@@ -697,8 +746,8 @@ const DashboardPage = () => {
                     Error loading documents. Please try again.
                   </Typography>
                 ) : displayedDocuments && displayedDocuments.length > 0 ? (
-                  <Box
-                    display="flex"
+                  <Box 
+                    display="flex" 
                     flexWrap="wrap"
                     gap={1.2}
                     sx={{
@@ -725,11 +774,7 @@ const DashboardPage = () => {
                           >
                             {/* Card */}
                             <Box
-                              onClick={() =>
-                                !isLoading &&
-                                !isEditing &&
-                                handleDocumentClick(doc)
-                              }
+                              onClick={() => !isLoading && !isEditing && handleDocumentClick(doc)}
                               sx={{
                                 width: "105px",
                                 height: "135px",
@@ -742,26 +787,20 @@ const DashboardPage = () => {
                                 justifyContent: "center",
                                 overflow: "hidden",
                                 position: "relative",
-                                cursor:
-                                  isLoading || isEditing
-                                    ? "default"
-                                    : "pointer",
+                                cursor: isLoading || isEditing ? "default" : "pointer",
                                 opacity: isLoading ? 0.7 : 1,
                                 transition: "all 0.2s",
                                 userSelect: "none",
                                 "&:hover": {
-                                  transform:
-                                    isLoading || isEditing
-                                      ? "none"
-                                      : "translateY(-4px)",
-                                  backgroundColor:
-                                    isLoading || isEditing
-                                      ? "#E4E5E8"
-                                      : "#D5D7DB",
-                                  borderColor:
-                                    isLoading || isEditing
-                                      ? "#E4E5E8"
-                                      : "#C5C7CB",
+                                  transform: isLoading || isEditing
+                                    ? "none"
+                                    : "translateY(-4px)",
+                                  backgroundColor: isLoading || isEditing
+                                    ? "#E4E5E8"
+                                    : "#D5D7DB",
+                                  borderColor: isLoading || isEditing
+                                    ? "#E4E5E8"
+                                    : "#C5C7CB",
                                 },
                               }}
                             >
@@ -787,8 +826,7 @@ const DashboardPage = () => {
                                     padding: "4px",
                                     backgroundColor: "rgba(255, 255, 255, 0.8)",
                                     "&:hover": {
-                                      backgroundColor:
-                                        "rgba(255, 255, 255, 0.95)",
+                                      backgroundColor: "rgba(255, 255, 255, 0.95)",
                                     },
                                   }}
                                 >
@@ -842,9 +880,7 @@ const DashboardPage = () => {
                                   <input
                                     type="text"
                                     value={editingDocumentName}
-                                    onChange={(e) =>
-                                      setEditingDocumentName(e.target.value)
-                                    }
+                                    onChange={(e) => setEditingDocumentName(e.target.value)}
                                     onKeyDown={(e) => {
                                       if (e.key === "Enter") {
                                         handleSaveDocumentName(doc);
@@ -863,9 +899,7 @@ const DashboardPage = () => {
                                       border: "1px solid #3EA3FF",
                                       borderRadius: "4px",
                                       outline: "none",
-                                      backgroundColor: isEditingName
-                                        ? "#f5f5f5"
-                                        : "#fff",
+                                      backgroundColor: isEditingName ? "#f5f5f5" : "#fff",
                                     }}
                                   />
                                   <Box
@@ -876,9 +910,7 @@ const DashboardPage = () => {
                                     }}
                                   >
                                     <Button
-                                      onClick={() =>
-                                        handleSaveDocumentName(doc)
-                                      }
+                                      onClick={() => handleSaveDocumentName(doc)}
                                       disabled={isEditingName}
                                       sx={{
                                         minWidth: "40px",
@@ -899,10 +931,7 @@ const DashboardPage = () => {
                                       }}
                                     >
                                       {isEditingName ? (
-                                        <CircularProgress
-                                          size={10}
-                                          sx={{ color: "#FFF" }}
-                                        />
+                                        <CircularProgress size={10} sx={{ color: "#FFF" }} />
                                       ) : (
                                         "Save"
                                       )}
@@ -947,9 +976,7 @@ const DashboardPage = () => {
                                       whiteSpace: "nowrap",
                                       px: 0.5,
                                     }}
-                                    title={
-                                      doc.document_name || "Unnamed Document"
-                                    }
+                                    title={doc.document_name || "Unnamed Document"}
                                   >
                                     {doc.document_name || "Unnamed Document"}
                                   </Typography>
@@ -1129,7 +1156,6 @@ const DashboardPage = () => {
       </Box>
 
       {/* Three-dot Menu */}
-      {/* Three-dot Menu */}
       <Menu
         anchorEl={menuAnchorEl}
         open={Boolean(menuAnchorEl)}
@@ -1160,7 +1186,84 @@ const DashboardPage = () => {
           <MdDriveFileRenameOutline size={16} color="#3EA3FF" />
           Rename
         </MenuItem>
+        <MenuItem
+          onClick={handleDeleteClick}
+          sx={{
+            fontFamily: "Poppins",
+            fontSize: "13px",
+            py: 1,
+            px: 2,
+            display: "flex",
+            alignItems: "center",
+            gap: 1,
+            "&:hover": {
+              backgroundColor: "rgba(255, 60, 129, 0.1)",
+            },
+          }}
+        >
+          <MdDelete size={16} color="#FF3C81" />
+          Delete
+        </MenuItem>
       </Menu>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={handleCancelDelete}
+        PaperProps={{
+          sx: {
+            borderRadius: "12px",
+            padding: "8px",
+          },
+        }}
+      >
+        <DialogTitle sx={{ fontFamily: "Poppins", fontWeight: 600 }}>
+          Delete Document
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ fontFamily: "Poppins", fontSize: "14px" }}>
+            Are you sure you want to delete "{documentToDelete?.document_name}"? This action cannot be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ padding: "16px" }}>
+          <Button
+            onClick={handleCancelDelete}
+            disabled={isDeletingDocument}
+            sx={{
+              fontFamily: "Poppins",
+              textTransform: "none",
+              color: "#666",
+              "&:hover": {
+                backgroundColor: "#F5F5F5",
+              },
+            }}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleConfirmDelete}
+            disabled={isDeletingDocument}
+            variant="contained"
+            sx={{
+              fontFamily: "Poppins",
+              textTransform: "none",
+              backgroundColor: "#FF3C81",
+              "&:hover": {
+                backgroundColor: "#E03570",
+              },
+              "&:disabled": {
+                backgroundColor: "#FFB3C9",
+              },
+            }}
+          >
+            {isDeletingDocument ? (
+              <CircularProgress size={20} sx={{ color: "#FFF" }} />
+            ) : (
+              "Delete"
+            )}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Full-Screen Loading Overlay */}
       {showLoadingOverlay && (
