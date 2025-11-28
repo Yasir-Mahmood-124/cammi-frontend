@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Box, Button, Typography, CircularProgress } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import toast from 'react-hot-toast';
+import { useEditDocumentNameMutation } from "@/redux/services/document/editDocumentNameApi";
 
 interface TableOfContentsItem {
   id: string;
@@ -27,6 +28,15 @@ interface GenericDocumentPreviewProps {
   
   /** Loading state for download */
   isDownloading?: boolean;
+
+  /** User ID for editing document name */
+  userId?: string;
+
+  /** Document type UUID for editing document name */
+  documentTypeUuid?: string;
+
+  /** Callback when document name is successfully updated */
+  onDocumentNameUpdated?: (newName: string) => void;
 }
 
 const GenericDocumentPreview: React.FC<GenericDocumentPreviewProps> = ({
@@ -36,12 +46,30 @@ const GenericDocumentPreview: React.FC<GenericDocumentPreviewProps> = ({
   onDownload,
   onClose,
   isDownloading = false,
+  userId,
+  documentTypeUuid,
+  onDocumentNameUpdated,
 }) => {
   const [tableOfContents, setTableOfContents] = useState<TableOfContentsItem[]>([]);
   const [activeSection, setActiveSection] = useState<string>('');
   const [documentHtml, setDocumentHtml] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
   const contentRef = useRef<HTMLDivElement>(null);
+
+  // State for editing document name
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editedName, setEditedName] = useState(title);
+  const [currentTitle, setCurrentTitle] = useState(title);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // RTK Query mutation
+  const [editDocumentName, { isLoading: isSavingName }] = useEditDocumentNameMutation();
+
+  // Update currentTitle when title prop changes
+  useEffect(() => {
+    setCurrentTitle(title);
+    setEditedName(title);
+  }, [title]);
 
   // Parse DOCX and extract content
   useEffect(() => {
@@ -117,6 +145,14 @@ const GenericDocumentPreview: React.FC<GenericDocumentPreviewProps> = ({
     }
   }, [tableOfContents]);
 
+  // Focus input when editing mode is enabled
+  useEffect(() => {
+    if (isEditingName && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, [isEditingName]);
+
   const handleDownloadClick = async () => {
     if (onDownload) {
       try {
@@ -154,6 +190,76 @@ const GenericDocumentPreview: React.FC<GenericDocumentPreviewProps> = ({
     }
   };
 
+  // Handle double-click on title to enable editing
+  const handleTitleDoubleClick = () => {
+    if (userId && documentTypeUuid) {
+      setIsEditingName(true);
+      setEditedName(currentTitle);
+    } else {
+      toast.error('Cannot edit document name: missing document information');
+    }
+  };
+
+  // Save the edited document name
+  const handleSaveDocumentName = async () => {
+    if (!editedName.trim()) {
+      toast.error('Document name cannot be empty');
+      setEditedName(currentTitle);
+      setIsEditingName(false);
+      return;
+    }
+
+    if (editedName.trim() === currentTitle) {
+      // No change
+      setIsEditingName(false);
+      return;
+    }
+
+    if (!userId || !documentTypeUuid) {
+      toast.error('Cannot save document name: missing document information');
+      setIsEditingName(false);
+      return;
+    }
+
+    try {
+      await editDocumentName({
+        user_id: userId,
+        document_type_uuid: documentTypeUuid,
+        document_name: editedName.trim(),
+      }).unwrap();
+
+      setCurrentTitle(editedName.trim());
+      toast.success('Document name updated successfully');
+      
+      // Notify parent component
+      if (onDocumentNameUpdated) {
+        onDocumentNameUpdated(editedName.trim());
+      }
+
+      setIsEditingName(false);
+    } catch (error) {
+      console.error('Error updating document name:', error);
+      toast.error('Failed to update document name');
+      setEditedName(currentTitle);
+      setIsEditingName(false);
+    }
+  };
+
+  // Handle key press in input
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleSaveDocumentName();
+    } else if (e.key === 'Escape') {
+      setEditedName(currentTitle);
+      setIsEditingName(false);
+    }
+  };
+
+  // Handle blur (clicking outside)
+  const handleBlur = () => {
+    handleSaveDocumentName();
+  };
+
   if (isLoading) {
     return (
       <Box sx={{ 
@@ -180,17 +286,61 @@ const GenericDocumentPreview: React.FC<GenericDocumentPreviewProps> = ({
       <Box sx={{ 
         padding: '16px 40px',
         backgroundColor: '#EFF1F5',
-        flexShrink: 0
+        flexShrink: 0,
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
       }}>
-        <Typography sx={{ 
-          fontFamily: 'Poppins',
-          fontSize: '20px',
-          fontWeight: 600,
-          color: '#333',
-          textAlign: 'center'
-        }}>
-          {title}
-        </Typography>
+        {isEditingName ? (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <input
+              ref={inputRef}
+              type="text"
+              value={editedName}
+              onChange={(e) => setEditedName(e.target.value)}
+              onKeyDown={handleKeyDown}
+              onBlur={handleBlur}
+              disabled={isSavingName}
+              style={{
+                fontFamily: 'Poppins',
+                fontSize: '20px',
+                fontWeight: 600,
+                color: '#333',
+                padding: '8px 12px',
+                border: '2px solid #3EA3FF',
+                borderRadius: '6px',
+                outline: 'none',
+                backgroundColor: isSavingName ? '#f5f5f5' : '#fff',
+                minWidth: '300px',
+                textAlign: 'center',
+              }}
+            />
+            {isSavingName && (
+              <CircularProgress size={20} sx={{ color: '#3EA3FF' }} />
+            )}
+          </Box>
+        ) : (
+          <Typography 
+            onDoubleClick={handleTitleDoubleClick}
+            sx={{ 
+              fontFamily: 'Poppins',
+              fontSize: '20px',
+              fontWeight: 600,
+              color: '#333',
+              textAlign: 'center',
+              cursor: userId && documentTypeUuid ? 'pointer' : 'default',
+              padding: '8px 12px',
+              borderRadius: '6px',
+              transition: 'background-color 0.2s',
+              '&:hover': userId && documentTypeUuid ? {
+                backgroundColor: 'rgba(62, 163, 255, 0.05)',
+              } : {},
+            }}
+            title={userId && documentTypeUuid ? "Double-click to rename" : undefined}
+          >
+            {currentTitle}
+          </Typography>
+        )}
       </Box>
 
       {/* Main Content */}
@@ -231,8 +381,8 @@ const GenericDocumentPreview: React.FC<GenericDocumentPreviewProps> = ({
             sx={{ 
               flex: 1,
               overflowY: 'auto',
-              direction: 'rtl', // Right-to-left to move scrollbar to left
-              paddingLeft: '12px', // Changed from paddingRight since direction is rtl
+              direction: 'rtl',
+              paddingLeft: '12px',
               '&::-webkit-scrollbar': {
                 width: '6px',
               },
@@ -248,7 +398,7 @@ const GenericDocumentPreview: React.FC<GenericDocumentPreviewProps> = ({
                 },
               },
             }}>
-            <Box sx={{ direction: 'ltr' }}> {/* Reset direction for content */}
+            <Box sx={{ direction: 'ltr' }}>
               {tableOfContents.map((item) => (
                 <Box
                   key={item.id}
@@ -258,13 +408,13 @@ const GenericDocumentPreview: React.FC<GenericDocumentPreviewProps> = ({
                     padding: '10px 12px',
                     paddingLeft: `${12 + (item.level - 1) * 16}px`,
                     marginBottom: '4px',
-                    marginLeft: '8px', // Changed from marginRight - creates space from scrollbar
+                    marginLeft: '8px',
                     cursor: 'pointer',
                     borderRadius: '6px',
                     backgroundColor: 'transparent',
                     transition: 'background-color 0.2s ease',
                     '&:hover': {
-                      backgroundColor: '#F5F5F5', // Light grey background on hover
+                      backgroundColor: '#F5F5F5',
                     },
                   }}
                 >

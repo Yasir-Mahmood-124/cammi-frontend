@@ -2,6 +2,7 @@ import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
 // Define the Document type based on your API response
 export interface UserDocument {
+  document_name: string;
   id: string;
   name: string;
   // Add other fields from your API response as needed

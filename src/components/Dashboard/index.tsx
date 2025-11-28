@@ -14,14 +14,20 @@ import {
   TableRow,
   Button,
   CircularProgress,
+  IconButton,
+  Menu,
+  MenuItem,
 } from "@mui/material";
 import { FaSearch } from "react-icons/fa";
+import { BsThreeDotsVertical } from "react-icons/bs";
+import { MdDriveFileRenameOutline } from "react-icons/md";
 import {
   useGetReviewsMutation,
   Review,
 } from "@/redux/services/documentReview/reviewApi";
 import { useGetUserDocumentsMutation } from "@/redux/services/document/documentsApi";
 import { useGetSpecificDocumentMutation } from "@/redux/services/document/getSpecificDocument";
+import { useEditDocumentNameMutation } from "@/redux/services/document/editDocumentNameApi";
 import Cookies from "js-cookie";
 import GenericDocumentPreview from "@/components/GenericDocumentPreview";
 import toast from "react-hot-toast";
@@ -29,7 +35,9 @@ import toast from "react-hot-toast";
 interface DocumentItem {
   document_id?: string;
   document_type_uuid?: string;
+  document_type?: string;
   document_name?: string;
+  document_url?: string;
   createdAt?: string;
   created_at?: string;
   user_id?: string;
@@ -51,6 +59,9 @@ const DashboardPage = () => {
     },
   ] = useGetSpecificDocumentMutation();
 
+  const [editDocumentName, { isLoading: isEditingName }] =
+    useEditDocumentNameMutation();
+
   // State for document preview
   const [showPreview, setShowPreview] = useState(false);
   const [selectedDocument, setSelectedDocument] = useState<DocumentItem | null>(
@@ -69,31 +80,42 @@ const DashboardPage = () => {
   // State for search functionality
   const [searchQuery, setSearchQuery] = useState("");
 
+  // State for editing document name
+  const [editingDocumentId, setEditingDocumentId] = useState<string | null>(
+    null
+  );
+  const [editingDocumentName, setEditingDocumentName] = useState("");
+
+  // State for three-dot menu
+  const [menuAnchorEl, setMenuAnchorEl] = useState<null | HTMLElement>(null);
+  const [selectedMenuDocument, setSelectedMenuDocument] =
+    useState<DocumentItem | null>(null);
+
   // Calculate documents per row based on screen width
   useEffect(() => {
     const calculateDocumentsPerRow = () => {
       const screenWidth = window.innerWidth;
-      
+
       // Subtract sidebar width (approximately 250px) and padding
       const availableWidth = screenWidth - 250 - 64; // 64px for px: 4 (32px each side)
-      
+
       // Each document card is 105px wide + 9.6px gap (1.2 * 8px)
       const cardWidth = 105 + 9.6;
-      
+
       // Calculate how many cards can fit
       const cardsPerRow = Math.floor(availableWidth / cardWidth);
-      
+
       // Set minimum of 5 and maximum based on calculation
       const finalCount = Math.max(5, Math.min(cardsPerRow, 15));
-      
+
       setDocumentsPerRow(finalCount);
     };
 
     // Calculate on mount and on window resize
     calculateDocumentsPerRow();
-    window.addEventListener('resize', calculateDocumentsPerRow);
+    window.addEventListener("resize", calculateDocumentsPerRow);
 
-    return () => window.removeEventListener('resize', calculateDocumentsPerRow);
+    return () => window.removeEventListener("resize", calculateDocumentsPerRow);
   }, []);
 
   useEffect(() => {
@@ -111,14 +133,45 @@ const DashboardPage = () => {
     }
   }, []);
 
-  // Handle document card click
+  // Log document structure when documents arrive
+  useEffect(() => {
+    if (documentsData?.documents && documentsData.documents.length > 0) {
+      console.log(
+        "First document structure:",
+        JSON.stringify(documentsData.documents[0], null, 2)
+      );
+      console.log(
+        "All document keys:",
+        Object.keys(documentsData.documents[0])
+      );
+    }
+  }, [documentsData]);
+
+  // Helper function to get document unique identifier
+  const getDocumentId = (doc: DocumentItem): string | null => {
+    return (
+      doc.document_id ||
+      doc.document_type_uuid ||
+      doc.document_url ||
+      doc.document_name ||
+      null
+    );
+  };
+
+  // Handle document card click - open document
   const handleDocumentClick = async (doc: DocumentItem) => {
+    const docId = getDocumentId(doc);
+
+    if (loadingDocumentId === docId || editingDocumentId === docId) {
+      return;
+    }
+
     // Show loading overlay immediately
     setShowLoadingOverlay(true);
 
     try {
       // Set loading state for this specific document
-      setLoadingDocumentId(doc.document_id || null);
+      setLoadingDocumentId(docId);
       setSelectedDocument(doc);
 
       // Get user_id from localStorage or wherever it's stored
@@ -161,6 +214,114 @@ const DashboardPage = () => {
       setLoadingDocumentId(null);
       setShowLoadingOverlay(false);
     }
+  };
+
+  // Handle three-dot menu click
+  const handleMenuClick = (
+    e: React.MouseEvent<HTMLElement>,
+    doc: DocumentItem
+  ) => {
+    e.stopPropagation();
+    console.log("Menu clicked for document:", doc);
+    console.log("Document keys:", Object.keys(doc));
+    setMenuAnchorEl(e.currentTarget);
+    setSelectedMenuDocument(doc);
+  };
+
+  // Handle menu close
+  const handleMenuClose = () => {
+    setMenuAnchorEl(null);
+    setSelectedMenuDocument(null);
+  };
+
+  // Handle rename click from menu
+  const handleRenameClick = () => {
+    console.log("Rename clicked!");
+    console.log(
+      "Full selected document:",
+      JSON.stringify(selectedMenuDocument, null, 2)
+    );
+
+    if (selectedMenuDocument) {
+      // Try to find any unique identifier
+      const docId = getDocumentId(selectedMenuDocument);
+
+      console.log("Setting editing document ID:", docId);
+      console.log(
+        "Setting editing document name:",
+        selectedMenuDocument.document_name
+      );
+      console.log(
+        "Available document fields:",
+        Object.keys(selectedMenuDocument)
+      );
+
+      setEditingDocumentId(docId);
+      setEditingDocumentName(selectedMenuDocument.document_name || "");
+    } else {
+      console.log("No document selected!");
+    }
+
+    handleMenuClose();
+  };
+
+  // Save edited document name
+  const handleSaveDocumentName = async (doc: DocumentItem) => {
+    if (!editingDocumentName.trim()) {
+      toast.error("Document name cannot be empty");
+      return;
+    }
+
+    if (editingDocumentName === doc.document_name) {
+      // No change, just cancel editing
+      setEditingDocumentId(null);
+      return;
+    }
+
+    try {
+      const userDataString = localStorage.getItem("userData");
+      const userData = userDataString ? JSON.parse(userDataString) : null;
+      const userId = userData?.user_id || doc.user_id;
+
+      if (!userId) {
+        toast.error("User ID not found. Please log in again.");
+        return;
+      }
+
+      const documentTypeUuid = doc.document_type_uuid || doc.document_id;
+
+      if (!documentTypeUuid) {
+        toast.error("Document ID not found.");
+        return;
+      }
+
+      await editDocumentName({
+        user_id: userId,
+        document_type_uuid: documentTypeUuid,
+        document_name: editingDocumentName.trim(),
+      }).unwrap();
+
+      toast.success("Document name updated successfully");
+
+      // Refresh documents list
+      const sessionId = Cookies.get("token");
+      if (sessionId) {
+        getUserDocuments({
+          session_id: sessionId,
+        });
+      }
+
+      setEditingDocumentId(null);
+    } catch (error) {
+      console.error("Error updating document name:", error);
+      toast.error("Failed to update document name. Please try again.");
+    }
+  };
+
+  // Cancel editing
+  const handleCancelEdit = () => {
+    setEditingDocumentId(null);
+    setEditingDocumentName("");
   };
 
   // Close preview and go back to dashboard
@@ -234,7 +395,7 @@ const DashboardPage = () => {
 
   // Calculate documents to display
   const totalDocuments = filteredDocuments.length;
-  const shouldShowToggle = totalDocuments > documentsPerRow && !searchQuery; // Hide toggle when searching
+  const shouldShowToggle = totalDocuments > documentsPerRow && !searchQuery;
   const displayedDocuments =
     showAllDocuments || searchQuery
       ? filteredDocuments
@@ -281,7 +442,6 @@ const DashboardPage = () => {
         </Box>
       );
     }
-
     if (specificDocumentData?.document_base64) {
       return (
         <Box sx={{ width: "100%", height: "100%", display: "flex" }}>
@@ -292,6 +452,33 @@ const DashboardPage = () => {
             onDownload={handleDownload}
             onClose={handleBackToDashboard}
             isDownloading={isDownloading}
+            userId={(() => {
+              const userDataString = localStorage.getItem("userData");
+              const userData = userDataString
+                ? JSON.parse(userDataString)
+                : null;
+              return userData?.user_id || selectedDocument?.user_id;
+            })()}
+            documentTypeUuid={
+              selectedDocument?.document_type_uuid ||
+              selectedDocument?.document_id
+            }
+            onDocumentNameUpdated={(newName) => {
+              // Update the selected document name using proper state update
+              if (selectedDocument) {
+                setSelectedDocument({
+                  ...selectedDocument,
+                  document_name: newName,
+                });
+              }
+              // Refresh the documents list
+              const sessionId = Cookies.get("token");
+              if (sessionId) {
+                getUserDocuments({
+                  session_id: sessionId,
+                });
+              }
+            }}
           />
         </Box>
       );
@@ -327,8 +514,8 @@ const DashboardPage = () => {
               py: 1,
               px: 4,
               width: "100%",
-              maxWidth: "1600px", // Add max width for very large screens
-              mx: "auto", // Center the content
+              maxWidth: "1600px",
+              mx: "auto",
             }}
           >
             {/* Welcome Section */}
@@ -510,9 +697,9 @@ const DashboardPage = () => {
                     Error loading documents. Please try again.
                   </Typography>
                 ) : displayedDocuments && displayedDocuments.length > 0 ? (
-                  <Box 
-                    display="flex" 
-                    flexWrap="wrap" // Allow documents to wrap into multiple rows
+                  <Box
+                    display="flex"
+                    flexWrap="wrap"
                     gap={1.2}
                     sx={{
                       overflowX: "hidden",
@@ -521,31 +708,28 @@ const DashboardPage = () => {
                   >
                     {displayedDocuments.map(
                       (doc: DocumentItem, index: number) => {
-                        const isLoading = loadingDocumentId === doc.document_id;
+                        const docId = getDocumentId(doc);
+                        const isLoading = loadingDocumentId === docId;
+                        const isEditing = editingDocumentId === docId;
 
                         return (
                           <Box
-                            key={doc.document_id || index}
-                            onClick={() =>
-                              !isLoading && handleDocumentClick(doc)
-                            }
+                            key={docId || index}
                             sx={{
                               display: "flex",
                               flexDirection: "column",
                               alignItems: "center",
-                              cursor: isLoading ? "wait" : "pointer",
-                              transition: "transform 0.2s",
-                              opacity: isLoading ? 0.7 : 1,
-                              flexShrink: 0, // Prevent cards from shrinking
-                              "&:hover": {
-                                transform: isLoading
-                                  ? "none"
-                                  : "translateY(-4px)",
-                              },
+                              flexShrink: 0,
+                              position: "relative",
                             }}
                           >
                             {/* Card */}
                             <Box
+                              onClick={() =>
+                                !isLoading &&
+                                !isEditing &&
+                                handleDocumentClick(doc)
+                              }
                               sx={{
                                 width: "105px",
                                 height: "135px",
@@ -558,14 +742,26 @@ const DashboardPage = () => {
                                 justifyContent: "center",
                                 overflow: "hidden",
                                 position: "relative",
+                                cursor:
+                                  isLoading || isEditing
+                                    ? "default"
+                                    : "pointer",
+                                opacity: isLoading ? 0.7 : 1,
                                 transition: "all 0.2s",
+                                userSelect: "none",
                                 "&:hover": {
-                                  backgroundColor: isLoading
-                                    ? "#E4E5E8"
-                                    : "#D5D7DB",
-                                  borderColor: isLoading
-                                    ? "#E4E5E8"
-                                    : "#C5C7CB",
+                                  transform:
+                                    isLoading || isEditing
+                                      ? "none"
+                                      : "translateY(-4px)",
+                                  backgroundColor:
+                                    isLoading || isEditing
+                                      ? "#E4E5E8"
+                                      : "#D5D7DB",
+                                  borderColor:
+                                    isLoading || isEditing
+                                      ? "#E4E5E8"
+                                      : "#C5C7CB",
                                 },
                               }}
                             >
@@ -576,8 +772,29 @@ const DashboardPage = () => {
                                   width: "80%",
                                   height: "80%",
                                   objectFit: "contain",
+                                  pointerEvents: "none",
                                 }}
                               />
+
+                              {/* Three-dot menu button */}
+                              {!isLoading && !isEditing && (
+                                <IconButton
+                                  onClick={(e) => handleMenuClick(e, doc)}
+                                  sx={{
+                                    position: "absolute",
+                                    top: 4,
+                                    right: 4,
+                                    padding: "4px",
+                                    backgroundColor: "rgba(255, 255, 255, 0.8)",
+                                    "&:hover": {
+                                      backgroundColor:
+                                        "rgba(255, 255, 255, 0.95)",
+                                    },
+                                  }}
+                                >
+                                  <BsThreeDotsVertical size={14} color="#666" />
+                                </IconButton>
+                              )}
 
                               {/* Loading Overlay */}
                               {isLoading && (
@@ -613,45 +830,153 @@ const DashboardPage = () => {
                                 width: "105px",
                               }}
                             >
-                              <Typography
-                                sx={{
-                                  color: "#000000",
-                                  fontFamily: "Poppins",
-                                  fontSize: "9px",
-                                  fontStyle: "normal",
-                                  fontWeight: 500,
-                                  lineHeight: "12px",
-                                  overflow: "hidden",
-                                  textOverflow: "ellipsis",
-                                  whiteSpace: "nowrap",
-                                  px: 0.5,
-                                }}
-                                title={doc.document_name || "Unnamed Document"}
-                              >
-                                {doc.document_name || "Unnamed Document"}
-                              </Typography>
-                              <Typography
-                                sx={{
-                                  color: "#949494",
-                                  fontFamily: "Poppins",
-                                  fontSize: "7px",
-                                  fontStyle: "normal",
-                                  fontWeight: 400,
-                                  lineHeight: "10px",
-                                  mt: 0.3,
-                                }}
-                              >
-                                {doc.createdAt ?? doc.created_at
-                                  ? new Date(
-                                      (doc.createdAt ??
-                                        doc.created_at) as string
-                                    ).toLocaleDateString("en-US", {
-                                      month: "short",
-                                      day: "numeric",
-                                      year: "numeric",
-                                    })
-                                  : "No date"}
-                              </Typography>
+                              {isEditing ? (
+                                <Box
+                                  sx={{
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    gap: 0.5,
+                                  }}
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <input
+                                    type="text"
+                                    value={editingDocumentName}
+                                    onChange={(e) =>
+                                      setEditingDocumentName(e.target.value)
+                                    }
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter") {
+                                        handleSaveDocumentName(doc);
+                                      } else if (e.key === "Escape") {
+                                        handleCancelEdit();
+                                      }
+                                    }}
+                                    autoFocus
+                                    disabled={isEditingName}
+                                    style={{
+                                      width: "100%",
+                                      height: "24px",
+                                      fontSize: "9px",
+                                      fontFamily: "Poppins",
+                                      padding: "4px 6px",
+                                      border: "1px solid #3EA3FF",
+                                      borderRadius: "4px",
+                                      outline: "none",
+                                      backgroundColor: isEditingName
+                                        ? "#f5f5f5"
+                                        : "#fff",
+                                    }}
+                                  />
+                                  <Box
+                                    sx={{
+                                      display: "flex",
+                                      gap: 0.5,
+                                      justifyContent: "center",
+                                    }}
+                                  >
+                                    <Button
+                                      onClick={() =>
+                                        handleSaveDocumentName(doc)
+                                      }
+                                      disabled={isEditingName}
+                                      sx={{
+                                        minWidth: "40px",
+                                        height: "18px",
+                                        padding: "2px 6px",
+                                        fontSize: "8px",
+                                        fontFamily: "Poppins",
+                                        textTransform: "none",
+                                        backgroundColor: "#3EA3FF",
+                                        color: "#FFF",
+                                        "&:hover": {
+                                          backgroundColor: "#2E8FD9",
+                                        },
+                                        "&:disabled": {
+                                          backgroundColor: "#B0B0B0",
+                                          color: "#FFF",
+                                        },
+                                      }}
+                                    >
+                                      {isEditingName ? (
+                                        <CircularProgress
+                                          size={10}
+                                          sx={{ color: "#FFF" }}
+                                        />
+                                      ) : (
+                                        "Save"
+                                      )}
+                                    </Button>
+                                    <Button
+                                      onClick={handleCancelEdit}
+                                      disabled={isEditingName}
+                                      sx={{
+                                        minWidth: "40px",
+                                        height: "18px",
+                                        padding: "2px 6px",
+                                        fontSize: "8px",
+                                        fontFamily: "Poppins",
+                                        textTransform: "none",
+                                        backgroundColor: "#E0E0E0",
+                                        color: "#000",
+                                        "&:hover": {
+                                          backgroundColor: "#D0D0D0",
+                                        },
+                                        "&:disabled": {
+                                          backgroundColor: "#F0F0F0",
+                                          color: "#B0B0B0",
+                                        },
+                                      }}
+                                    >
+                                      Cancel
+                                    </Button>
+                                  </Box>
+                                </Box>
+                              ) : (
+                                <>
+                                  <Typography
+                                    sx={{
+                                      color: "#000000",
+                                      fontFamily: "Poppins",
+                                      fontSize: "9px",
+                                      fontStyle: "normal",
+                                      fontWeight: 500,
+                                      lineHeight: "12px",
+                                      overflow: "hidden",
+                                      textOverflow: "ellipsis",
+                                      whiteSpace: "nowrap",
+                                      px: 0.5,
+                                    }}
+                                    title={
+                                      doc.document_name || "Unnamed Document"
+                                    }
+                                  >
+                                    {doc.document_name || "Unnamed Document"}
+                                  </Typography>
+                                  <Typography
+                                    sx={{
+                                      color: "#949494",
+                                      fontFamily: "Poppins",
+                                      fontSize: "7px",
+                                      fontStyle: "normal",
+                                      fontWeight: 400,
+                                      lineHeight: "10px",
+                                      mt: 0.3,
+                                    }}
+                                  >
+                                    {doc.createdAt ?? doc.created_at
+                                      ? new Date(
+                                          (doc.createdAt ??
+                                            doc.created_at) as string
+                                        ).toLocaleDateString("en-US", {
+                                          month: "short",
+                                          day: "numeric",
+                                          year: "numeric",
+                                        })
+                                      : "No date"}
+                                  </Typography>
+                                </>
+                              )}
                             </Box>
                           </Box>
                         );
@@ -701,7 +1026,7 @@ const DashboardPage = () => {
                   component={Paper}
                   sx={{
                     borderRadius: "12px",
-                    width: "100%", // Changed from maxWidth: 900 to width: 100%
+                    width: "100%",
                     boxShadow: "none",
                     border: "1px solid #E0E0E0",
                   }}
@@ -802,6 +1127,40 @@ const DashboardPage = () => {
           </Box>
         </Box>
       </Box>
+
+      {/* Three-dot Menu */}
+      {/* Three-dot Menu */}
+      <Menu
+        anchorEl={menuAnchorEl}
+        open={Boolean(menuAnchorEl)}
+        onClose={handleMenuClose}
+        sx={{
+          "& .MuiPaper-root": {
+            borderRadius: "8px",
+            boxShadow: "0px 4px 12px rgba(0, 0, 0, 0.1)",
+            minWidth: "140px",
+          },
+        }}
+      >
+        <MenuItem
+          onClick={handleRenameClick}
+          sx={{
+            fontFamily: "Poppins",
+            fontSize: "13px",
+            py: 1,
+            px: 2,
+            display: "flex",
+            alignItems: "center",
+            gap: 1,
+            "&:hover": {
+              backgroundColor: "rgba(62, 163, 255, 0.1)",
+            },
+          }}
+        >
+          <MdDriveFileRenameOutline size={16} color="#3EA3FF" />
+          Rename
+        </MenuItem>
+      </Menu>
 
       {/* Full-Screen Loading Overlay */}
       {showLoadingOverlay && (
