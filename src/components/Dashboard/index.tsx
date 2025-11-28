@@ -23,7 +23,8 @@ import {
   DialogActions,
   DialogContentText,
 } from "@mui/material";
-import { FaSearch } from "react-icons/fa";
+
+import { FaSearch } from "@/assests/icons";
 import { BsThreeDotsVertical } from "react-icons/bs";
 import { MdDriveFileRenameOutline, MdDelete } from "react-icons/md";
 import {
@@ -37,6 +38,7 @@ import { useDeleteDocumentMutation } from "@/redux/services/document/deleteDocum
 import Cookies from "js-cookie";
 import GenericDocumentPreview from "@/components/GenericDocumentPreview";
 import toast from "react-hot-toast";
+import styles from "./style.module.scss";
 
 interface DocumentItem {
   document_id?: string;
@@ -461,15 +463,7 @@ const DashboardPage = () => {
   if (showPreview) {
     if (documentPreviewLoading) {
       return (
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            height: "100vh",
-            backgroundColor: "#EFF1F5",
-          }}
-        >
+        <Box className={styles.previewLoadingContainer}>
           <CircularProgress />
         </Box>
       );
@@ -477,17 +471,7 @@ const DashboardPage = () => {
 
     if (documentPreviewError) {
       return (
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            height: "100vh",
-            backgroundColor: "#EFF1F5",
-            flexDirection: "column",
-            gap: 2,
-          }}
-        >
+        <Box className={styles.previewErrorContainer}>
           <Typography color="error">Failed to load document</Typography>
           <Button variant="contained" onClick={handleBackToDashboard}>
             Back to Dashboard
@@ -498,7 +482,7 @@ const DashboardPage = () => {
 
     if (specificDocumentData?.document_base64) {
       return (
-        <Box sx={{ width: "100%", height: "100%", display: "flex" }}>
+        <Box className={styles.previewWrapper}>
           <GenericDocumentPreview
             docxBase64={specificDocumentData.document_base64}
             title={selectedDocument?.document_name || "Document Preview"}
@@ -537,95 +521,28 @@ const DashboardPage = () => {
   // Regular dashboard view
   return (
     <>
-      <Box
-        sx={{
-          display: "flex",
-          width: "100%",
-          height: "100%",
-          overflow: "hidden",
-        }}
-      >
+      <Box className={styles.dashboardContainer}>
         {/* Main Content */}
-        <Box
-          sx={{
-            flexGrow: 1,
-            backgroundColor: "#EFF1F5",
-            overflowY: "auto",
-            height: "100%",
-          }}
-        >
-          <Box
-            sx={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "flex-start",
-              gap: 2,
-              py: 1,
-              px: 4,
-              width: "100%",
-              maxWidth: "1600px",
-              mx: "auto",
-            }}
-          >
+        <Box className={styles.mainContent}>
+          <Box className={styles.contentWrapper}>
             {/* Welcome Section */}
-            <Box sx={{ width: "100%", textAlign: "center" }}>
-              <Typography
-                variant="h4"
-                sx={{
-                  color: "#000",
-                  fontFamily: "Poppins",
-                  fontWeight: 600,
-                  fontSize: "26px",
-                  mb: 1.5,
-                }}
-              >
+            <Box className={styles.welcomeSection}>
+              <Typography className={styles.welcomeTitle}>
                 Welcome to{" "}
-                <span
-                  style={{
-                    background: "linear-gradient(90deg, #FF3C81, #3EA3FF)",
-                    WebkitBackgroundClip: "text",
-                    WebkitTextFillColor: "transparent",
-                    backgroundClip: "text",
-                  }}
-                >
+                <span className={styles.brandName}>
                   CAMMI
                 </span>
               </Typography>
 
               {/* Search Bar */}
-              <Box
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  width: "550px",
-                  height: "36px",
-                  borderRadius: "18px",
-                  border: "0.6px solid #D5D5D5",
-                  backgroundColor: "#FFF",
-                  px: 2,
-                  mx: "auto",
-                  flexShrink: 0,
-                  position: "relative",
-                }}
-              >
-                <FaSearch color="#7A7A7A" size={16} />
+              <Box className={styles.searchBarContainer}>
+                <FaSearch />
                 <input
                   type="text"
                   placeholder="Search documents"
                   value={searchQuery}
                   onChange={handleSearchChange}
-                  style={{
-                    marginLeft: "8px",
-                    width: "100%",
-                    height: "100%",
-                    border: "none",
-                    outline: "none",
-                    background: "transparent",
-                    fontSize: "14px",
-                    fontFamily: "Poppins, sans-serif",
-                    color: "#000",
-                    paddingRight: searchQuery ? "30px" : "0",
-                  }}
+                  className={`${styles.searchInput} ${searchQuery ? styles.withClearButton : ''}`}
                 />
                 {searchQuery && (
                   <Box
@@ -633,31 +550,9 @@ const DashboardPage = () => {
                       setSearchQuery("");
                       setShowAllDocuments(false);
                     }}
-                    sx={{
-                      position: "absolute",
-                      right: "12px",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      cursor: "pointer",
-                      width: "20px",
-                      height: "20px",
-                      borderRadius: "50%",
-                      backgroundColor: "#E0E0E0",
-                      transition: "background-color 0.2s",
-                      "&:hover": {
-                        backgroundColor: "#BDBDBD",
-                      },
-                    }}
+                    className={styles.clearButton}
                   >
-                    <Typography
-                      sx={{
-                        color: "#FFF",
-                        fontSize: "14px",
-                        fontWeight: 600,
-                        lineHeight: 1,
-                      }}
-                    >
+                    <Typography className={styles.clearButtonText}>
                       ×
                     </Typography>
                   </Box>
@@ -665,44 +560,15 @@ const DashboardPage = () => {
               </Box>
             </Box>
 
-            <Box
-              display="flex"
-              flexWrap="wrap"
-              gap={2}
-              justifyContent="flex-start"
-              width="100%"
-            >
+            <Box className={styles.documentsWrapper}>
               {/* My Documents */}
-              <Box sx={{ width: "100%" }}>
+              <Box className={styles.documentsSection}>
                 {/* Header with See More/See Less Toggle */}
-                <Box
-                  sx={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    mb: 1.2,
-                  }}
-                >
-                  <Typography
-                    variant="h6"
-                    sx={{
-                      color: "#000",
-                      fontFamily: "Poppins",
-                      fontSize: "20px",
-                      fontWeight: 600,
-                    }}
-                  >
+                <Box className={styles.sectionHeader}>
+                  <Typography className={styles.sectionTitle}>
                     My Documents
                     {searchQuery && (
-                      <Typography
-                        component="span"
-                        sx={{
-                          ml: 1,
-                          color: "#949494",
-                          fontSize: "13px",
-                          fontWeight: 400,
-                        }}
-                      >
+                      <Typography component="span" className={styles.searchResultsCount}>
                         ({totalDocuments}{" "}
                         {totalDocuments === 1 ? "result" : "results"})
                       </Typography>
@@ -713,48 +579,23 @@ const DashboardPage = () => {
                   {shouldShowToggle && !documentsLoading && (
                     <Button
                       onClick={handleToggleDocuments}
-                      sx={{
-                        backgroundColor: "#FFF",
-                        border: "1px solid #D9D9D9",
-                        borderRadius: "18px",
-                        padding: "4px 8px",
-                        color: "#000",
-                        fontFamily: "Poppins",
-                        fontSize: "10px",
-                        fontWeight: 500,
-                        textTransform: "none",
-                        transition: "all 0.2s ease",
-                        "&:hover": {
-                          backgroundColor: "#FFF",
-                          borderColor: "#3EA3FF",
-                          color: "#3EA3FF",
-                        },
-                        marginTop: "10px",
-                      }}
+                      className={styles.toggleButton}
                     >
-                      {showAllDocuments ? "See Less" : "See More"}
+                      {showAllDocuments ? "See Less" : "See all"}
                     </Button>
                   )}
                 </Box>
 
                 {documentsLoading ? (
-                  <Box display="flex" justifyContent="center" py={4}>
+                  <Box className={styles.loadingContainer}>
                     <CircularProgress />
                   </Box>
                 ) : documentsError ? (
-                  <Typography color="error">
+                  <Typography className={styles.errorText}>
                     Error loading documents. Please try again.
                   </Typography>
                 ) : displayedDocuments && displayedDocuments.length > 0 ? (
-                  <Box 
-                    display="flex" 
-                    flexWrap="wrap"
-                    gap={1.2}
-                    sx={{
-                      overflowX: "hidden",
-                      overflowY: "hidden",
-                    }}
-                  >
+                  <Box className={styles.documentCardsContainer}>
                     {displayedDocuments.map(
                       (doc: DocumentItem, index: number) => {
                         const docId = getDocumentId(doc);
@@ -764,71 +605,24 @@ const DashboardPage = () => {
                         return (
                           <Box
                             key={docId || index}
-                            sx={{
-                              display: "flex",
-                              flexDirection: "column",
-                              alignItems: "center",
-                              flexShrink: 0,
-                              position: "relative",
-                            }}
+                            className={styles.documentCardWrapper}
                           >
                             {/* Card */}
                             <Box
                               onClick={() => !isLoading && !isEditing && handleDocumentClick(doc)}
-                              sx={{
-                                width: "105px",
-                                height: "135px",
-                                flexShrink: 0,
-                                borderRadius: "12px",
-                                backgroundColor: "#E4E5E8",
-                                border: "1px solid #E4E5E8",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                overflow: "hidden",
-                                position: "relative",
-                                cursor: isLoading || isEditing ? "default" : "pointer",
-                                opacity: isLoading ? 0.7 : 1,
-                                transition: "all 0.2s",
-                                userSelect: "none",
-                                "&:hover": {
-                                  transform: isLoading || isEditing
-                                    ? "none"
-                                    : "translateY(-4px)",
-                                  backgroundColor: isLoading || isEditing
-                                    ? "#E4E5E8"
-                                    : "#D5D7DB",
-                                  borderColor: isLoading || isEditing
-                                    ? "#E4E5E8"
-                                    : "#C5C7CB",
-                                },
-                              }}
+                              className={`${styles.documentCard} ${isLoading ? styles.loading : ''} ${isEditing ? styles.editing : ''}`}
                             >
                               <img
                                 src={defaultDocumentImage}
                                 alt={doc.document_name || "Document"}
-                                style={{
-                                  width: "80%",
-                                  height: "80%",
-                                  objectFit: "contain",
-                                  pointerEvents: "none",
-                                }}
+                                className={styles.documentImage}
                               />
 
                               {/* Three-dot menu button */}
                               {!isLoading && !isEditing && (
                                 <IconButton
                                   onClick={(e) => handleMenuClick(e, doc)}
-                                  sx={{
-                                    position: "absolute",
-                                    top: 4,
-                                    right: 4,
-                                    padding: "4px",
-                                    backgroundColor: "rgba(255, 255, 255, 0.8)",
-                                    "&:hover": {
-                                      backgroundColor: "rgba(255, 255, 255, 0.95)",
-                                    },
-                                  }}
+                                  className={styles.menuButton}
                                 >
                                   <BsThreeDotsVertical size={14} color="#666" />
                                 </IconButton>
@@ -836,45 +630,20 @@ const DashboardPage = () => {
 
                               {/* Loading Overlay */}
                               {isLoading && (
-                                <Box
-                                  sx={{
-                                    position: "absolute",
-                                    top: 0,
-                                    left: 0,
-                                    right: 0,
-                                    bottom: 0,
-                                    backgroundColor: "rgba(255, 255, 255, 0.9)",
-                                    display: "flex",
-                                    alignItems: "center",
-                                    justifyContent: "center",
-                                    borderRadius: "15px",
-                                  }}
-                                >
+                                <Box className={styles.loadingOverlay}>
                                   <CircularProgress
                                     size={35}
-                                    sx={{
-                                      color: "#3EA3FF",
-                                    }}
+                                    sx={{ color: "#3EA3FF" }}
                                   />
                                 </Box>
                               )}
                             </Box>
 
                             {/* Document Name and Date */}
-                            <Box
-                              sx={{
-                                mt: 0.8,
-                                textAlign: "center",
-                                width: "105px",
-                              }}
-                            >
+                            <Box className={styles.documentInfo}>
                               {isEditing ? (
                                 <Box
-                                  sx={{
-                                    display: "flex",
-                                    flexDirection: "column",
-                                    gap: 0.5,
-                                  }}
+                                  className={styles.editingContainer}
                                   onClick={(e) => e.stopPropagation()}
                                 >
                                   <input
@@ -890,45 +659,13 @@ const DashboardPage = () => {
                                     }}
                                     autoFocus
                                     disabled={isEditingName}
-                                    style={{
-                                      width: "100%",
-                                      height: "24px",
-                                      fontSize: "9px",
-                                      fontFamily: "Poppins",
-                                      padding: "4px 6px",
-                                      border: "1px solid #3EA3FF",
-                                      borderRadius: "4px",
-                                      outline: "none",
-                                      backgroundColor: isEditingName ? "#f5f5f5" : "#fff",
-                                    }}
+                                    className={styles.editInput}
                                   />
-                                  <Box
-                                    sx={{
-                                      display: "flex",
-                                      gap: 0.5,
-                                      justifyContent: "center",
-                                    }}
-                                  >
+                                  <Box className={styles.editButtonsContainer}>
                                     <Button
                                       onClick={() => handleSaveDocumentName(doc)}
                                       disabled={isEditingName}
-                                      sx={{
-                                        minWidth: "40px",
-                                        height: "18px",
-                                        padding: "2px 6px",
-                                        fontSize: "8px",
-                                        fontFamily: "Poppins",
-                                        textTransform: "none",
-                                        backgroundColor: "#3EA3FF",
-                                        color: "#FFF",
-                                        "&:hover": {
-                                          backgroundColor: "#2E8FD9",
-                                        },
-                                        "&:disabled": {
-                                          backgroundColor: "#B0B0B0",
-                                          color: "#FFF",
-                                        },
-                                      }}
+                                      className={styles.saveButton}
                                     >
                                       {isEditingName ? (
                                         <CircularProgress size={10} sx={{ color: "#FFF" }} />
@@ -939,23 +676,7 @@ const DashboardPage = () => {
                                     <Button
                                       onClick={handleCancelEdit}
                                       disabled={isEditingName}
-                                      sx={{
-                                        minWidth: "40px",
-                                        height: "18px",
-                                        padding: "2px 6px",
-                                        fontSize: "8px",
-                                        fontFamily: "Poppins",
-                                        textTransform: "none",
-                                        backgroundColor: "#E0E0E0",
-                                        color: "#000",
-                                        "&:hover": {
-                                          backgroundColor: "#D0D0D0",
-                                        },
-                                        "&:disabled": {
-                                          backgroundColor: "#F0F0F0",
-                                          color: "#B0B0B0",
-                                        },
-                                      }}
+                                      className={styles.cancelButton}
                                     >
                                       Cancel
                                     </Button>
@@ -964,33 +685,12 @@ const DashboardPage = () => {
                               ) : (
                                 <>
                                   <Typography
-                                    sx={{
-                                      color: "#000000",
-                                      fontFamily: "Poppins",
-                                      fontSize: "9px",
-                                      fontStyle: "normal",
-                                      fontWeight: 500,
-                                      lineHeight: "12px",
-                                      overflow: "hidden",
-                                      textOverflow: "ellipsis",
-                                      whiteSpace: "nowrap",
-                                      px: 0.5,
-                                    }}
+                                    className={styles.documentName}
                                     title={doc.document_name || "Unnamed Document"}
                                   >
                                     {doc.document_name || "Unnamed Document"}
                                   </Typography>
-                                  <Typography
-                                    sx={{
-                                      color: "#949494",
-                                      fontFamily: "Poppins",
-                                      fontSize: "7px",
-                                      fontStyle: "normal",
-                                      fontWeight: 400,
-                                      lineHeight: "10px",
-                                      mt: 0.3,
-                                    }}
-                                  >
+                                  <Typography className={styles.documentDate}>
                                     {doc.createdAt ?? doc.created_at
                                       ? new Date(
                                           (doc.createdAt ??
@@ -1011,21 +711,8 @@ const DashboardPage = () => {
                     )}
                   </Box>
                 ) : (
-                  <Box
-                    sx={{
-                      textAlign: "center",
-                      py: 4,
-                      backgroundColor: "#FFF",
-                      borderRadius: "12px",
-                    }}
-                  >
-                    <Typography
-                      sx={{
-                        color: "#949494",
-                        fontFamily: "Poppins",
-                        fontSize: "14px",
-                      }}
-                    >
+                  <Box className={styles.emptyState}>
+                    <Typography className={styles.emptyStateText}>
                       {searchQuery
                         ? `No documents found matching "${searchQuery}"`
                         : "No documents found. Start by creating your first document!"}
@@ -1034,172 +721,107 @@ const DashboardPage = () => {
                 )}
               </Box>
 
-              {/* CAMMI Expert Review Table */}
-              <Box sx={{ width: "100%" }}>
-                <Typography
-                  variant="h6"
-                  sx={{
-                    color: "#000",
-                    fontFamily: "Poppins",
-                    fontSize: "20px",
-                    fontWeight: 600,
-                    mb: 1.5,
-                  }}
-                >
-                  CAMMI Expert Review
-                </Typography>
+                {/* CAMMI Expert Review Table */}
+                <Box className={styles.documentsSection}>
+                  <Typography className={styles.sectionTitle}>
+                    CAMMI Expert Review
+                  </Typography>
 
-                <TableContainer
-                  component={Paper}
-                  sx={{
-                    borderRadius: "12px",
-                    width: "100%",
-                    boxShadow: "none",
-                    border: "1px solid #E0E0E0",
-                  }}
-                >
-                  <Table>
-                    <TableHead>
-                      <TableRow>
-                        {[
-                          "No",
-                          "Name",
-                          "Organization",
-                          "Date",
-                          "Project",
-                          "Status",
-                        ].map((header) => (
-                          <TableCell key={header} sx={{ fontWeight: 600 }}>
-                            {header}
-                          </TableCell>
-                        ))}
-                      </TableRow>
-                    </TableHead>
+                  <TableContainer
+                    component={Paper}
+                    elevation={0}
+                    className={styles.tableContainer}
+                  >
+                    <Table>
+                      <TableHead>
+                        <TableRow>
+                          {[
+                            "No",
+                            "Name",
+                            "Organization",
+                            "Date",
+                            "Project",
+                            "Status",
+                          ].map((header) => (
+                            <TableCell key={header} className={styles.tableHeader}>
+                              {header}
+                            </TableCell>
+                          ))}
+                        </TableRow>
+                      </TableHead>
 
-                    <TableBody>
-                      {isLoading ? (
-                        <TableRow>
-                          <TableCell colSpan={6} align="center">
-                            Loading...
-                          </TableCell>
-                        </TableRow>
-                      ) : error ? (
-                        <TableRow>
-                          <TableCell colSpan={6} align="center">
-                            Error loading data
-                          </TableCell>
-                        </TableRow>
-                      ) : data && data.length > 0 ? (
-                        data.map((review: Review, index: number) => (
-                          <TableRow key={review.id ?? index}>
-                            <TableCell>{index + 1}</TableCell>
-                            <TableCell>{review.DocumentName}</TableCell>
-                            <TableCell>{review.Organization}</TableCell>
-                            <TableCell>{review.Date}</TableCell>
-                            <TableCell>{review.Project}</TableCell>
-                            <TableCell>
-                              <Button
-                                variant="contained"
-                                sx={{
-                                  width: "90px",
-                                  height: "27px",
-                                  flexShrink: 0,
-                                  borderRadius: "4.5px",
-                                  backgroundColor:
-                                    review.Status === "Completed"
-                                      ? "rgba(0, 182, 155, 0.2)"
-                                      : "rgba(255, 193, 7, 0.2)",
-                                  color:
-                                    review.Status === "Completed"
-                                      ? "#00B69B"
-                                      : "#FFC107",
-                                  fontFamily: "'Nunito Sans', sans-serif",
-                                  fontSize: "12px",
-                                  fontWeight: 700,
-                                  lineHeight: "normal",
-                                  textTransform: "none",
-                                  minWidth: 0,
-                                  padding: 0,
-                                  boxShadow: "none",
-                                  "&:hover": {
-                                    backgroundColor:
-                                      review.Status === "Completed"
-                                        ? "rgba(0, 182, 155, 0.2)"
-                                        : "rgba(255, 193, 7, 0.2)",
-                                    color:
-                                      review.Status === "Completed"
-                                        ? "#00B69B"
-                                        : "#FFC107",
-                                    boxShadow: "none",
-                                  },
-                                }}
-                              >
-                                {review.Status}
-                              </Button>
+                      <TableBody>
+                        {isLoading ? (
+                          <TableRow>
+                            <TableCell colSpan={6} align="center">
+                              Loading...
                             </TableCell>
                           </TableRow>
-                        ))
-                      ) : (
-                        <TableRow>
-                          <TableCell colSpan={6} align="center">
-                            No data available
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
+                        ) : error ? (
+                          <TableRow>
+                            <TableCell colSpan={6} align="center">
+                              Error loading data
+                            </TableCell>
+                          </TableRow>
+                        ) : data && data.length > 0 ? (
+                          data.map((review: Review, index: number) => (
+                            <TableRow key={review.id ?? index}>
+                              <TableCell>{index + 1}</TableCell>
+                              <TableCell>{review.DocumentName}</TableCell>
+                              <TableCell>{review.Organization}</TableCell>
+                              <TableCell>{review.Date}</TableCell>
+                              <TableCell>{review.Project}</TableCell>
+                              <TableCell>
+                                <Button
+                                  variant="contained"
+                                  className={`${styles.statusButton} ${
+                                    review.Status === "Completed"
+                                      ? styles.completed
+                                      : styles.pending
+                                  }`}
+                                >
+                                  {review.Status}
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        ) : (
+                          <TableRow>
+                            <TableCell colSpan={6} align="center">
+                              No data available
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                </Box>
               </Box>
             </Box>
           </Box>
         </Box>
-      </Box>
 
       {/* Three-dot Menu */}
       <Menu
         anchorEl={menuAnchorEl}
         open={Boolean(menuAnchorEl)}
         onClose={handleMenuClose}
-        sx={{
-          "& .MuiPaper-root": {
-            borderRadius: "8px",
-            boxShadow: "0px 4px 12px rgba(0, 0, 0, 0.1)",
-            minWidth: "140px",
+        slotProps={{
+          paper: {
+            className: styles.menuPaper,
           },
         }}
       >
         <MenuItem
           onClick={handleRenameClick}
-          sx={{
-            fontFamily: "Poppins",
-            fontSize: "13px",
-            py: 1,
-            px: 2,
-            display: "flex",
-            alignItems: "center",
-            gap: 1,
-            "&:hover": {
-              backgroundColor: "rgba(62, 163, 255, 0.1)",
-            },
-          }}
+          className={`${styles.menuItem} ${styles.rename}`}
         >
           <MdDriveFileRenameOutline size={16} color="#3EA3FF" />
           Rename
         </MenuItem>
         <MenuItem
           onClick={handleDeleteClick}
-          sx={{
-            fontFamily: "Poppins",
-            fontSize: "13px",
-            py: 1,
-            px: 2,
-            display: "flex",
-            alignItems: "center",
-            gap: 1,
-            "&:hover": {
-              backgroundColor: "rgba(255, 60, 129, 0.1)",
-            },
-          }}
+          className={`${styles.menuItem} ${styles.delete}`}
         >
           <MdDelete size={16} color="#FF3C81" />
           Delete
@@ -1211,32 +833,22 @@ const DashboardPage = () => {
         open={deleteDialogOpen}
         onClose={handleCancelDelete}
         PaperProps={{
-          sx: {
-            borderRadius: "12px",
-            padding: "8px",
-          },
+          className: styles.dialogPaper,
         }}
       >
-        <DialogTitle sx={{ fontFamily: "Poppins", fontWeight: 600 }}>
+        <DialogTitle className={styles.dialogTitle}>
           Delete Document
         </DialogTitle>
         <DialogContent>
-          <DialogContentText sx={{ fontFamily: "Poppins", fontSize: "14px" }}>
+          <DialogContentText className={styles.dialogContent}>
             Are you sure you want to delete "{documentToDelete?.document_name}"? This action cannot be undone.
           </DialogContentText>
         </DialogContent>
-        <DialogActions sx={{ padding: "16px" }}>
+        <DialogActions className={styles.dialogActions}>
           <Button
             onClick={handleCancelDelete}
             disabled={isDeletingDocument}
-            sx={{
-              fontFamily: "Poppins",
-              textTransform: "none",
-              color: "#666",
-              "&:hover": {
-                backgroundColor: "#F5F5F5",
-              },
-            }}
+            className={styles.dialogCancelButton}
           >
             Cancel
           </Button>
@@ -1244,17 +856,7 @@ const DashboardPage = () => {
             onClick={handleConfirmDelete}
             disabled={isDeletingDocument}
             variant="contained"
-            sx={{
-              fontFamily: "Poppins",
-              textTransform: "none",
-              backgroundColor: "#FF3C81",
-              "&:hover": {
-                backgroundColor: "#E03570",
-              },
-              "&:disabled": {
-                backgroundColor: "#FFB3C9",
-              },
-            }}
+            className={styles.dialogDeleteButton}
           >
             {isDeletingDocument ? (
               <CircularProgress size={20} sx={{ color: "#FFF" }} />
@@ -1267,48 +869,13 @@ const DashboardPage = () => {
 
       {/* Full-Screen Loading Overlay */}
       {showLoadingOverlay && (
-        <Box
-          sx={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: "rgba(0, 0, 0, 0.5)",
-            backdropFilter: "blur(4px)",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 9999,
-            animation: "fadeIn 0.2s ease-in",
-            "@keyframes fadeIn": {
-              from: {
-                opacity: 0,
-              },
-              to: {
-                opacity: 1,
-              },
-            },
-          }}
-        >
+        <Box className={styles.fullScreenOverlay}>
           <CircularProgress
             size={60}
             thickness={4}
-            sx={{
-              color: "#3EA3FF",
-              mb: 2,
-            }}
+            className={styles.overlaySpinner}
           />
-          <Typography
-            sx={{
-              color: "#FFF",
-              fontFamily: "Poppins",
-              fontSize: "18px",
-              fontWeight: 500,
-              mt: 2,
-            }}
-          >
+          <Typography className={styles.overlayText}>
             Loading document...
           </Typography>
         </Box>
